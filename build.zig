@@ -92,6 +92,9 @@ pub fn build(b: *std.Build) void {
     // Add more dependencies for unit testing
     const files = [_][]const u8{
         "src/01_lexic/root.zig",
+        "src/01_lexic/number.zig",
+        "src/01_lexic/token.zig",
+        "src/01_lexic/utils.zig",
     };
     for (files) |file| {
         const file_unit_test = b.addTest(.{
