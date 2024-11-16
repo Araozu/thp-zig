@@ -5,9 +5,6 @@ const thp_version: []const u8 = "0.0.0";
 
 pub fn main() !void {
     try repl();
-
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
 }
 
 fn repl() !void {
@@ -15,18 +12,20 @@ fn repl() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
     try stdout.print("The THP REPL, v{s}\n", .{thp_version});
-    try stdout.print("Enter expressions to evaluate. Enter CTRL-D to exit.\n\n", .{});
+    try stdout.print("Enter expressions to evaluate. Enter CTRL-D to exit.\n", .{});
     try bw.flush();
 
     const stdin = std.io.getStdIn().reader();
 
-    try stdout.print("thp => ", .{});
+    try stdout.print("\nthp => ", .{});
     try bw.flush();
 
-    const user_input = try stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192);
-    defer std.heap.page_allocator.free(user_input);
+    const bare_line = try stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192);
+    defer std.heap.page_allocator.free(bare_line);
+    const line = std.mem.trim(u8, bare_line, "\r");
 
-    try stdout.print("got: `{s}`\n", .{user_input});
+    try lexic.tokenize(line);
+
     try bw.flush();
 }
 
@@ -35,9 +34,4 @@ test "simple test" {
     defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
     try list.append(42);
     try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "new test" {
-    const res = lexic.stub();
-    try std.testing.expectEqual(@as(i32, 322), res);
 }
