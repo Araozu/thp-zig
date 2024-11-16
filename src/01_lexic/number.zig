@@ -22,12 +22,11 @@ pub fn lex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     if (first_char == '0' and cap > start + 1) {
         const second_char = input[start + 1];
         switch (second_char) {
-            'x', 'X' => return hex(input, cap, start),
-            'o', 'O' => return octal(),
-            'b', 'B' => return binary(),
+            'x', 'X' => return prefixed('x', input, cap, start),
+            'o', 'O' => return prefixed('o', input, cap, start),
+            'b', 'B' => return prefixed('b', input, cap, start),
             else => {
                 // Leading zero found. Throw an error.
-                // TODO: throw an error :c
                 return LexError.LeadingZero;
             },
         }
@@ -38,21 +37,28 @@ pub fn lex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     return integer(input, cap, start);
 }
 
-/// Lexes a hexadecimal number.
-/// Allows 0-9a-fA-F
-/// Assumes that `start` is the position of the initial zero
-fn hex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
+/// comptime function for lexing hex, octal and binary numbers.
+/// only allowed values for `prefix` are `x`, `o` & `b`.
+/// An adequate validator is choosen based on `prefix`,
+/// that validator will decide which characters to lex.
+fn prefixed(comptime prefix: u8, input: []const u8, cap: usize, start: usize) !?LexReturn {
+    const validator = switch (prefix) {
+        'x' => utils.is_hex_digit,
+        'o' => utils.is_octal_digit,
+        'b' => utils.is_binary_digit,
+        else => @compileError("Invalid prefix passed to `prefixed` function."),
+    };
+
     var end_position = start + 2;
 
     // There should be at least 1 hex digit
-    if (end_position >= cap or !utils.is_hex_digit(input[end_position])) {
+    if (end_position >= cap or !validator(input[end_position])) {
         return LexError.Incomplete;
     }
 
     // loop through all chars
     end_position += 1;
-
-    while (end_position < cap and utils.is_hex_digit(input[end_position])) {
+    while (end_position < cap and validator(input[end_position])) {
         end_position += 1;
     }
 
@@ -60,10 +66,6 @@ fn hex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
         Token.init(input[start..end_position], TokenType.Int, start),
         end_position,
     };
-}
-
-fn octal() !?LexReturn {
-    return null;
 }
 
 fn binary() !?LexReturn {
@@ -181,6 +183,76 @@ test "shouldnt parse incomplete hex number" {
 
 test "shouldnt parse incomplete hex number 2" {
     const input = "0x";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
+}
+
+test "should lex octal number" {
+    const input = "0o755";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0o755", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "should lex octal number 2" {
+    const input = "  0o755  ";
+    const result = try lex(input, input.len, 2);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0o755", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "shouldnt parse incomplete octal number" {
+    const input = "0o8";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
+}
+
+test "should lex binary number" {
+    const input = "0b1011";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0b1011", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "shouldnt parse incomplete binary number" {
+    const input = "0b2";
     const result = lex(input, input.len, 0) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
         return;
