@@ -21,31 +21,37 @@ const Token = struct {
 };
 
 pub fn tokenize(input: []const u8) !void {
-    const next_token = try number(input, 0);
+    const input_len = input.len;
+    const next_token = try number(input, input_len, 0);
     _ = next_token;
 
     std.debug.print("tokenize :D {s}\n", .{input});
 }
 
-fn number(input: []const u8, start: usize) !?Token {
+fn number(input: []const u8, cap: usize, start: usize) !?Token {
     const first_char = input[start];
-    if (!is_digit(first_char)) {
+    if (!is_decimal_digit(first_char)) {
         return null;
     }
 
-    return Token.init(input[start .. start + 1], TokenType.Int, start);
+    var last_pos = start + 1;
+    while (last_pos < cap and is_decimal_digit(input[last_pos])) {
+        last_pos += 1;
+    }
+
+    return Token.init(input[start..last_pos], TokenType.Int, start);
 }
 
-fn is_digit(c: u8) bool {
+fn is_decimal_digit(c: u8) bool {
     return '0' <= c and c <= '9';
 }
 
 test "number lexer" {
-    const input = "3";
-    const result = try number(input, 0);
+    const input = "322   ";
+    const result = try number(input, input.len, 0);
 
     if (result) |r| {
-        try std.testing.expectEqual("3", r.value);
+        try std.testing.expectEqualDeep("322", r.value);
     } else {
         try std.testing.expect(false);
     }
