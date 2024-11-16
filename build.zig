@@ -85,7 +85,21 @@ pub fn build(b: *std.Build) void {
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request
     // running the unit tests.
-    const test_step = b.step("test", "Run unit tests");
+    const test_step = b.step("test", "Run ALL unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+
+    // Add more dependencies for unit testing
+    const files = [_][]const u8{
+        "src/01_lexic/root.zig",
+    };
+    for (files) |file| {
+        const file_unit_test = b.addTest(.{
+            .root_source_file = b.path(file),
+            .target = target,
+            .optimize = optimize,
+        });
+        var test_artifact = b.addRunArtifact(file_unit_test);
+        test_step.dependOn(&test_artifact.step);
+    }
 }
