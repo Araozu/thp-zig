@@ -4,6 +4,7 @@ const utils = @import("./utils.zig");
 
 const Token = token.Token;
 const TokenType = token.TokenType;
+const LexError = token.LexError;
 
 const is_decimal_digit = utils.is_decimal_digit;
 
@@ -14,20 +15,22 @@ const LexReturn = struct { Token, usize };
 /// A number is either an Int or a Float.
 /// No number can have a leading zero. That is an error to
 /// avoid confussion with PHP literal octals.
-fn lex(input: []const u8, cap: usize, start: usize) !?LexReturn {
+pub fn lex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     const first_char = input[start];
 
     // Attempt to lex a hex, octal or binary number
     if (first_char == '0' and cap > start + 1) {
         const second_char = input[start + 1];
         switch (second_char) {
-            'x', 'X' => return hex(),
+            'x', 'X' => return hex(input, cap, start),
             'o', 'O' => return octal(),
             'b', 'B' => return binary(),
+            else => {
+                // Leading zero found. Throw an error.
+                // TODO: throw an error :c
+                return LexError.LeadingZero;
+            },
         }
-
-        // Leading zero found. Throw an error.
-        // TODO: throw an error :c
     }
 
     // Attempt to lex an integer.
@@ -35,8 +38,28 @@ fn lex(input: []const u8, cap: usize, start: usize) !?LexReturn {
     return integer(input, cap, start);
 }
 
-fn hex() !?LexReturn {
-    return null;
+/// Lexes a hexadecimal number.
+/// Allows 0-9a-fA-F
+/// Assumes that `start` is the position of the initial zero
+fn hex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
+    var end_position = start + 2;
+
+    // There should be at least 1 hex digit
+    if (end_position >= cap or !utils.is_hex_digit(input[end_position])) {
+        return LexError.Incomplete;
+    }
+
+    // loop through all chars
+    end_position += 1;
+
+    while (end_position < cap and utils.is_hex_digit(input[end_position])) {
+        end_position += 1;
+    }
+
+    return .{
+        Token.init(input[start..end_position], TokenType.Int, start),
+        end_position,
+    };
 }
 
 fn octal() !?LexReturn {
@@ -113,4 +136,62 @@ test "should return null if not an integer" {
     const result = try integer(input, input.len, 0);
 
     try std.testing.expect(result == null);
+}
+
+test "should lex hex number" {
+    const input = "0xa";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0xa", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "should lex hex number 2" {
+    const input = "  0Xff00AA  ";
+    const result = try lex(input, input.len, 2);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0Xff00AA", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "shouldnt parse incomplete hex number" {
+    const input = "0xZZ";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
+}
+
+test "shouldnt parse incomplete hex number 2" {
+    const input = "0x";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
 }

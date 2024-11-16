@@ -7,8 +7,13 @@ const Token = token.Token;
 
 pub fn tokenize(input: []const u8) !void {
     const input_len = input.len;
-    const next_token = try number(input, input_len, 0);
-    _ = next_token;
+    const next_token = try number.lex(input, input_len, 0);
 
-    std.debug.print("tokenize :D {s}\n", .{input});
+    if (next_token) |tuple| {
+        const t = tuple[0];
+
+        std.debug.print("{s}\n", .{t.value});
+    } else {
+        std.debug.print("no token found :c", .{});
+    }
 }
