@@ -13,8 +13,6 @@ const LexReturn = struct { Token, usize };
 /// Attempts to lex a number, as per the language grammar.
 ///
 /// A number is either an Int or a Float.
-/// No number can have a leading zero. That is an error to
-/// avoid confussion with PHP literal octals.
 pub fn lex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     const first_char = input[start];
 
@@ -26,8 +24,7 @@ pub fn lex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
             'o', 'O' => return prefixed('o', input, cap, start),
             'b', 'B' => return prefixed('b', input, cap, start),
             else => {
-                // Leading zero found. Throw an error.
-                return LexError.LeadingZero;
+                // Continue
             },
         }
     }
@@ -51,7 +48,7 @@ fn prefixed(comptime prefix: u8, input: []const u8, cap: usize, start: usize) !?
 
     var end_position = start + 2;
 
-    // There should be at least 1 hex digit
+    // There should be at least 1 valid digit
     if (end_position >= cap or !validator(input[end_position])) {
         return LexError.Incomplete;
     }
@@ -68,19 +65,16 @@ fn prefixed(comptime prefix: u8, input: []const u8, cap: usize, start: usize) !?
     };
 }
 
-fn binary() !?LexReturn {
-    return null;
-}
-
 /// Attempts to lex an integer number.
 ///
-/// This function fails if the first digit it encounters is a `0`,
-/// this is because it could cause confusion with PHP literal integers,
-/// where a number that starts with a `0` is octal, not decimal.
+/// This function also attempts to lex a floating point number.
+/// If it succeedes, it returns a floating point token.
+/// Otherwise, it only returns an integer token.
 ///
-/// For this reason, this function should be called after the lexers
-/// for hex, octal and binary have been called.
-fn integer(input: []const u8, cap: usize, start: usize) !?LexReturn {
+/// An integer cannot have a leading zero. That is an error to
+/// avoid confussion with PHP literal octals.
+/// Floating point numbers can.
+fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     const first_char = input[start];
     if (!is_decimal_digit(first_char)) {
         return null;
@@ -91,9 +85,45 @@ fn integer(input: []const u8, cap: usize, start: usize) !?LexReturn {
         last_pos += 1;
     }
 
-    return .{
-        Token.init(input[start..last_pos], TokenType.Int, start),
-        last_pos,
+    // up to here an integer was lexed.
+    // now check if a floating point number can be lexed
+
+    // if we hit eof, return the current integer
+    if (last_pos >= cap) {
+        // leading zero on an integer, throw an error
+        if (first_char == '0') {
+            return LexError.LeadingZero;
+        }
+
+        return .{
+            Token.init(input[start..last_pos], TokenType.Int, start),
+            last_pos,
+        };
+    }
+
+    const next_char = input[last_pos];
+
+    return switch (next_char) {
+        // if a dot is found, lex a fp number
+        '.' => {
+            return null;
+        },
+        // if an `e` (exponential notiation) is found, lex that
+        'e' => {
+            return null;
+        },
+        // otherwise return the current integer
+        else => {
+            // leading zero on an integer, throw an error
+            if (first_char == '0') {
+                return LexError.LeadingZero;
+            }
+
+            return .{
+                Token.init(input[start..last_pos], TokenType.Int, start),
+                last_pos,
+            };
+        },
     };
 }
 
@@ -150,6 +180,23 @@ test "should lex hex number" {
     } else {
         try std.testing.expect(false);
     }
+}
+
+test "should fail on integer with leading zero" {
+    const input = "0322";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.LeadingZero);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
 }
 
 test "should lex hex number 2" {
@@ -267,3 +314,6 @@ test "shouldnt parse incomplete binary number" {
 
     try std.testing.expect(false);
 }
+
+// TODO: test 0.1, the current impl should fail because of the
+// leading zero
