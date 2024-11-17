@@ -24,7 +24,8 @@ Now in Zig!
 
 ## v0.0.1
 
-- [ ] 
+- [x] Lex integers & floating point numbers
+- [ ]
 
 
 

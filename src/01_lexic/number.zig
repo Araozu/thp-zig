@@ -172,10 +172,16 @@ fn scientific(input: []const u8, cap: usize, token_start: usize, exp_pos: usize)
         return LexError.IncompleteScientificNumber;
     }
     current_pos += 1;
+    const digits_start = current_pos;
 
-    // lex digits
+    // lex at least 1 digit
     while (current_pos < cap and utils.is_decimal_digit(input[current_pos])) {
         current_pos += 1;
+    }
+
+    // if there is no difference, no extra digits were lexed.
+    if (digits_start == current_pos) {
+        return LexError.IncompleteScientificNumber;
     }
 
     // return the scientific number
@@ -440,6 +446,23 @@ test "should lex scientific number" {
 
 test "should fail on incomplete scientific number" {
     const input = "123e";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
+}
+
+test "should fail on incomplete scientific number 2" {
+    const input = "123e+";
     const result = lex(input, input.len, 0) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
         return;
