@@ -21,4 +21,5 @@ pub const LexError = error{
     LeadingZero,
     Incomplete,
     IncompleteFloatingNumber,
+    IncompleteScientificNumber,
 };

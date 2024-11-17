@@ -110,7 +110,7 @@ fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
         },
         // if an `e` (exponential notiation) is found, lex that
         'e' => {
-            return null;
+            return scientific(input, cap, start, last_pos);
         },
         // otherwise return the current integer
         else => {
@@ -131,8 +131,8 @@ fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
 ///
 /// token_start: the position the current token started at
 /// decimal_point: the position of the decimal point `.`
-fn floating_point(input: []const u8, cap: usize, token_start: usize, decimal_point: usize) LexError!?LexReturn {
-    var current_pos = decimal_point + 1;
+fn floating_point(input: []const u8, cap: usize, token_start: usize, period_pos: usize) LexError!?LexReturn {
+    var current_pos = period_pos + 1;
 
     // there should be at least 1 digit after the period
     if (current_pos >= cap or !utils.is_decimal_digit(input[current_pos])) {
@@ -147,6 +147,32 @@ fn floating_point(input: []const u8, cap: usize, token_start: usize, decimal_poi
     }
 
     // return the matched fp number
+    return .{
+        Token.init(input[token_start..current_pos], TokenType.Float, token_start),
+        current_pos,
+    };
+}
+
+/// exp_pos is the position at the `e` character
+fn scientific(input: []const u8, cap: usize, token_start: usize, exp_pos: usize) LexError!?LexReturn {
+    var current_pos = exp_pos + 1;
+
+    // expect `+` or `-`
+    if (current_pos >= cap) {
+        return LexError.IncompleteScientificNumber;
+    }
+    const sign_char = input[current_pos];
+    if (sign_char != '+' and sign_char != '-') {
+        return LexError.IncompleteScientificNumber;
+    }
+    current_pos += 1;
+
+    // lex digits
+    while (current_pos < cap and utils.is_decimal_digit(input[current_pos])) {
+        current_pos += 1;
+    }
+
+    // return the scientific number
     return .{
         Token.init(input[token_start..current_pos], TokenType.Float, token_start),
         current_pos,
@@ -381,6 +407,35 @@ test "should fail on incomplete fp number" {
     const input = "123.";
     const result = lex(input, input.len, 0) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
+}
+
+test "should lex scientific number" {
+    const input = "42e+3";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("42e+3", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "should fail on incomplete scientific number" {
+    const input = "123e";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
         return;
     };
 
