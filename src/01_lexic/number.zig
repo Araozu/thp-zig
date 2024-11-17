@@ -106,7 +106,7 @@ fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     return switch (next_char) {
         // if a dot is found, lex a fp number
         '.' => {
-            return null;
+            return floating_point(input, cap, start, last_pos);
         },
         // if an `e` (exponential notiation) is found, lex that
         'e' => {
@@ -124,6 +124,32 @@ fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
                 last_pos,
             };
         },
+    };
+}
+
+/// Trailing periods are an error.
+///
+/// token_start: the position the current token started at
+/// decimal_point: the position of the decimal point `.`
+fn floating_point(input: []const u8, cap: usize, token_start: usize, decimal_point: usize) LexError!?LexReturn {
+    var current_pos = decimal_point + 1;
+
+    // there should be at least 1 digit after the period
+    if (current_pos >= cap or !utils.is_decimal_digit(input[current_pos])) {
+        // This is an error
+        return LexError.IncompleteFloatingNumber;
+    }
+
+    // lex all remaining digits
+    current_pos += 1;
+    while (current_pos < cap and utils.is_decimal_digit(input[current_pos])) {
+        current_pos += 1;
+    }
+
+    // return the matched fp number
+    return .{
+        Token.init(input[token_start..current_pos], TokenType.Float, token_start),
+        current_pos,
     };
 }
 
@@ -315,5 +341,55 @@ test "shouldnt parse incomplete binary number" {
     try std.testing.expect(false);
 }
 
-// TODO: test 0.1, the current impl should fail because of the
-// leading zero
+test "should lex fp number 1" {
+    const input = "1.2";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("1.2", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "should lex fp number 2" {
+    const input = "0.1";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0.1", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "should lex fp number 3" {
+    const input = "123.456";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("123.456", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "should fail on incomplete fp number" {
+    const input = "123.";
+    const result = lex(input, input.len, 0) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    } else {
+        std.debug.print("nil returned", .{});
+    }
+
+    try std.testing.expect(false);
+}

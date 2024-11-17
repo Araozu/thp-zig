@@ -20,4 +20,5 @@ pub const Token = struct {
 pub const LexError = error{
     LeadingZero,
     Incomplete,
+    IncompleteFloatingNumber,
 };
