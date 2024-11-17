@@ -146,6 +146,12 @@ fn floating_point(input: []const u8, cap: usize, token_start: usize, period_pos:
         current_pos += 1;
     }
 
+    // check if the current character is a `e`,
+    // if so lex a scientific number
+    if (current_pos < cap and input[current_pos] == 'e') {
+        return scientific(input, cap, token_start, current_pos);
+    }
+
     // return the matched fp number
     return .{
         Token.init(input[token_start..current_pos], TokenType.Float, token_start),
@@ -447,4 +453,16 @@ test "should fail on incomplete scientific number" {
     }
 
     try std.testing.expect(false);
+}
+
+test "should lex floating scientific number" {
+    const input = "0.58e+3";
+    const result = try lex(input, input.len, 0);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualDeep("0.58e+3", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
 }
