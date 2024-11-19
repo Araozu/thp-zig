@@ -94,6 +94,7 @@ pub fn build(b: *std.Build) void {
         "src/01_lexic/root.zig",
         "src/01_lexic/number.zig",
         "src/01_lexic/identifier.zig",
+        "src/01_lexic/datatype.zig",
         "src/01_lexic/token.zig",
         "src/01_lexic/utils.zig",
     };

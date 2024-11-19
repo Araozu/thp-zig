@@ -22,6 +22,10 @@ pub fn is_lowercase(c: u8) bool {
     return 'a' <= c and c <= 'z';
 }
 
+pub fn is_uppercase(c: u8) bool {
+    return 'A' <= c and c <= 'Z';
+}
+
 pub fn is_lowercase_underscore(c: u8) bool {
     return c == '_' or ('a' <= c and c <= 'z');
 }

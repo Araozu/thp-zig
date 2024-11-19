@@ -27,8 +27,6 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
             break;
         }
     }
-
-    std.debug.print("array list len: {d}", .{tokens.items.len});
 }
 
 /// Ignores all whitespace on `input` since `start`

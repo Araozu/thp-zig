@@ -7,6 +7,7 @@ const TokenType = token.TokenType;
 const LexError = token.LexError;
 const LexReturn = token.LexReturn;
 
+/// Lexes a datatype
 pub fn lex(input: []const u8, start: usize) LexError!?LexReturn {
     const cap = input.len;
     var final_pos = start;
