@@ -1,5 +1,7 @@
 const std = @import("std");
 const number = @import("./number.zig");
+const identifier = @import("./identifier.zig");
+const datatype = @import("./datatype.zig");
 const token = @import("./token.zig");
 
 const TokenType = token.TokenType;
@@ -15,13 +17,32 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
     while (current_pos < input_len) {
         const actual_next_pos = ignore_whitespace(input, current_pos);
 
-        const next_token = try number.lex(input, input_len, actual_next_pos);
-        if (next_token) |tuple| {
+        // attempt to lex a number
+        if (try number.lex(input, input_len, actual_next_pos)) |tuple| {
             const t = tuple[0];
             current_pos = tuple[1];
 
             try tokens.append(t);
-        } else {
+        }
+        // attempt to lex an identifier
+        else if (try identifier.lex(input, actual_next_pos)) |tuple| {
+            const t = tuple[0];
+            current_pos = tuple[1];
+
+            try tokens.append(t);
+        }
+        // attempt to lex a datatype
+        else if (try datatype.lex(input, actual_next_pos)) |tuple| {
+            const t = tuple[0];
+            current_pos = tuple[1];
+
+            try tokens.append(t);
+        }
+        // nothing was matched. fail
+        // TODO: instead of failing add an error, ignore all chars
+        // until next whitespace, and continue lexing
+        // TODO: check if this is a good error recovery strategy
+        else {
             // no lexer matched
             std.debug.print("unmatched args: anytype:c\n", .{});
             break;

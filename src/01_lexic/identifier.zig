@@ -93,6 +93,18 @@ test "should lex identifier 3" {
     }
 }
 
+test "should lex identifier 4" {
+    const input = "identifier_number_3";
+    const output = try lex(input, 0);
+
+    if (output) |tuple| {
+        const t = tuple[0];
+        try std.testing.expectEqualDeep("identifier_number_3", t.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
 test "shouldnt lex datatype" {
     const input = "MyDatatype";
     const output = try lex(input, 0);
