@@ -24,7 +24,10 @@ fn repl() !void {
     defer std.heap.page_allocator.free(bare_line);
     const line = std.mem.trim(u8, bare_line, "\r");
 
-    try lexic.tokenize(line);
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
+
+    try lexic.tokenize(line, alloc);
 
     try bw.flush();
 }
