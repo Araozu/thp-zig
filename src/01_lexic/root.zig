@@ -31,7 +31,7 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
     std.debug.print("array list len: {d}", .{tokens.items.len});
 }
 
-/// Ignores all whitespace from usize,
+/// Ignores all whitespace on `input` since `start`
 /// and returns the position where whitespace ends.
 ///
 /// Whitespace is: tabs, spaces

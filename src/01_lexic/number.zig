@@ -5,10 +5,9 @@ const utils = @import("./utils.zig");
 const Token = token.Token;
 const TokenType = token.TokenType;
 const LexError = token.LexError;
+const LexReturn = token.LexReturn;
 
 const is_decimal_digit = utils.is_decimal_digit;
-
-const LexReturn = struct { Token, usize };
 
 /// Attempts to lex a number, as per the language grammar.
 ///

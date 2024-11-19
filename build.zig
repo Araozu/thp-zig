@@ -93,6 +93,7 @@ pub fn build(b: *std.Build) void {
     const files = [_][]const u8{
         "src/01_lexic/root.zig",
         "src/01_lexic/number.zig",
+        "src/01_lexic/identifier.zig",
         "src/01_lexic/token.zig",
         "src/01_lexic/utils.zig",
     };

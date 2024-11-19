@@ -1,6 +1,7 @@
 pub const TokenType = enum {
     Int,
     Float,
+    Identifier,
 };
 
 pub const Token = struct {
@@ -23,3 +24,7 @@ pub const LexError = error{
     IncompleteFloatingNumber,
     IncompleteScientificNumber,
 };
+
+/// Contains the lexed token and the next position
+/// from which the next lex should start.
+pub const LexReturn = struct { Token, usize };
