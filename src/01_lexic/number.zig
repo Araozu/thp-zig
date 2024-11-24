@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const token = @import("./token.zig");
 const utils = @import("./utils.zig");
 
@@ -13,6 +14,7 @@ const is_decimal_digit = utils.is_decimal_digit;
 ///
 /// A number is either an Int or a Float.
 pub fn lex(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
+    assert(start < cap);
     const first_char = input[start];
 
     // Attempt to lex a hex, octal or binary number
@@ -74,6 +76,7 @@ fn prefixed(comptime prefix: u8, input: []const u8, cap: usize, start: usize) !?
 /// avoid confussion with PHP literal octals.
 /// Floating point numbers can.
 fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
+    assert(start < cap);
     const first_char = input[start];
     if (!is_decimal_digit(first_char)) {
         return null;

@@ -2,6 +2,7 @@ pub const TokenType = enum {
     Int,
     Float,
     Identifier,
+    Operator,
 };
 
 pub const Token = struct {

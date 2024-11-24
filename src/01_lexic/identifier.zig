@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const token = @import("./token.zig");
 const utils = @import("./utils.zig");
 
@@ -11,10 +12,7 @@ const LexReturn = token.LexReturn;
 pub fn lex(input: []const u8, start: usize) LexError!?LexReturn {
     const cap = input.len;
     var final_pos = start;
-
-    if (start >= cap) {
-        return null;
-    }
+    assert(start < cap);
 
     // lex lowercase or underscore
     if (!utils.is_lowercase_underscore(input[start])) {

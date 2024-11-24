@@ -35,6 +35,10 @@ pub fn is_identifier_char(c: u8) bool {
     return c == '_' or ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z') or ('0' <= c and c <= '9');
 }
 
+pub fn is_operator_char(c: u8) bool {
+    return c == '+' or c == '-' or c == '=' or c == '*' or c == '!' or c == '/' or c == '|' or c == '@' or c == '#' or c == '$' or c == '~' or c == '%' or c == '&' or c == '?' or c == '<' or c == '>' or c == '^' or c == '.' or c == ':';
+}
+
 /// Runs a discriminator function at least once,
 /// and returns the end position of the lex.
 ///
@@ -44,7 +48,7 @@ pub fn lex_many_1(
     comptime lex_fun: fn (c: u8) bool,
     input: []const u8,
     start: usize,
-) usize {
+) ?usize {
     // assert that there is input left
     const cap = input.len;
     var current_pos = start;
