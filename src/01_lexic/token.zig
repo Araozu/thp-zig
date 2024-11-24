@@ -3,6 +3,7 @@ pub const TokenType = enum {
     Float,
     Identifier,
     Operator,
+    Comment,
 };
 
 pub const Token = struct {
@@ -24,6 +25,7 @@ pub const LexError = error{
     Incomplete,
     IncompleteFloatingNumber,
     IncompleteScientificNumber,
+    CRLF,
 };
 
 /// Contains the lexed token and the next position
