@@ -4,6 +4,7 @@ pub const TokenType = enum {
     Identifier,
     Operator,
     Comment,
+    String,
 };
 
 pub const Token = struct {
@@ -25,6 +26,7 @@ pub const LexError = error{
     Incomplete,
     IncompleteFloatingNumber,
     IncompleteScientificNumber,
+    IncompleteString,
     CRLF,
 };
 
