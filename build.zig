@@ -100,6 +100,7 @@ pub fn build(b: *std.Build) void {
         "src/01_lexic/string.zig",
         "src/01_lexic/token.zig",
         "src/01_lexic/utils.zig",
+        "src/01_lexic/grouping.zig",
     };
     for (files) |file| {
         const file_unit_test = b.addTest(.{

@@ -6,6 +6,8 @@ const datatype = @import("./datatype.zig");
 const token = @import("./token.zig");
 const operator = @import("./operator.zig");
 const comment = @import("./comment.zig");
+const string = @import("./string.zig");
+const grouping = @import("./grouping.zig");
 
 const TokenType = token.TokenType;
 const Token = token.Token;
@@ -37,6 +39,14 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
 
             try tokens.append(t);
         }
+        // attempt to lex a string
+        else if (try string.lex(input, actual_next_pos)) |tuple| {
+            assert(tuple[1] > current_pos);
+            const t = tuple[0];
+            current_pos = tuple[1];
+
+            try tokens.append(t);
+        }
         // attempt to lex a datatype
         else if (try datatype.lex(input, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);
@@ -55,6 +65,14 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
         }
         // attempt to lex an operator
         else if (try operator.lex(input, actual_next_pos)) |tuple| {
+            assert(tuple[1] > current_pos);
+            const t = tuple[0];
+            current_pos = tuple[1];
+
+            try tokens.append(t);
+        }
+        // attempt to lex grouping signs
+        else if (try grouping.lex(input, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];

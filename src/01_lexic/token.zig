@@ -2,9 +2,22 @@ pub const TokenType = enum {
     Int,
     Float,
     Identifier,
+    Datatype,
     Operator,
     Comment,
     String,
+    // grouping signs
+    LeftParen,
+    RightParen,
+    LeftBracket,
+    RightBracket,
+    LeftBrace,
+    RightBrace,
+    // punctiation that carries special meaning
+    Comma,
+    Newline,
+    // Others
+    Keyword,
 };
 
 pub const Token = struct {

@@ -28,7 +28,7 @@ pub fn lex(input: []const u8, start: usize) LexError!?LexReturn {
     }
 
     return .{
-        Token.init(input[start..final_pos], TokenType.Identifier, start),
+        Token.init(input[start..final_pos], TokenType.Datatype, start),
         final_pos,
     };
 }

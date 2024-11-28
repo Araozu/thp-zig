@@ -18,10 +18,7 @@ pub fn lex(input: []const u8, start: usize) LexError!?LexReturn {
     }
 
     // lex everything but quote and newline
-    // TODO: escape characters
-
     var current_pos = start + 1;
-
     while (current_pos < cap) {
         const next_char = input[current_pos];
         // string is finished, return it
