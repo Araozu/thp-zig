@@ -16,8 +16,7 @@ pub const TokenType = enum {
     // punctiation that carries special meaning
     Comma,
     Newline,
-    // Others
-    Keyword,
+    // Each keyword will have its own token
 };
 
 pub const Token = struct {

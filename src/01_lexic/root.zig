@@ -13,12 +13,13 @@ const punctuation = @import("./punctiation.zig");
 const TokenType = token.TokenType;
 const Token = token.Token;
 
-pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
+// Creates an array list of tokens. The caller is responsible of
+// calling `deinit` to free the array list
+pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
 
     var tokens = std.ArrayList(Token).init(alloc);
-    defer tokens.deinit();
 
     while (current_pos < input_len) {
         const actual_next_pos = ignore_whitespace(input, current_pos);
@@ -98,6 +99,8 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !void {
             break;
         }
     }
+
+    return tokens;
 }
 
 /// Ignores all whitespace on `input` since `start`
@@ -117,10 +120,12 @@ pub fn ignore_whitespace(input: []const u8, start: usize) usize {
 
 test "should insert 1 item" {
     const input = "322";
-    try tokenize(input, std.testing.allocator);
+    const arrl = try tokenize(input, std.testing.allocator);
+    arrl.deinit();
 }
 
 test "should insert 2 item" {
     const input = "322 644";
-    try tokenize(input, std.testing.allocator);
+    const arrl = try tokenize(input, std.testing.allocator);
+    arrl.deinit();
 }

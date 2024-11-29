@@ -24,7 +24,13 @@ Now in Zig!
 
 ## v0.0.1
 
-- [x] Lex integers & floating point numbers
+- [x] Lex numbers
+- [x] Lex identifier
+- [x] Lex datatypes
+- [x] Lex operators
+- [x] Lex single line comments
+- [x] Lex strings
+- [x] Lex grouping signs
 - [ ]
 
 
