@@ -15,26 +15,32 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "thp",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    b.installArtifact(lib);
-
     const exe = b.addExecutable(.{
         .name = "thp",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    //
+    // Lexic module
+    //
+    const lexic_module = b.addModule("lexic", .{
+        .root_source_file = b.path("src/01_lexic/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.addImport("lexic", lexic_module);
+
+    //
+    // Syntax module
+    //
+    const syntax_module = b.addModule("syntax", .{
+        .root_source_file = b.path("src/02_syntax/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.addImport("syntax", syntax_module);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -66,19 +72,13 @@ pub fn build(b: *std.Build) void {
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
-    const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
-
     const exe_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
+    exe_unit_tests.root_module.addImport("lexic", lexic_module);
+    exe_unit_tests.root_module.addImport("syntax", syntax_module);
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -86,22 +86,12 @@ pub fn build(b: *std.Build) void {
     // the `zig build --help` menu, providing a way for the user to request
     // running the unit tests.
     const test_step = b.step("test", "Run ALL unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
 
-    // Add more dependencies for unit testing
+    // Add dependencies for unit testing
     const files = [_][]const u8{
         "src/01_lexic/root.zig",
-        "src/01_lexic/number.zig",
-        "src/01_lexic/identifier.zig",
-        "src/01_lexic/datatype.zig",
-        "src/01_lexic/operator.zig",
-        "src/01_lexic/comment.zig",
-        "src/01_lexic/string.zig",
-        "src/01_lexic/token.zig",
-        "src/01_lexic/utils.zig",
-        "src/01_lexic/grouping.zig",
-        "src/01_lexic/punctiation.zig",
+        "src/02_syntax/root.zig",
     };
     for (files) |file| {
         const file_unit_test = b.addTest(.{
@@ -109,6 +99,9 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
+        file_unit_test.root_module.addImport("lexic", lexic_module);
+        file_unit_test.root_module.addImport("syntax", syntax_module);
+
         var test_artifact = b.addRunArtifact(file_unit_test);
         test_step.dependOn(&test_artifact.step);
     }

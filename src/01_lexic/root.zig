@@ -1,20 +1,20 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const number = @import("./number.zig");
-const identifier = @import("./identifier.zig");
-const datatype = @import("./datatype.zig");
-const token = @import("./token.zig");
-const operator = @import("./operator.zig");
-const comment = @import("./comment.zig");
-const string = @import("./string.zig");
-const grouping = @import("./grouping.zig");
-const punctuation = @import("./punctiation.zig");
+const number = @import("number.zig");
+const identifier = @import("identifier.zig");
+const datatype = @import("datatype.zig");
+const token = @import("token.zig");
+const operator = @import("operator.zig");
+const comment = @import("comment.zig");
+const string = @import("string.zig");
+const grouping = @import("grouping.zig");
+const punctuation = @import("punctiation.zig");
 
 const TokenType = token.TokenType;
 const Token = token.Token;
 
-// Creates an array list of tokens. The caller is responsible of
-// calling `deinit` to free the array list
+/// Creates an array list of tokens. The caller is responsible of
+/// calling `deinit` to free the array list
 pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
@@ -116,6 +116,10 @@ pub fn ignore_whitespace(input: []const u8, start: usize) usize {
     }
 
     return pos;
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }
 
 test "should insert 1 item" {

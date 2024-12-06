@@ -1,7 +1,8 @@
 const std = @import("std");
-const lexic = @import("./01_lexic/root.zig");
+const lexic = @import("lexic");
+const syntax = @import("syntax");
 
-const thp_version: []const u8 = "0.0.0";
+const thp_version: []const u8 = "0.0.1";
 
 pub fn main() !void {
     try repl();
