@@ -10,8 +10,8 @@ const string = @import("string.zig");
 const grouping = @import("grouping.zig");
 const punctuation = @import("punctiation.zig");
 
-const TokenType = token.TokenType;
-const Token = token.Token;
+pub const TokenType = token.TokenType;
+pub const Token = token.Token;
 
 /// Creates an array list of tokens. The caller is responsible of
 /// calling `deinit` to free the array list
