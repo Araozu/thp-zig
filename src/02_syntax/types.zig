@@ -10,6 +10,8 @@ pub const ParseError = error{
     /// For example, a `var` keyword was found, but then no identifier
     /// The parsing should stop
     Error,
+    /// OOM. Fatal error, blows up everything
+    OutOfMemory,
 };
 
 pub const TokenStream = std.ArrayList(lexic.Token);

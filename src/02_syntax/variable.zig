@@ -11,13 +11,11 @@ const VariableBinding = struct {
     is_mutable: bool,
     datatype: ?*lexic.Token,
     identifier: *lexic.Token,
-    expression: expression.Expression,
+    expression: *expression.Expression,
     alloc: std.mem.Allocator,
 
-    fn init(tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!@This() {
+    fn init(target: *VariableBinding, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!void {
         std.debug.assert(pos < tokens.items.len);
-
-        _ = allocator;
 
         // try to parse a var keyword
         const var_keyword = try utils.expect_token_type(lexic.TokenType.K_Var, &tokens.items[pos]);
@@ -33,7 +31,6 @@ const VariableBinding = struct {
         const identifier = utils.expect_token_type(lexic.TokenType.Identifier, &tokens.items[pos + 1]) catch {
             return ParseError.Error;
         };
-        _ = identifier;
 
         // parse equal sign
         if (pos + 2 >= tokens.items.len) return ParseError.Error;
@@ -43,25 +40,36 @@ const VariableBinding = struct {
         _ = equal_sign;
 
         // parse expression
+        if (pos + 3 >= tokens.items.len) return ParseError.Error;
+        var exp = allocator.create(expression.Expression) catch {
+            return ParseError.Error;
+        };
+        errdefer allocator.destroy(exp);
+        try exp.init(tokens, pos + 3);
 
-        // provisional good return value
-        return ParseError.Unmatched;
+        // return
+        target.* = .{
+            .is_mutable = true,
+            .datatype = null,
+            .identifier = identifier,
+            .expression = exp,
+            .alloc = allocator,
+        };
     }
 
     fn deinit(self: *@This()) void {
-        _ = self;
+        self.alloc.destroy(self.expression);
     }
 };
 
 test "should parse a minimal var" {
-    const input = "var my_variable =";
+    const input = "var my_variable = 322";
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
 
-    const binding = VariableBinding.init(&tokens, 0, std.testing.allocator) catch |err| {
-        try std.testing.expectEqual(ParseError.Unmatched, err);
-        return;
-    };
+    var binding: VariableBinding = undefined;
+    try binding.init(&tokens, 0, std.testing.allocator);
+    defer binding.deinit();
 
-    try std.testing.expectEqual(false, binding.is_mutable);
+    try std.testing.expectEqual(true, binding.is_mutable);
 }
