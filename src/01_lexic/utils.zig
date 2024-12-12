@@ -1,3 +1,4 @@
+const std = @import("std");
 const token = @import("./token.zig");
 const LexError = token.LexError;
 const LexReturn = token.LexReturn;
@@ -95,4 +96,8 @@ pub fn lex_many(
     }
 
     return current_pos;
+}
+
+pub inline fn try_keyword(comptime expected: []const u8, actual: []const u8) bool {
+    return std.mem.eql(u8, expected, actual);
 }

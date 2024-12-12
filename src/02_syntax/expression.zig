@@ -4,7 +4,7 @@ const Token = lexic.Token;
 const TokenType = lexic.TokenType;
 const ParseError = @import("./types.zig").ParseError;
 
-const Expression = union(enum) {
+pub const Expression = union(enum) {
     number: *const Token,
 
     /// Attempts to parse an expression from a token stream.

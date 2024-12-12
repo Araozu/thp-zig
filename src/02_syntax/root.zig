@@ -1,21 +1,21 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const expression = @import("./expression.zig");
+const variable = @import("./variable.zig");
+const types = @import("./types.zig");
+
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
-const ParseError = @import("./types.zig").ParseError;
+const ParseError = types.ParseError;
 
 const Statement = union(enum) {
     VariableBinding: u8,
-};
 
-const VariableBinding = struct {
-    is_mutable: bool,
-    datatype: ?*Token,
-    identifier: *Token,
-    expression: expression.Expression,
-
-    fn parse() !@This() {}
+    fn parse(tokens: *const std.ArrayList(Token), pos: usize) ParseError!@This() {
+        _ = tokens;
+        _ = pos;
+        return ParseError.Error;
+    }
 };
 
 test {

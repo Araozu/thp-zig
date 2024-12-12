@@ -17,6 +17,7 @@ pub const TokenType = enum {
     Comma,
     Newline,
     // Each keyword will have its own token
+    K_Var,
 };
 
 pub const Token = struct {
