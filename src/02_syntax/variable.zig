@@ -46,7 +46,9 @@ const VariableBinding = struct {
             return ParseError.Error;
         };
         errdefer allocator.destroy(exp);
-        try exp.init(tokens, pos + 3);
+        exp.init(tokens, pos + 3) catch {
+            return ParseError.Error;
+        };
 
         // return
         target.* = .{
@@ -91,6 +93,62 @@ test "should fail is it doesnt start with var" {
 
 test "should fail if the idenfier is missing" {
     const input = "var ";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var binding: VariableBinding = undefined;
+    binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+        try std.testing.expectEqual(ParseError.Error, err);
+        return;
+    };
+
+    try std.testing.expect(false);
+}
+
+test "should fail if there is not an identifier after var" {
+    const input = "var 322";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var binding: VariableBinding = undefined;
+    binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+        try std.testing.expectEqual(ParseError.Error, err);
+        return;
+    };
+
+    try std.testing.expect(false);
+}
+
+test "should fail if the equal sign is missing" {
+    const input = "var my_id    ";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var binding: VariableBinding = undefined;
+    binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+        try std.testing.expectEqual(ParseError.Error, err);
+        return;
+    };
+
+    try std.testing.expect(false);
+}
+
+test "should fail if the equal sign is not found" {
+    const input = "var my_id is string";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var binding: VariableBinding = undefined;
+    binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+        try std.testing.expectEqual(ParseError.Error, err);
+        return;
+    };
+
+    try std.testing.expect(false);
+}
+
+test "should fail if the expression parsing fails" {
+    const input = "var my_id = ehhh";
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
 
