@@ -25,6 +25,11 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Toke
         const actual_next_pos = ignore_whitespace(input, current_pos);
         assert(current_pos <= actual_next_pos);
 
+        // if after processing whitespace we reach eof, exit
+        if (actual_next_pos == input_len) {
+            break;
+        }
+
         // attempt to lex a number
         if (try number.lex(input, input_len, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);

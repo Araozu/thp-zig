@@ -14,6 +14,7 @@ const VariableBinding = struct {
     expression: *expression.Expression,
     alloc: std.mem.Allocator,
 
+    /// Parses a variable binding
     fn init(target: *VariableBinding, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!void {
         std.debug.assert(pos < tokens.items.len);
 
@@ -57,7 +58,7 @@ const VariableBinding = struct {
         };
     }
 
-    fn deinit(self: *@This()) void {
+    fn deinit(self: *VariableBinding) void {
         self.alloc.destroy(self.expression);
     }
 };
@@ -72,4 +73,32 @@ test "should parse a minimal var" {
     defer binding.deinit();
 
     try std.testing.expectEqual(true, binding.is_mutable);
+}
+
+test "should fail is it doesnt start with var" {
+    const input = "different_token_stream()";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var binding: VariableBinding = undefined;
+    binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+        try std.testing.expectEqual(ParseError.Unmatched, err);
+        return;
+    };
+
+    try std.testing.expect(false);
+}
+
+test "should fail if the idenfier is missing" {
+    const input = "var ";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var binding: VariableBinding = undefined;
+    binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+        try std.testing.expectEqual(ParseError.Error, err);
+        return;
+    };
+
+    try std.testing.expect(false);
 }
