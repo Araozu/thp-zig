@@ -52,5 +52,28 @@ test "should parse a variable declaration statement" {
     try statement.init(&tokens, 0, std.testing.allocator);
     defer statement.deinit();
 
-    // try std.testing.expectEqual(true, statement.is_mutable);
+    switch (statement) {
+        .VariableBinding => |v| {
+            try std.testing.expectEqual(true, v.is_mutable);
+        },
+    }
+}
+
+test "should fail on other constructs" {
+    const input = "a_function_call(322)";
+    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    defer tokens.deinit();
+
+    var statement: Statement = undefined;
+    statement.init(&tokens, 0, std.testing.allocator) catch |e| switch (e) {
+        error.Unmatched => {
+            return;
+        },
+        else => {
+            try std.testing.expect(false);
+            return;
+        },
+    };
+
+    try std.testing.expect(false);
 }
