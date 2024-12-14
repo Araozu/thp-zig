@@ -7,7 +7,7 @@ const utils = @import("./utils.zig");
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
 
-const VariableBinding = struct {
+pub const VariableBinding = struct {
     is_mutable: bool,
     datatype: ?*lexic.Token,
     identifier: *lexic.Token,
@@ -15,7 +15,7 @@ const VariableBinding = struct {
     alloc: std.mem.Allocator,
 
     /// Parses a variable binding
-    fn init(target: *VariableBinding, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!void {
+    pub fn init(target: *VariableBinding, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!void {
         std.debug.assert(pos < tokens.items.len);
 
         // try to parse a var keyword
@@ -42,9 +42,7 @@ const VariableBinding = struct {
 
         // parse expression
         if (pos + 3 >= tokens.items.len) return ParseError.Error;
-        var exp = allocator.create(expression.Expression) catch {
-            return ParseError.Error;
-        };
+        var exp = try allocator.create(expression.Expression);
         errdefer allocator.destroy(exp);
         exp.init(tokens, pos + 3) catch {
             return ParseError.Error;
@@ -60,7 +58,7 @@ const VariableBinding = struct {
         };
     }
 
-    fn deinit(self: *VariableBinding) void {
+    pub fn deinit(self: *VariableBinding) void {
         self.alloc.destroy(self.expression);
     }
 };

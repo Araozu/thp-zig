@@ -94,6 +94,7 @@ pub fn build(b: *std.Build) void {
         "src/02_syntax/root.zig",
         "src/02_syntax/variable.zig",
         "src/02_syntax/expression.zig",
+        "src/02_syntax/statement.zig",
     };
     for (files) |file| {
         const file_unit_test = b.addTest(.{

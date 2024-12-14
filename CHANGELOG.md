@@ -31,8 +31,8 @@ Now in Zig!
 - [x] Lex single line comments
 - [x] Lex strings
 - [x] Lex grouping signs
-- [ ]
-
-
+- [x] Parse minimal expression
+- [x] Parse minimal variable binding
+- [x] Parse minimal statement
 
 
