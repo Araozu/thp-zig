@@ -11,14 +11,16 @@ const ParseError = types.ParseError;
 pub const Statement = union(enum) {
     VariableBinding: *variable.VariableBinding,
 
-    fn init(target: *Statement, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!void {
+    /// Parses a Statement and return the position of the next token
+    pub fn init(target: *Statement, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!usize {
         // try to parse a variable definition
 
         var vardef: variable.VariableBinding = undefined;
         var parse_failed = false;
-        vardef.init(tokens, pos, allocator) catch |err| switch (err) {
-            error.Unmatched => {
+        const vardef_end = vardef.init(tokens, pos, allocator) catch |err| switch (err) {
+            error.Unmatched => blk: {
                 parse_failed = true;
+                break :blk 0;
             },
             else => {
                 return err;
@@ -29,14 +31,14 @@ pub const Statement = union(enum) {
             target.* = .{
                 .VariableBinding = &vardef,
             };
-            return;
+            return vardef_end;
         }
 
         // fail
         return ParseError.Unmatched;
     }
 
-    fn deinit(self: @This()) void {
+    pub fn deinit(self: @This()) void {
         switch (self) {
             .VariableBinding => |v| v.deinit(),
         }
@@ -49,7 +51,7 @@ test "should parse a variable declaration statement" {
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    try statement.init(&tokens, 0, std.testing.allocator);
+    _ = try statement.init(&tokens, 0, std.testing.allocator);
     defer statement.deinit();
 
     switch (statement) {
@@ -65,7 +67,7 @@ test "should fail on other constructs" {
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    statement.init(&tokens, 0, std.testing.allocator) catch |e| switch (e) {
+    _ = statement.init(&tokens, 0, std.testing.allocator) catch |e| switch (e) {
         error.Unmatched => {
             return;
         },

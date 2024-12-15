@@ -10,7 +10,7 @@ pub const Expression = union(enum) {
     /// Attempts to parse an expression from a token stream.
     ///
     /// Receives a pointer to the memory for initialization
-    pub fn init(target: *Expression, tokens: *const std.ArrayList(Token), pos: usize) error{Unmatched}!void {
+    pub fn init(tokens: *const std.ArrayList(Token), pos: usize) error{Unmatched}!Expression {
         std.debug.assert(pos < tokens.items.len);
 
         const t = tokens.items[pos];
@@ -18,7 +18,7 @@ pub const Expression = union(enum) {
             return error.Unmatched;
         }
 
-        target.* = .{
+        return .{
             .number = &t,
         };
     }
@@ -29,8 +29,7 @@ test "should parse expression" {
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
 
-    var expr: Expression = undefined;
-    try expr.init(&tokens, 0);
+    const expr = try Expression.init(&tokens, 0);
     try std.testing.expectEqualDeep("322", expr.number.value);
     try std.testing.expectEqualDeep(TokenType.Int, expr.number.token_type);
 }
@@ -40,8 +39,7 @@ test "should fail on non expression" {
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
 
-    var expr: Expression = undefined;
-    expr.init(&tokens, 0) catch |err| {
+    const expr = Expression.init(&tokens, 0) catch |err| {
         try std.testing.expectEqual(ParseError.Unmatched, err);
         return;
     };
