@@ -11,7 +11,7 @@ pub const VariableBinding = struct {
     is_mutable: bool,
     datatype: ?*lexic.Token,
     identifier: *lexic.Token,
-    expression: *const expression.Expression,
+    expression: *expression.Expression,
     alloc: std.mem.Allocator,
 
     /// Parses a variable binding and returns the position of the next token
@@ -43,7 +43,12 @@ pub const VariableBinding = struct {
         // parse expression
         if (pos + 3 >= tokens.items.len) return ParseError.Error;
 
-        const exp = expression.Expression.init(tokens, pos + 3) catch {
+        // TODO: allocate on the stack
+        const exp = allocator.create(expression.Expression) catch {
+            return ParseError.OutOfMemory;
+        };
+        errdefer allocator.destroy(exp);
+        exp.init(tokens, pos + 3) catch {
             return ParseError.Error;
         };
 
@@ -52,15 +57,15 @@ pub const VariableBinding = struct {
             .is_mutable = true,
             .datatype = null,
             .identifier = identifier,
-            .expression = &exp,
+            .expression = exp,
             .alloc = allocator,
         };
         // TODO: when expression parses more than one token this will break.
         return pos + 4;
     }
 
-    pub fn deinit(self: *VariableBinding) void {
-        _ = self;
+    pub fn deinit(self: @This()) void {
+        self.alloc.destroy(self.expression);
     }
 };
 
@@ -74,6 +79,14 @@ test "should parse a minimal var" {
     defer binding.deinit();
 
     try std.testing.expectEqual(true, binding.is_mutable);
+    try std.testing.expect(binding.datatype == null);
+    try std.testing.expectEqualDeep("my_variable", binding.identifier.value);
+    const expr = binding.expression;
+    switch (expr.*) {
+        .number => |n| {
+            try std.testing.expectEqualDeep("322", n.value);
+        },
+    }
 }
 
 test "should fail is it doesnt start with var" {

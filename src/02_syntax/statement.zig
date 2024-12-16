@@ -8,14 +8,21 @@ const variable = @import("./variable.zig");
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
 
-pub const Statement = union(enum) {
-    VariableBinding: *variable.VariableBinding,
+pub const Statement = struct {
+    alloc: std.mem.Allocator,
+    value: union(enum) {
+        variableBinding: *variable.VariableBinding,
+    },
 
     /// Parses a Statement and return the position of the next token
     pub fn init(target: *Statement, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!usize {
         // try to parse a variable definition
 
-        var vardef: variable.VariableBinding = undefined;
+        var vardef = allocator.create(variable.VariableBinding) catch {
+            return ParseError.OutOfMemory;
+        };
+        errdefer allocator.destroy(vardef);
+
         var parse_failed = false;
         const vardef_end = vardef.init(tokens, pos, allocator) catch |err| switch (err) {
             error.Unmatched => blk: {
@@ -29,7 +36,8 @@ pub const Statement = union(enum) {
         if (!parse_failed) {
             // return the parsed variable definition
             target.* = .{
-                .VariableBinding = &vardef,
+                .alloc = allocator,
+                .value = .{ .variableBinding = vardef },
             };
             return vardef_end;
         }
@@ -39,8 +47,11 @@ pub const Statement = union(enum) {
     }
 
     pub fn deinit(self: @This()) void {
-        switch (self) {
-            .VariableBinding => |v| v.deinit(),
+        switch (self.value) {
+            .variableBinding => |v| {
+                v.deinit();
+                self.alloc.destroy(v);
+            },
         }
     }
 };
@@ -54,8 +65,8 @@ test "should parse a variable declaration statement" {
     _ = try statement.init(&tokens, 0, std.testing.allocator);
     defer statement.deinit();
 
-    switch (statement) {
-        .VariableBinding => |v| {
+    switch (statement.value) {
+        .variableBinding => |v| {
             try std.testing.expectEqual(true, v.is_mutable);
         },
     }

@@ -23,8 +23,6 @@ pub const Module = struct {
 
         // parse many statements
         while (current_pos < input_len) {
-            std.debug.print("running on pos {d} \n", .{current_pos});
-
             // FIXME: if a statement was added to the array list,
             // and then one of these fails,
             // will all previous statements leak memory?
@@ -34,6 +32,7 @@ pub const Module = struct {
             current_pos = next_pos;
 
             arrl.append(stmt) catch {
+                // TODO: free stmt if this fails
                 return ParseError.Error;
             };
         }
@@ -68,6 +67,5 @@ test "should parse a single statement" {
     var module: Module = undefined;
     _ = try module.init(&tokens, 0, std.testing.allocator);
 
-    std.debug.print("len: {d} \n", .{module.statements.items.len});
     defer module.deinit();
 }
