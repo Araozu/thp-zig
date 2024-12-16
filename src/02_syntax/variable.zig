@@ -43,7 +43,6 @@ pub const VariableBinding = struct {
         // parse expression
         if (pos + 3 >= tokens.items.len) return ParseError.Error;
 
-        // TODO: allocate on the stack
         const exp = allocator.create(expression.Expression) catch {
             return ParseError.OutOfMemory;
         };
@@ -103,7 +102,7 @@ test "should fail is it doesnt start with var" {
     try std.testing.expect(false);
 }
 
-test "should fail if the idenfier is missing" {
+test "should fail if the identifier is missing" {
     const input = "var ";
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
