@@ -34,5 +34,6 @@ Now in Zig!
 - [x] Parse minimal expression
 - [x] Parse minimal variable binding
 - [x] Parse minimal statement
+- [x] Parse minimal module
 
 

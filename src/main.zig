@@ -31,5 +31,8 @@ fn repl() !void {
     const tokens = try lexic.tokenize(line, alloc);
     defer tokens.deinit();
 
+    var module_ast: syntax.Module = undefined;
+    try module_ast.init(&tokens, 0, alloc);
+
     try bw.flush();
 }

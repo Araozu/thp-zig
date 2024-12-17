@@ -68,6 +68,7 @@ test "should parse a variable declaration statement" {
     switch (statement.value) {
         .variableBinding => |v| {
             try std.testing.expectEqual(true, v.is_mutable);
+            try std.testing.expectEqualDeep("my_variable", v.identifier.value);
         },
     }
 }

@@ -40,6 +40,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    syntax_module.addImport("lexic", lexic_module);
     exe.root_module.addImport("syntax", syntax_module);
 
     // This declares intent for the executable to be installed into the
@@ -92,9 +93,6 @@ pub fn build(b: *std.Build) void {
     const files = [_][]const u8{
         "src/01_lexic/root.zig",
         "src/02_syntax/root.zig",
-        "src/02_syntax/variable.zig",
-        "src/02_syntax/expression.zig",
-        "src/02_syntax/statement.zig",
     };
     for (files) |file| {
         const file_unit_test = b.addTest(.{
