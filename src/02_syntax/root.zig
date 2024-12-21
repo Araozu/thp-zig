@@ -1,5 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
+const errors = @import("errors");
+
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
 const types = @import("./types.zig");
@@ -14,7 +16,19 @@ pub const Module = struct {
     statements: std.ArrayList(*statement.Statement),
     alloc: std.mem.Allocator,
 
-    pub fn init(target: *@This(), tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!void {
+    /// Parses a module.
+    ///
+    /// If this function fails an error will be returned, and additionally the out parameter
+    /// `error_target` will be populated. If the error returned is OOM, nothing will be there.
+    /// In that case, the caller is responsible for calling the error `deinit` method,
+    /// which will clean it.
+    pub fn init(
+        target: *@This(),
+        tokens: *const TokenStream,
+        pos: usize,
+        allocator: std.mem.Allocator,
+        error_target: *errors.ErrorData,
+    ) ParseError!void {
         var arrl = std.ArrayList(*statement.Statement).init(allocator);
         errdefer arrl.deinit();
         errdefer for (arrl.items) |i| {
@@ -30,7 +44,20 @@ pub const Module = struct {
             var stmt = try allocator.create(statement.Statement);
             errdefer allocator.destroy(stmt);
 
-            const next_pos = try stmt.init(tokens, current_pos, allocator);
+            const next_pos = stmt.init(tokens, current_pos, allocator) catch |e| {
+                switch (e) {
+                    error.Unmatched => {
+                        // create the error value
+                        try error_target.init(
+                            "No statement found",
+                            current_pos,
+                            current_pos + 1,
+                        );
+                        return error.Unmatched;
+                    },
+                    else => return e,
+                }
+            };
             current_pos = next_pos;
 
             try arrl.append(stmt);
@@ -60,8 +87,11 @@ test "should parse a single statement" {
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
 
+    const error_target = try std.testing.allocator.create(errors.ErrorData);
+    defer std.testing.allocator.destroy(error_target);
+
     var module: Module = undefined;
-    _ = try module.init(&tokens, 0, std.testing.allocator);
+    _ = try module.init(&tokens, 0, std.testing.allocator, error_target);
 
     defer module.deinit();
 }
@@ -71,8 +101,11 @@ test "should clean memory if a statement parsing fails after one item has been i
     const tokens = try lexic.tokenize(input, std.testing.allocator);
     defer tokens.deinit();
 
+    const error_target = try std.testing.allocator.create(errors.ErrorData);
+    defer std.testing.allocator.destroy(error_target);
+
     var module: Module = undefined;
-    _ = module.init(&tokens, 0, std.testing.allocator) catch {
+    _ = module.init(&tokens, 0, std.testing.allocator, error_target) catch {
         return;
     };
     defer module.deinit();

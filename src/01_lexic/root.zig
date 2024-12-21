@@ -100,7 +100,6 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Toke
         // TODO: check if this is a good error recovery strategy
         else {
             // no lexer matched
-            std.debug.print("unmatched args: anytype:c\n", .{});
             break;
         }
     }
