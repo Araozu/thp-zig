@@ -29,8 +29,7 @@ fn repl() !void {
     const alloc = gpa.allocator();
     const stdin = std.io.getStdIn().reader();
 
-    var running = true;
-    while (running) {
+    while (true) {
         //
         // Print prompt
         //
@@ -38,16 +37,34 @@ fn repl() !void {
         try bw.flush();
 
         //
-        // Read stdin
+        // Read stdin, break if EOF (C-d)
         //
-        const bare_line = try stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192);
+        const bare_line = stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192) catch |e| switch (e) {
+            error.EndOfStream => {
+                break;
+            },
+            else => return e,
+        };
         defer std.heap.page_allocator.free(bare_line);
         const line = std.mem.trim(u8, bare_line, "\r");
 
         //
         // Tokenize
         //
-        const tokens = try lexic.tokenize(line, alloc);
+        const tokens = lexic.tokenize(line, alloc) catch |e| switch (e) {
+            error.OutOfMemory => {
+                try stdout.print("FATAL ERROR: System Out of Memory!", .{});
+                try bw.flush();
+                return e;
+            },
+            else => {
+                // TODO: implement error handling in the lexer,
+                // and print those errors here
+                try stdout.print("Unknown error while lexing :c\n", .{});
+                try bw.flush();
+                continue;
+            },
+        };
         defer tokens.deinit();
 
         // Trace tokens
@@ -61,7 +78,7 @@ fn repl() !void {
             }
         }
 
-        running = false;
+        // next repl line
     }
 
     // var module_ast: syntax.Module = undefined;
@@ -71,6 +88,7 @@ fn repl() !void {
     //
     // try module_ast.init(&tokens, 0, alloc, parsing_error);
 
+    try stdout.print("\n\nExecution finished. Bye c:\n", .{});
     try bw.flush();
 }
 
