@@ -1,5 +1,7 @@
 const std = @import("std");
 
+/// Holds information about errors generated during the compilation,
+/// and pretty prints them.
 pub const ErrorData = struct {
     reason: []const u8,
     start_position: usize,

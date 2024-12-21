@@ -22,6 +22,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // Declare an option to build the program with debug statements
+    const executionTracing = b.option(bool, "tracing", "enable execution tracing") orelse false;
+    const options = b.addOptions();
+    options.addOption(bool, "tracing", executionTracing);
+
+    exe.root_module.addOptions("config", options);
+
     //
     // Error handling module
     //
