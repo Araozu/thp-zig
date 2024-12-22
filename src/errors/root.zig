@@ -12,7 +12,7 @@ pub const ErrorData = struct {
         reason: []const u8,
         start_position: usize,
         end_position: usize,
-    ) !void {
+    ) void {
         target.* = .{
             .reason = reason,
             .start_position = start_position,
@@ -24,8 +24,7 @@ pub const ErrorData = struct {
         std.debug.print("Error: {s}\n", .{self.reason});
     }
 
-    /// When called, this struct will clean its resources and then
-    /// clean itself.
+    /// Does nothing at the moment
     pub fn deinit(self: *@This()) void {
         _ = self;
     }

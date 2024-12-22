@@ -4,6 +4,7 @@ const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const variable = @import("./variable.zig");
+const errors = @import("errors");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
@@ -58,7 +59,9 @@ pub const Statement = struct {
 
 test "should parse a variable declaration statement" {
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
     var statement: Statement = undefined;
@@ -75,7 +78,9 @@ test "should parse a variable declaration statement" {
 
 test "should fail on other constructs" {
     const input = "a_function_call(322)";
-    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
     var statement: Statement = undefined;

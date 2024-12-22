@@ -48,7 +48,7 @@ pub const Module = struct {
                 switch (e) {
                     error.Unmatched => {
                         // create the error value
-                        try error_target.init(
+                        error_target.init(
                             "No statement found",
                             current_pos,
                             current_pos + 1,
@@ -84,7 +84,9 @@ test {
 
 test "should parse a single statement" {
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
     const error_target = try std.testing.allocator.create(errors.ErrorData);
@@ -98,7 +100,9 @@ test "should parse a single statement" {
 
 test "should clean memory if a statement parsing fails after one item has been inserted" {
     const input = "var my_variable = 322 unrelated()";
-    const tokens = try lexic.tokenize(input, std.testing.allocator);
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
     const error_target = try std.testing.allocator.create(errors.ErrorData);

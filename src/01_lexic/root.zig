@@ -10,17 +10,30 @@ const string = @import("string.zig");
 const grouping = @import("grouping.zig");
 const punctuation = @import("punctiation.zig");
 
+const errors = @import("errors");
+
 pub const TokenType = token.TokenType;
 pub const Token = token.Token;
+const LexError = token.LexError;
 
 /// Creates an array list of tokens. The caller is responsible of
 /// calling `deinit` to free the array list
-pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Token) {
+///
+/// Also takes an arraylist of errors. This will be populated if any errors are
+/// found while lexing. The caller is responsible for freeing it.
+pub fn tokenize(
+    input: []const u8,
+    alloc: std.mem.Allocator,
+    err_arrl: *std.ArrayList(*errors.ErrorData),
+) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
 
     var tokens = std.ArrayList(Token).init(alloc);
     errdefer tokens.deinit();
+
+    var current_error = try alloc.create(errors.ErrorData);
+    defer alloc.destroy(current_error);
 
     while (current_pos < input_len) {
         const actual_next_pos = ignore_whitespace(input, current_pos);
@@ -32,13 +45,30 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Toke
         }
 
         // attempt to lex a number
-        if (try number.lex(input, input_len, actual_next_pos)) |tuple| {
+        const number_lex = number.lex(input, input_len, actual_next_pos, current_error) catch |e| switch (e) {
+            // recoverable errors
+            LexError.Incomplete => {
+                // add to list of errors
+                try err_arrl.append(current_error);
+                // refresh the previous error pointer
+                current_error = try alloc.create(errors.ErrorData);
+
+                // ignore everything until whitespace and loop
+                current_pos = ignore_until_whitespace(input, actual_next_pos);
+                continue;
+            },
+            // just throw unrecoverable errors
+            else => return e,
+        };
+        if (number_lex) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];
 
             try tokens.append(t);
+            continue;
         }
+
         // attempt to lex an identifier
         else if (try identifier.lex(input, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);
@@ -95,13 +125,17 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Toke
 
             try tokens.append(t);
         }
+
         // nothing was matched. fail
         // TODO: instead of failing add an error, ignore all chars
         // until next whitespace, and continue lexing
         // TODO: check if this is a good error recovery strategy
         else {
-            // no lexer matched
-            break;
+            // Create an error "nothing matched" and continue lexing
+            // after the whitespace
+            current_error.init("Unrecognized character", actual_next_pos, actual_next_pos + 1);
+            current_pos = ignore_until_whitespace(input, actual_next_pos);
+            continue;
         }
     }
 
@@ -123,25 +157,45 @@ pub fn ignore_whitespace(input: []const u8, start: usize) usize {
     return pos;
 }
 
+/// Ignores all chars on `input` since `start`
+/// and returns the position where the first whitespace/newline
+/// is found.
+inline fn ignore_until_whitespace(input: []const u8, start: usize) usize {
+    const cap = input.len;
+    var pos = start;
+
+    while (pos < cap and (input[pos] != ' ' or input[pos] != '\t')) {
+        pos += 1;
+    }
+
+    return pos;
+}
+
 test {
     std.testing.refAllDecls(@This());
 }
 
 test "should insert 1 item" {
     const input = "322";
-    const arrl = try tokenize(input, std.testing.allocator);
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const arrl = try tokenize(input, std.testing.allocator, &error_list);
     arrl.deinit();
 }
 
 test "should insert 2 item" {
     const input = "322 644";
-    const arrl = try tokenize(input, std.testing.allocator);
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const arrl = try tokenize(input, std.testing.allocator, &error_list);
     arrl.deinit();
 }
 
 test "should insert an item, fail, and not leak" {
     const input = "322 \"hello";
-    const arrl = tokenize(input, std.testing.allocator) catch |e| switch (e) {
+    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const arrl = tokenize(input, std.testing.allocator, &error_list) catch |e| switch (e) {
         error.IncompleteString => {
             return;
         },
