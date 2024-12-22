@@ -20,6 +20,7 @@ pub fn tokenize(input: []const u8, alloc: std.mem.Allocator) !std.ArrayList(Toke
     var current_pos: usize = 0;
 
     var tokens = std.ArrayList(Token).init(alloc);
+    errdefer tokens.deinit();
 
     while (current_pos < input_len) {
         const actual_next_pos = ignore_whitespace(input, current_pos);
@@ -135,5 +136,20 @@ test "should insert 1 item" {
 test "should insert 2 item" {
     const input = "322 644";
     const arrl = try tokenize(input, std.testing.allocator);
+    arrl.deinit();
+}
+
+test "should insert an item, fail, and not leak" {
+    const input = "322 \"hello";
+    const arrl = tokenize(input, std.testing.allocator) catch |e| switch (e) {
+        error.IncompleteString => {
+            return;
+        },
+        else => {
+            try std.testing.expect(false);
+            return;
+        },
+    };
+    try std.testing.expect(false);
     arrl.deinit();
 }
