@@ -84,7 +84,7 @@ test {
 
 test "should parse a single statement" {
     const input = "var my_variable = 322";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -100,7 +100,7 @@ test "should parse a single statement" {
 
 test "should clean memory if a statement parsing fails after one item has been inserted" {
     const input = "var my_variable = 322 unrelated()";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();

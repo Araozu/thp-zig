@@ -59,7 +59,7 @@ pub const Statement = struct {
 
 test "should parse a variable declaration statement" {
     const input = "var my_variable = 322";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -78,7 +78,7 @@ test "should parse a variable declaration statement" {
 
 test "should fail on other constructs" {
     const input = "a_function_call(322)";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();

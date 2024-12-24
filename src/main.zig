@@ -51,19 +51,16 @@ fn repl() !void {
         //
         // Tokenize
         //
-        const tokens = lexic.tokenize(line, alloc) catch |e| switch (e) {
+        var error_array = std.ArrayList(errors.ErrorData).init(alloc);
+        defer error_array.deinit();
+
+        const tokens = lexic.tokenize(line, alloc, &error_array) catch |e| switch (e) {
             error.OutOfMemory => {
                 try stdout.print("FATAL ERROR: System Out of Memory!", .{});
                 try bw.flush();
                 return e;
             },
-            else => {
-                // TODO: implement error handling in the lexer,
-                // and print those errors here
-                try stdout.print("Unknown error while lexing :c\n", .{});
-                try bw.flush();
-                continue;
-            },
+            else => return e,
         };
         defer tokens.deinit();
 
@@ -76,6 +73,12 @@ fn repl() !void {
                     .{ token.value, @tagName(token.token_type), token.start_pos },
                 );
             }
+        }
+
+        // Print errors
+        for (error_array.items) |err| {
+            try stdout.print("Lex error: {s} at pos {d}\n", .{ err.reason, err.start_position });
+            try bw.flush();
         }
 
         // next repl line

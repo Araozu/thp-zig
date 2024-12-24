@@ -71,7 +71,7 @@ pub const VariableBinding = struct {
 
 test "should parse a minimal var" {
     const input = "var my_variable = 322";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -93,7 +93,7 @@ test "should parse a minimal var" {
 
 test "should fail is it doesnt start with var" {
     const input = "different_token_stream()";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -109,7 +109,7 @@ test "should fail is it doesnt start with var" {
 
 test "should fail if the identifier is missing" {
     const input = "var ";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -125,7 +125,7 @@ test "should fail if the identifier is missing" {
 
 test "should fail if there is not an identifier after var" {
     const input = "var 322";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -141,7 +141,7 @@ test "should fail if there is not an identifier after var" {
 
 test "should fail if the equal sign is missing" {
     const input = "var my_id    ";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -157,7 +157,7 @@ test "should fail if the equal sign is missing" {
 
 test "should fail if the equal sign is not found" {
     const input = "var my_id is string";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -173,7 +173,7 @@ test "should fail if the equal sign is not found" {
 
 test "should fail if the expression parsing fails" {
     const input = "var my_id = ehhh";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();

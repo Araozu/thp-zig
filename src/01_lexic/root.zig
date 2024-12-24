@@ -24,16 +24,13 @@ const LexError = token.LexError;
 pub fn tokenize(
     input: []const u8,
     alloc: std.mem.Allocator,
-    err_arrl: *std.ArrayList(*errors.ErrorData),
+    err_arrl: *std.ArrayList(errors.ErrorData),
 ) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
 
     var tokens = std.ArrayList(Token).init(alloc);
     errdefer tokens.deinit();
-
-    var current_error = try alloc.create(errors.ErrorData);
-    defer alloc.destroy(current_error);
 
     while (current_pos < input_len) {
         const actual_next_pos = ignore_whitespace(input, current_pos);
@@ -45,13 +42,12 @@ pub fn tokenize(
         }
 
         // attempt to lex a number
-        const number_lex = number.lex(input, input_len, actual_next_pos, current_error) catch |e| switch (e) {
+        var current_error: errors.ErrorData = undefined;
+        const number_lex = number.lex(input, input_len, actual_next_pos, &current_error) catch |e| switch (e) {
             // recoverable errors
             LexError.Incomplete => {
                 // add to list of errors
                 try err_arrl.append(current_error);
-                // refresh the previous error pointer
-                current_error = try alloc.create(errors.ErrorData);
 
                 // ignore everything until whitespace and loop
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
@@ -127,13 +123,11 @@ pub fn tokenize(
         }
 
         // nothing was matched. fail
-        // TODO: instead of failing add an error, ignore all chars
-        // until next whitespace, and continue lexing
-        // TODO: check if this is a good error recovery strategy
         else {
             // Create an error "nothing matched" and continue lexing
             // after the whitespace
             current_error.init("Unrecognized character", actual_next_pos, actual_next_pos + 1);
+            try err_arrl.append(current_error);
             current_pos = ignore_until_whitespace(input, actual_next_pos);
             continue;
         }
@@ -177,7 +171,7 @@ test {
 
 test "should insert 1 item" {
     const input = "322";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const arrl = try tokenize(input, std.testing.allocator, &error_list);
     arrl.deinit();
@@ -185,7 +179,7 @@ test "should insert 1 item" {
 
 test "should insert 2 item" {
     const input = "322 644";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const arrl = try tokenize(input, std.testing.allocator, &error_list);
     arrl.deinit();
@@ -193,7 +187,7 @@ test "should insert 2 item" {
 
 test "should insert an item, fail, and not leak" {
     const input = "322 \"hello";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const arrl = tokenize(input, std.testing.allocator, &error_list) catch |e| switch (e) {
         error.IncompleteString => {
@@ -206,4 +200,27 @@ test "should insert an item, fail, and not leak" {
     };
     try std.testing.expect(false);
     arrl.deinit();
+}
+
+test "shouldnt leak" {
+    const input = "";
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const arrl = try tokenize(input, std.testing.allocator, &error_list);
+    arrl.deinit();
+}
+
+test "should handle recoverable errors" {
+    const input = "322 0b 644";
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
+    defer error_list.deinit();
+    const arrl = try tokenize(input, std.testing.allocator, &error_list);
+    defer arrl.deinit();
+
+    try std.testing.expectEqual(@as(usize, 1), error_list.items.len);
+    try std.testing.expectEqual(@as(usize, 2), arrl.items.len);
+
+    try std.testing.expectEqualStrings("Invalid prefix passed to `prefixed` function.", error_list.items[0].reason);
+    try std.testing.expectEqual(@as(usize, 4), error_list.items[0].start_position);
+    try std.testing.expectEqual(@as(usize, 6), error_list.items[0].end_position);
 }

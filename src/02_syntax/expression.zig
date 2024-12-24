@@ -27,7 +27,7 @@ pub const Expression = union(enum) {
 
 test "should parse expression" {
     const input = "322";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
@@ -40,7 +40,7 @@ test "should parse expression" {
 
 test "should fail on non expression" {
     const input = "identifier";
-    var error_list = std.ArrayList(*errors.ErrorData).init(std.testing.allocator);
+    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
