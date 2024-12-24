@@ -158,7 +158,7 @@ inline fn ignore_until_whitespace(input: []const u8, start: usize) usize {
     const cap = input.len;
     var pos = start;
 
-    while (pos < cap and (input[pos] != ' ' or input[pos] != '\t')) {
+    while (pos < cap and (input[pos] != ' ' and input[pos] != '\t')) {
         pos += 1;
     }
 
@@ -220,7 +220,7 @@ test "should handle recoverable errors" {
     try std.testing.expectEqual(@as(usize, 1), error_list.items.len);
     try std.testing.expectEqual(@as(usize, 2), arrl.items.len);
 
-    try std.testing.expectEqualStrings("Invalid prefix passed to `prefixed` function.", error_list.items[0].reason);
+    try std.testing.expectEqualStrings("Incomplete number", error_list.items[0].reason);
     try std.testing.expectEqual(@as(usize, 4), error_list.items[0].start_position);
     try std.testing.expectEqual(@as(usize, 6), error_list.items[0].end_position);
 }
