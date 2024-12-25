@@ -43,7 +43,7 @@ pub fn tokenize(
 
         // attempt to lex a number
         var current_error: errors.ErrorData = undefined;
-        const number_lex = number.lex(input, input_len, actual_next_pos, &current_error) catch |e| switch (e) {
+        const number_lex = number.lex(input, input_len, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
             // recoverable errors
             LexError.Incomplete => {
                 // add to list of errors
@@ -126,7 +126,7 @@ pub fn tokenize(
         else {
             // Create an error "nothing matched" and continue lexing
             // after the whitespace
-            current_error.init("Unrecognized character", actual_next_pos, actual_next_pos + 1);
+            try current_error.init("Unrecognized character", actual_next_pos, actual_next_pos + 1, alloc);
             try err_arrl.append(current_error);
             current_pos = ignore_until_whitespace(input, actual_next_pos);
             continue;

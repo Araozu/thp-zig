@@ -48,10 +48,11 @@ pub const Module = struct {
                 switch (e) {
                     error.Unmatched => {
                         // create the error value
-                        error_target.init(
+                        try error_target.init(
                             "No statement found",
                             current_pos,
                             current_pos + 1,
+                            allocator,
                         );
                         return error.Unmatched;
                     },

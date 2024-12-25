@@ -1,22 +1,33 @@
 const std = @import("std");
 
+pub const ErrorLabel = struct {
+    message: []const u8,
+    start: usize,
+    end: usize,
+};
+
 /// Holds information about errors generated during the compilation,
 /// and pretty prints them.
 pub const ErrorData = struct {
     reason: []const u8,
     start_position: usize,
     end_position: usize,
+    labels: std.ArrayList(ErrorLabel),
+    alloc: std.mem.Allocator,
 
     pub fn init(
         target: *@This(),
         reason: []const u8,
         start_position: usize,
         end_position: usize,
-    ) void {
+        alloc: std.mem.Allocator,
+    ) !void {
         target.* = .{
             .reason = reason,
             .start_position = start_position,
             .end_position = end_position,
+            .labels = std.ArrayList(ErrorLabel).init(alloc),
+            .alloc = alloc,
         };
     }
 
@@ -28,15 +39,11 @@ pub const ErrorData = struct {
         const error_message = try std.fmt.allocPrint(alloc,
             \\Error: {s}
             \\[{s}:{d}:{d}]
-            \\
-            \\ {d} | {s}
         , .{
             self.reason,
             filename,
             faulty_line.line_number,
             faulty_line.column_number,
-            faulty_line.line_number,
-            faulty_line.line,
         });
 
         return error_message;
@@ -47,9 +54,8 @@ pub const ErrorData = struct {
     // - Get previous, current and next line
     // - Display message
 
-    /// Does nothing at the moment
     pub fn deinit(self: *@This()) void {
-        _ = self;
+        self.labels.deinit(self.alloc);
     }
 };
 
@@ -150,6 +156,8 @@ test "should gen error message" {
         .reason = "Invalid identifier",
         .start_position = 6,
         .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
     };
     const out = try err.get_error_str(source, "repl", std.testing.allocator);
     defer std.testing.allocator.free(out);
@@ -157,7 +165,5 @@ test "should gen error message" {
     try std.testing.expectEqualStrings(
         \\Error: Invalid identifier
         \\[repl:1:7]
-        \\
-        \\ 1 | print(ehh)
     , out);
 }

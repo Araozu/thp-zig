@@ -19,6 +19,7 @@ pub fn lex(
     cap: usize,
     start: usize,
     err: *errors.ErrorData,
+    alloc: std.mem.Allocator,
 ) LexError!?LexReturn {
     assert(start < cap);
     const first_char = input[start];
@@ -27,9 +28,9 @@ pub fn lex(
     if (first_char == '0' and cap > start + 1) {
         const second_char = input[start + 1];
         switch (second_char) {
-            'x', 'X' => return prefixed('x', input, cap, start, err),
-            'o', 'O' => return prefixed('o', input, cap, start, err),
-            'b', 'B' => return prefixed('b', input, cap, start, err),
+            'x', 'X' => return prefixed('x', input, cap, start, err, alloc),
+            'o', 'O' => return prefixed('o', input, cap, start, err, alloc),
+            'b', 'B' => return prefixed('b', input, cap, start, err, alloc),
             else => {
                 // Continue
             },
@@ -51,6 +52,7 @@ fn prefixed(
     cap: usize,
     start: usize,
     err: *errors.ErrorData,
+    alloc: std.mem.Allocator,
 ) !?LexReturn {
     const validator = switch (prefix) {
         'x' => utils.is_hex_digit,
@@ -64,7 +66,7 @@ fn prefixed(
     // There should be at least 1 valid digit
     if (end_position >= cap or !validator(input[end_position])) {
         // populate error information
-        err.init("Incomplete number", start, end_position);
+        try err.init("Incomplete number", start, end_position, alloc);
 
         // throw error
         return LexError.Incomplete;
@@ -254,7 +256,7 @@ test "should return null if not an integer" {
 
 test "should lex hex number" {
     const input = "0xa";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -268,7 +270,7 @@ test "should fail on integer with leading zero" {
     const input = "0322";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.LeadingZero);
         return;
     };
@@ -285,7 +287,7 @@ test "should fail on integer with leading zero" {
 
 test "should lex hex number 2" {
     const input = "  0Xff00AA  ";
-    const result = try lex(input, input.len, 2, undefined);
+    const result = try lex(input, input.len, 2, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -299,7 +301,7 @@ test "shouldnt parse incomplete hex number" {
     const input = "0xZZ";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
         return;
     };
@@ -318,7 +320,7 @@ test "shouldnt parse incomplete hex number 2" {
     const input = "0x";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
         return;
     };
@@ -335,7 +337,7 @@ test "shouldnt parse incomplete hex number 2" {
 
 test "should lex octal number" {
     const input = "0o755";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -347,7 +349,7 @@ test "should lex octal number" {
 
 test "should lex octal number 2" {
     const input = "  0o755  ";
-    const result = try lex(input, input.len, 2, undefined);
+    const result = try lex(input, input.len, 2, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -361,7 +363,7 @@ test "shouldnt parse incomplete octal number" {
     const input = "0o8";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
         return;
     };
@@ -378,7 +380,7 @@ test "shouldnt parse incomplete octal number" {
 
 test "should lex binary number" {
     const input = "0b1011";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -392,7 +394,7 @@ test "shouldnt parse incomplete binary number" {
     const input = "0b2";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
         return;
     };
@@ -409,7 +411,7 @@ test "shouldnt parse incomplete binary number" {
 
 test "should lex fp number 1" {
     const input = "1.2";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -423,7 +425,7 @@ test "should lex fp number 2" {
     const input = "0.1";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = try lex(input, input.len, 0, errdata);
+    const result = try lex(input, input.len, 0, errdata, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -435,7 +437,7 @@ test "should lex fp number 2" {
 
 test "should lex fp number 3" {
     const input = "123.456";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -449,7 +451,7 @@ test "should fail on incomplete fp number" {
     const input = "123.";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
         return;
     };
@@ -466,7 +468,7 @@ test "should fail on incomplete fp number" {
 
 test "should lex scientific number" {
     const input = "42e+3";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -480,7 +482,7 @@ test "should fail on incomplete scientific number" {
     const input = "123e";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
         return;
     };
@@ -499,7 +501,7 @@ test "should fail on incomplete scientific number 2" {
     const input = "123e+";
     const errdata = try std.testing.allocator.create(errors.ErrorData);
     defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata) catch |err| {
+    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
         return;
     };
@@ -516,7 +518,7 @@ test "should fail on incomplete scientific number 2" {
 
 test "should lex floating scientific number" {
     const input = "0.58e+3";
-    const result = try lex(input, input.len, 0, undefined);
+    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
