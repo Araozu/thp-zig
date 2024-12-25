@@ -35,5 +35,6 @@ Now in Zig!
 - [x] Parse minimal variable binding
 - [x] Parse minimal statement
 - [x] Parse minimal module
+- [x] Generate error messages
 
 

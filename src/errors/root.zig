@@ -145,7 +145,6 @@ test "should get line from 2 lines (3)" {
 }
 
 test "should gen error message" {
-    // get_error_str
     const source = "print(ehh)";
     var err = ErrorData{
         .reason = "Invalid identifier",

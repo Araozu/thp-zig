@@ -76,9 +76,12 @@ fn repl() !void {
         }
 
         // Print errors
-        for (error_array.items) |err| {
-            try stdout.print("Lex error: {s} at pos {d}\n", .{ err.reason, err.start_position });
+        for (error_array.items) |e| {
+            var err = e;
+            const err_str = try err.get_error_str(line, "repl", std.heap.page_allocator);
+            try stdout.print("\n{s}\n", .{err_str});
             try bw.flush();
+            std.heap.page_allocator.free(err_str);
         }
 
         // next repl line
