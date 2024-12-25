@@ -31,12 +31,20 @@ pub const ErrorData = struct {
         };
     }
 
+    pub fn add_label(self: *@This(), message: []const u8, start: usize, end: usize) !void {
+        try self.labels.append(.{
+            .message = message,
+            .start = start,
+            .end = end,
+        });
+    }
+
     /// Generates an error string. `alloc` is used to create the string,
     /// the caller should call `free` on the returning slice.
     pub fn get_error_str(self: *@This(), source_code: []const u8, filename: []const u8, alloc: std.mem.Allocator) ![]u8 {
         const faulty_line = get_line(source_code, self.start_position);
 
-        const error_message = try std.fmt.allocPrint(alloc,
+        var error_message = try std.fmt.allocPrint(alloc,
             \\Error: {s}
             \\[{s}:{d}:{d}]
         , .{
@@ -45,6 +53,33 @@ pub const ErrorData = struct {
             faulty_line.line_number,
             faulty_line.column_number,
         });
+        errdefer alloc.free(error_message);
+
+        // generate errors for each label, and concat
+        for (self.labels.items) |label| {
+            const label_line = get_line(source_code, label.start);
+
+            const label_error = try std.fmt.allocPrint(alloc,
+                \\
+                \\
+                \\ {d} | {s}
+                \\
+            , .{ label_line.line_number, label_line.line });
+            errdefer alloc.free(label_error);
+
+            // append the previous bytes to the current ones,
+            // in a temp variable
+            const new_bytes = try std.mem.concat(alloc, u8, &[_][]const u8{ error_message, label_error });
+
+            // free the previous bytes
+            alloc.free(label_error);
+            alloc.free(error_message);
+
+            // reference the new bytes
+            error_message = new_bytes;
+
+            // continue
+        }
 
         return error_message;
     }
@@ -55,7 +90,7 @@ pub const ErrorData = struct {
     // - Display message
 
     pub fn deinit(self: *@This()) void {
-        self.labels.deinit(self.alloc);
+        self.labels.deinit();
     }
 };
 
@@ -165,5 +200,30 @@ test "should gen error message" {
     try std.testing.expectEqualStrings(
         \\Error: Invalid identifier
         \\[repl:1:7]
+    , out);
+}
+
+test "should gen error message with label (1)" {
+    const source = "print(ehh)";
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+    };
+    defer err.deinit();
+
+    try err.add_label("This identifier was not found", 6, 9);
+
+    const out = try err.get_error_str(source, "repl", std.testing.allocator);
+    defer std.testing.allocator.free(out);
+
+    try std.testing.expectEqualStrings(
+        \\Error: Invalid identifier
+        \\[repl:1:7]
+        \\
+        \\ 1 | print(ehh)
+        \\
     , out);
 }
