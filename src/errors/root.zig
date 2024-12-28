@@ -59,12 +59,61 @@ pub const ErrorData = struct {
         for (self.labels.items) |label| {
             const label_line = get_line(source_code, label.start);
 
+            // Build the error position indicator
+            const column_number_len_str = try std.fmt.allocPrint(
+                alloc,
+                "{d}",
+                .{label_line.line_number},
+            );
+            const column_number_len = column_number_len_str.len;
+            alloc.free(column_number_len_str);
+
+            // position up to where the error starts
+            const error_start_len = column_number_len + 4 + label_line.column_number - 1;
+            const error_len = label.end - label.start;
+
+            // chars for the error
+            const empty_space_before_indicator = try alloc.alloc(u8, error_start_len);
+            defer alloc.free(empty_space_before_indicator);
+            @memset(empty_space_before_indicator, ' ');
+
+            // top error indicator: unicode box drawing characters in the range U+250x-U+257x (3 bytes)
+            const error_indicator = try alloc.alloc(u8, error_len * 3);
+            defer alloc.free(error_indicator);
+
+            // the first char is always '╭', the rest are lines
+            error_indicator[0] = '\xe2';
+            error_indicator[1] = '\x95';
+            error_indicator[2] = '\xad';
+
+            // set bytes of the rest
+            var i: usize = 1;
+            while (i < error_len) : (i += 1) {
+                // set bytes
+                error_indicator[i * 3 + 0] = '\xe2';
+                error_indicator[i * 3 + 1] = '\x94';
+                error_indicator[i * 3 + 2] = '\x80';
+            }
+
+            // bottom error indicator: always ╰─
+            const bottom_error_indicator = "╰─";
+
             const label_error = try std.fmt.allocPrint(alloc,
                 \\
                 \\
                 \\ {d} | {s}
+                \\{s}{s}
+                \\{s}{s} {s}
                 \\
-            , .{ label_line.line_number, label_line.line });
+            , .{
+                label_line.line_number,
+                label_line.line,
+                empty_space_before_indicator,
+                error_indicator,
+                empty_space_before_indicator,
+                bottom_error_indicator,
+                label.message,
+            });
             errdefer alloc.free(label_error);
 
             // append the previous bytes to the current ones,
@@ -224,6 +273,13 @@ test "should gen error message with label (1)" {
         \\[repl:1:7]
         \\
         \\ 1 | print(ehh)
+        \\           ╭──
+        \\           ╰─ This identifier was not found
         \\
     , out);
 }
+
+// TODO: add more tests:
+// - when the error has len=1
+// - when the error has len=0
+// - when the error spans across 2 lines
