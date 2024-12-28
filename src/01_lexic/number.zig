@@ -67,6 +67,7 @@ fn prefixed(
     if (end_position >= cap or !validator(input[end_position])) {
         // populate error information
         try err.init("Incomplete number", start, end_position, alloc);
+        try err.add_label("Expected a valid digit after the '" ++ [_]u8{prefix} ++ "'", start, end_position);
 
         // throw error
         return LexError.Incomplete;
@@ -303,6 +304,7 @@ test "shouldnt parse incomplete hex number" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
+        defer errdata.deinit();
         return;
     };
 
@@ -322,6 +324,7 @@ test "shouldnt parse incomplete hex number 2" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
+        defer errdata.deinit();
         return;
     };
 
@@ -365,6 +368,7 @@ test "shouldnt parse incomplete octal number" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
+        defer errdata.deinit();
         return;
     };
 
@@ -396,6 +400,7 @@ test "shouldnt parse incomplete binary number" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
+        defer errdata.deinit();
         return;
     };
 

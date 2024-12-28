@@ -214,6 +214,7 @@ test "should handle recoverable errors" {
     const input = "322 0b 644";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
+    defer for (error_list.items) |*err| err.deinit();
     const arrl = try tokenize(input, std.testing.allocator, &error_list);
     defer arrl.deinit();
 

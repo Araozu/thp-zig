@@ -41,6 +41,7 @@ pub const LexError = error{
     IncompleteScientificNumber,
     IncompleteString,
     CRLF,
+    OutOfMemory,
 };
 
 /// Contains the lexed token and the next position

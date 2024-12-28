@@ -10,6 +10,7 @@ pub const ErrorLabel = struct {
 /// and pretty prints them.
 pub const ErrorData = struct {
     reason: []const u8,
+    help: ?[]const u8,
     start_position: usize,
     end_position: usize,
     labels: std.ArrayList(ErrorLabel),
@@ -27,6 +28,7 @@ pub const ErrorData = struct {
             .start_position = start_position,
             .end_position = end_position,
             .labels = std.ArrayList(ErrorLabel).init(alloc),
+            .help = null,
             .alloc = alloc,
         };
     }
@@ -37,6 +39,11 @@ pub const ErrorData = struct {
             .start = start,
             .end = end,
         });
+    }
+
+    /// Sets the help message of this error.
+    pub fn set_help(self: *@This(), help: []const u8) void {
+        self.help = help;
     }
 
     /// Generates an error string. `alloc` is used to create the string,
@@ -238,6 +245,7 @@ test "should gen error message" {
     const source = "print(ehh)";
     var err = ErrorData{
         .reason = "Invalid identifier",
+        .help = null,
         .start_position = 6,
         .end_position = 9,
         .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
@@ -256,6 +264,7 @@ test "should gen error message with label (1)" {
     const source = "print(ehh)";
     var err = ErrorData{
         .reason = "Invalid identifier",
+        .help = null,
         .start_position = 6,
         .end_position = 9,
         .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
