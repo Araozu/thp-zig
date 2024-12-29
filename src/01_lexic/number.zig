@@ -264,7 +264,7 @@ fn scientific(
 
 test "int lexer 1" {
     const input = "322   ";
-    const result = try integer(input, input.len, 0);
+    const result = try integer(input, input.len, 0, undefined, std.heap.page_allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -276,7 +276,7 @@ test "int lexer 1" {
 
 test "int lexer 2" {
     const input = "   644   ";
-    const result = try integer(input, input.len, 3);
+    const result = try integer(input, input.len, 3, undefined, std.heap.page_allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -288,7 +288,7 @@ test "int lexer 2" {
 
 test "int lexer 3" {
     const input = "4";
-    const result = try integer(input, input.len, 0);
+    const result = try integer(input, input.len, 0, undefined, std.heap.page_allocator);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -300,7 +300,7 @@ test "int lexer 3" {
 
 test "should return null if not an integer" {
     const input = "prosor prosor";
-    const result = try integer(input, input.len, 0);
+    const result = try integer(input, input.len, 0, undefined, std.heap.page_allocator);
 
     try std.testing.expect(result == null);
 }
@@ -323,6 +323,7 @@ test "should fail on integer with leading zero" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.LeadingZero);
+        defer errdata.deinit();
         return;
     };
 
@@ -508,6 +509,7 @@ test "should fail on incomplete fp number" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
+        errdata.deinit();
         return;
     };
 
@@ -539,6 +541,7 @@ test "should fail on incomplete scientific number" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
+        defer errdata.deinit();
         return;
     };
 
@@ -558,6 +561,7 @@ test "should fail on incomplete scientific number 2" {
     defer std.testing.allocator.destroy(errdata);
     const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
+        defer errdata.deinit();
         return;
     };
 
