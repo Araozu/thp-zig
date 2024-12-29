@@ -78,10 +78,10 @@ fn repl() !void {
         // Print errors
         for (error_array.items) |e| {
             var err = e;
-            const err_str = try err.get_error_str(line, "repl", std.heap.page_allocator);
+            const err_str = try err.get_error_str(line, "repl", alloc);
             try stdout.print("\n{s}\n", .{err_str});
             try bw.flush();
-            std.heap.page_allocator.free(err_str);
+            alloc.free(err_str);
         }
 
         // next repl line

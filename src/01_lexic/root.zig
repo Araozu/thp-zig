@@ -45,12 +45,13 @@ pub fn tokenize(
         var current_error: errors.ErrorData = undefined;
         const number_lex = number.lex(input, input_len, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
             // recoverable errors
-            LexError.Incomplete => {
+            LexError.Incomplete, LexError.LeadingZero => {
                 // add to list of errors
                 try err_arrl.append(current_error);
 
                 // ignore everything until whitespace and loop
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
+                assert(current_pos > actual_next_pos);
                 continue;
             },
             // just throw unrecoverable errors

@@ -39,7 +39,7 @@ pub fn lex(
 
     // Attempt to lex an integer.
     // Floating point numbers are lexed through the int lexer
-    return integer(input, cap, start);
+    return integer(input, cap, start, err, alloc);
 }
 
 /// comptime function for lexing hex, octal and binary numbers.
@@ -100,7 +100,13 @@ fn prefixed(
 /// An integer cannot have a leading zero. That is an error to
 /// avoid confussion with PHP literal octals.
 /// Floating point numbers can.
-fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
+fn integer(
+    input: []const u8,
+    cap: usize,
+    start: usize,
+    err: *errors.ErrorData,
+    alloc: std.mem.Allocator,
+) LexError!?LexReturn {
     assert(start < cap);
     const first_char = input[start];
     if (!is_decimal_digit(first_char)) {
@@ -119,6 +125,10 @@ fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
     if (last_pos >= cap) {
         // leading zero on an integer, throw an error
         if (first_char == '0') {
+            try err.init("Leading zero", start, start + 1, alloc);
+            try err.add_label("This decimal number has a leading zero.", start, last_pos);
+            err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
+
             return LexError.LeadingZero;
         }
 
@@ -143,6 +153,10 @@ fn integer(input: []const u8, cap: usize, start: usize) LexError!?LexReturn {
         else => {
             // leading zero on an integer, throw an error
             if (first_char == '0') {
+                try err.init("Leading zero", start, start + 1, alloc);
+                try err.add_label("This decimal number has a leading zero.", start, last_pos);
+                err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
+
                 return LexError.LeadingZero;
             }
 
