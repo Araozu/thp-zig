@@ -105,13 +105,25 @@ pub const ErrorData = struct {
             // bottom error indicator: always ╰─
             const bottom_error_indicator = "╰─";
 
+            const help_message: []u8 = msg: {
+                if (self.help) |help_text| {
+                    // this will be manually freed later
+                    break :msg try std.fmt.allocPrint(alloc, "\n Help: {s}", .{help_text});
+                } else {
+                    break :msg "";
+                }
+            };
+            defer if (help_message.len > 0) {
+                alloc.free(help_message);
+            };
+
             const label_error = try std.fmt.allocPrint(alloc,
                 \\
                 \\
                 \\ {d} | {s}
                 \\{s}{s}
                 \\{s}{s} {s}
-                \\
+                \\{s}
             , .{
                 label_line.line_number,
                 label_line.line,
@@ -120,6 +132,7 @@ pub const ErrorData = struct {
                 empty_space_before_indicator,
                 bottom_error_indicator,
                 label.message,
+                help_message,
             });
             errdefer alloc.free(label_error);
 
@@ -285,6 +298,36 @@ test "should gen error message with label (1)" {
         \\           ╭──
         \\           ╰─ This identifier was not found
         \\
+    , out);
+}
+
+test "should gen error message with label and help" {
+    const source = "print(ehh)";
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .help = null,
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+    };
+    defer err.deinit();
+
+    try err.add_label("This identifier was not found", 6, 9);
+    err.set_help("Define the identifier");
+
+    const out = try err.get_error_str(source, "repl", std.testing.allocator);
+    defer std.testing.allocator.free(out);
+
+    try std.testing.expectEqualStrings(
+        \\Error: Invalid identifier
+        \\[repl:1:7]
+        \\
+        \\ 1 | print(ehh)
+        \\           ╭──
+        \\           ╰─ This identifier was not found
+        \\
+        \\ Help: Define the identifier
     , out);
 }
 
