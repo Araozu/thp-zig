@@ -143,11 +143,11 @@ fn integer(
     return switch (next_char) {
         // if a dot is found, lex a fp number
         '.' => {
-            return floating_point(input, cap, start, last_pos);
+            return floating_point(input, cap, start, last_pos, err, alloc);
         },
         // if an `e` (exponential notiation) is found, lex that
         'e' => {
-            return scientific(input, cap, start, last_pos);
+            return scientific(input, cap, start, last_pos, err, alloc);
         },
         // otherwise return the current integer
         else => {
@@ -172,12 +172,23 @@ fn integer(
 ///
 /// token_start: the position the current token started at
 /// decimal_point: the position of the decimal point `.`
-fn floating_point(input: []const u8, cap: usize, token_start: usize, period_pos: usize) LexError!?LexReturn {
+fn floating_point(
+    input: []const u8,
+    cap: usize,
+    token_start: usize,
+    period_pos: usize,
+    err: *errors.ErrorData,
+    alloc: std.mem.Allocator,
+) LexError!?LexReturn {
     var current_pos = period_pos + 1;
 
     // there should be at least 1 digit after the period
     if (current_pos >= cap or !utils.is_decimal_digit(input[current_pos])) {
         // This is an error
+        try err.init("Incomplete floating point number", token_start, current_pos, alloc);
+        try err.add_label("This number is incomplete", token_start, current_pos);
+        err.set_help("Add a number after the period");
+
         return LexError.IncompleteFloatingNumber;
     }
 
@@ -190,7 +201,7 @@ fn floating_point(input: []const u8, cap: usize, token_start: usize, period_pos:
     // check if the current character is a `e`,
     // if so lex a scientific number
     if (current_pos < cap and input[current_pos] == 'e') {
-        return scientific(input, cap, token_start, current_pos);
+        return scientific(input, cap, token_start, current_pos, err, alloc);
     }
 
     // return the matched fp number
@@ -201,15 +212,30 @@ fn floating_point(input: []const u8, cap: usize, token_start: usize, period_pos:
 }
 
 /// exp_pos is the position at the `e` character
-fn scientific(input: []const u8, cap: usize, token_start: usize, exp_pos: usize) LexError!?LexReturn {
+fn scientific(
+    input: []const u8,
+    cap: usize,
+    token_start: usize,
+    exp_pos: usize,
+    err: *errors.ErrorData,
+    alloc: std.mem.Allocator,
+) LexError!?LexReturn {
     var current_pos = exp_pos + 1;
 
     // expect `+` or `-`
     if (current_pos >= cap) {
+        try err.init("Incomplete scientific point number", token_start, current_pos, alloc);
+        try err.add_label("Expected a '+' or '-' after the exponent", token_start, current_pos);
+        err.set_help("Add a sign and a digit to complete the scientific number");
+
         return LexError.IncompleteScientificNumber;
     }
     const sign_char = input[current_pos];
     if (sign_char != '+' and sign_char != '-') {
+        try err.init("Incomplete scientific point number", current_pos, current_pos + 1, alloc);
+        try err.add_label("Expected a '+' or '-' here, found another char", current_pos, current_pos + 1);
+        err.set_help("Add a sign and a digit after the first 'e' to complete the scientific number");
+
         return LexError.IncompleteScientificNumber;
     }
     current_pos += 1;
@@ -222,6 +248,10 @@ fn scientific(input: []const u8, cap: usize, token_start: usize, exp_pos: usize)
 
     // if there is no difference, no extra digits were lexed.
     if (digits_start == current_pos) {
+        try err.init("Incomplete scientific point number", current_pos - 1, current_pos, alloc);
+        try err.add_label("Expected at least one digit after this sign", current_pos - 1, current_pos);
+        err.set_help("Add a digit after the sign to complit the scientific number");
+
         return LexError.IncompleteScientificNumber;
     }
 

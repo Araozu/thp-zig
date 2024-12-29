@@ -45,7 +45,7 @@ pub fn tokenize(
         var current_error: errors.ErrorData = undefined;
         const number_lex = number.lex(input, input_len, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
             // recoverable errors
-            LexError.Incomplete, LexError.LeadingZero => {
+            LexError.Incomplete, LexError.LeadingZero, LexError.IncompleteFloatingNumber, LexError.IncompleteScientificNumber => {
                 // add to list of errors
                 try err_arrl.append(current_error);
 
