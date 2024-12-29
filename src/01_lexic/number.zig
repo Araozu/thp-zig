@@ -68,6 +68,12 @@ fn prefixed(
         // populate error information
         try err.init("Incomplete number", start, end_position, alloc);
         try err.add_label("Expected a valid digit after the '" ++ [_]u8{prefix} ++ "'", start, end_position);
+        switch (prefix) {
+            'x' => err.set_help("Hex numbers should have at least one 0-9a-fA-F after the x"),
+            'o' => err.set_help("Octal numbers should have at least one 0-7 after the o"),
+            'b' => err.set_help("Binary numbers should have at least one 0-1 after the b"),
+            else => @compileError("Invalid prefix passed to `prefixed` function."),
+        }
 
         // throw error
         return LexError.Incomplete;
