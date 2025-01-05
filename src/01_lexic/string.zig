@@ -193,3 +193,5 @@ test "should fail on newline after backslash" {
 
     try std.testing.expect(false);
 }
+
+// TODO: test error messages
