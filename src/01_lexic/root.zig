@@ -101,17 +101,29 @@ pub fn tokenize(
             current_pos = tuple[1];
 
             try tokens.append(t);
+            continue;
         }
+
         // attempt to lex a comment
-        else if (try comment.lex(input, actual_next_pos)) |tuple| {
+        const comment_lex = comment.lex(input, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
+            LexError.CRLF => {
+                try err_arrl.append(current_error);
+                current_pos = ignore_until_whitespace(input, actual_next_pos);
+                continue;
+            },
+            else => return e,
+        };
+        if (comment_lex) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];
 
             try tokens.append(t);
+            continue;
         }
+
         // attempt to lex an operator
-        else if (try operator.lex(input, actual_next_pos)) |tuple| {
+        if (try operator.lex(input, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];

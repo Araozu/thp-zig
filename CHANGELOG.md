@@ -35,7 +35,5 @@ Now in Zig!
 - [x] Parse minimal variable binding
 - [x] Parse minimal statement
 - [x] Parse minimal module
-- [x] Generate error messages on number lexing
-- [x] Generate error messages on string lexing
-
+- [x] Recuperate errors & generate error messages for the lexer
 
