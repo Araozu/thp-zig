@@ -41,8 +41,9 @@ pub fn tokenize(
             break;
         }
 
-        // attempt to lex a number
         var current_error: errors.ErrorData = undefined;
+
+        // attempt to lex a number
         const number_lex = number.lex(input, input_len, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
             // recoverable errors
             LexError.Incomplete, LexError.LeadingZero, LexError.IncompleteFloatingNumber, LexError.IncompleteScientificNumber => {
@@ -51,7 +52,6 @@ pub fn tokenize(
 
                 // ignore everything until whitespace and loop
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
-                assert(current_pos > actual_next_pos);
                 continue;
             },
             // just throw unrecoverable errors
@@ -66,24 +66,36 @@ pub fn tokenize(
             continue;
         }
 
-        // attempt to lex an identifier
-        else if (try identifier.lex(input, actual_next_pos)) |tuple| {
+        // attempt to lex an identifier. identifier parsing has no errors
+        if (try identifier.lex(input, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];
 
             try tokens.append(t);
+            continue;
         }
+
         // attempt to lex a string
-        else if (try string.lex(input, actual_next_pos)) |tuple| {
+        const str_lex = string.lex(input, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
+            LexError.IncompleteString => {
+                try err_arrl.append(current_error);
+                current_pos = ignore_until_whitespace(input, actual_next_pos);
+                continue;
+            },
+            else => return e,
+        };
+        if (str_lex) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];
 
             try tokens.append(t);
+            continue;
         }
+
         // attempt to lex a datatype
-        else if (try datatype.lex(input, actual_next_pos)) |tuple| {
+        if (try datatype.lex(input, actual_next_pos)) |tuple| {
             assert(tuple[1] > current_pos);
             const t = tuple[0];
             current_pos = tuple[1];
@@ -190,17 +202,17 @@ test "should insert an item, fail, and not leak" {
     const input = "322 \"hello";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
+    defer for (error_list.items) |*i| {
+        i.deinit();
+    };
+
     const arrl = tokenize(input, std.testing.allocator, &error_list) catch |e| switch (e) {
-        error.IncompleteString => {
-            return;
-        },
         else => {
             try std.testing.expect(false);
             return;
         },
     };
-    try std.testing.expect(false);
-    arrl.deinit();
+    defer arrl.deinit();
 }
 
 test "shouldnt leak" {
