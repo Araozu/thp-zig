@@ -1,10 +1,5 @@
 const std = @import("std");
-
-pub const ErrorLabel = struct {
-    message: []const u8,
-    start: usize,
-    end: usize,
-};
+pub const ErrorLabel = @import("./error_label.zig").ErrorLabel;
 
 /// Holds information about errors generated during the compilation,
 /// and pretty prints them.
@@ -157,6 +152,12 @@ pub const ErrorData = struct {
     // - transform absolute position into line:column
     // - Get previous, current and next line
     // - Display message
+
+    /// Transform this error into a JSON
+    pub fn json(alloc: std.mem.Allocator) void {
+        _ = alloc;
+        std.debug.panic(":c");
+    }
 
     pub fn deinit(self: *@This()) void {
         self.labels.deinit();
