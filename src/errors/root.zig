@@ -363,6 +363,31 @@ test "should serialize a minimal error" {
     try std.testing.expectEqualStrings(expected, out_writer.items);
 }
 
+test "should serialize a complex error" {
+    var err = ErrorData{
+        .reason = "Invalid \"hello\"",
+        .help = "Try to do better",
+        .start_position = 0,
+        .end_position = 1,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+    };
+    defer err.deinit();
+
+    try err.add_label("This one", 0, 32);
+    try err.add_label("And this other", 32, 64);
+
+    var out_writer = std.ArrayList(u8).init(std.testing.allocator);
+    defer out_writer.deinit();
+
+    try err.write_json(std.testing.allocator, out_writer.writer());
+
+    const expected =
+        \\{"reason":"Invalid \"hello\"","help":"Try to do better","start_position":0,"end_position":1,"labels":[{"message":"This one","start":0,"end":32},{"message":"And this other","start":32,"end":64}]}
+    ;
+    try std.testing.expectEqualStrings(expected, out_writer.items);
+}
+
 // TODO: add more tests:
 // - when the error has len=1
 // - when the error has len=0
