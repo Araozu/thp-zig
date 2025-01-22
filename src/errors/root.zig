@@ -153,10 +153,20 @@ pub const ErrorData = struct {
     // - Get previous, current and next line
     // - Display message
 
-    /// Transform this error into a JSON
-    pub fn json(alloc: std.mem.Allocator) void {
-        _ = alloc;
-        std.debug.panic(":c");
+    /// Writes this error as a JSON to the writer
+    pub fn write_json(self: ErrorData, alloc: std.mem.Allocator, writer: std.ArrayList(u8).Writer) !void {
+        // get this as JSON
+        const json_str = try std.json.stringifyAlloc(alloc, .{
+            .reason = self.reason,
+            .help = self.help,
+            .start_position = self.start_position,
+            .end_position = self.end_position,
+            .labels = self.labels.items,
+        }, .{});
+        defer alloc.free(json_str);
+
+        // write the JSON to the writer
+        try writer.writeAll(json_str);
     }
 
     pub fn deinit(self: *@This()) void {
@@ -330,6 +340,27 @@ test "should gen error message with label and help" {
         \\
         \\ Help: Define the identifier
     , out);
+}
+
+test "should serialize a minimal error" {
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .help = null,
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+    };
+    defer err.deinit();
+    var out_writer = std.ArrayList(u8).init(std.testing.allocator);
+    defer out_writer.deinit();
+
+    try err.write_json(std.testing.allocator, out_writer.writer());
+
+    const expected =
+        \\{"reason":"Invalid identifier","help":null,"start_position":6,"end_position":9,"labels":[]}
+    ;
+    try std.testing.expectEqualStrings(expected, out_writer.items);
 }
 
 // TODO: add more tests:

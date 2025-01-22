@@ -3,6 +3,8 @@ const lexic = @import("lexic");
 const syntax = @import("syntax");
 const errors = @import("errors");
 
+const cli = @import("cli.zig");
+
 const tracing = @import("config").tracing;
 
 const thp_version: []const u8 = "0.0.1";
@@ -12,6 +14,19 @@ pub fn main() !void {
 }
 
 fn repl() !void {
+    // first check to see if we are serializing tokens
+    var args = std.process.args();
+    defer args.deinit();
+
+    // ignore executable
+    _ = args.next();
+    if (args.next()) |arg| {
+        if (std.mem.eql(u8, "lex", arg)) {
+            try cli.tokenize_to_json();
+            return;
+        }
+    }
+
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
