@@ -31,11 +31,24 @@ pub fn tokenize_to_json() !void {
     defer tokens.deinit();
 
     // serialize & print json to stdout
-    const json_out = try std.json.stringifyAlloc(alloc, .{
-        .errors = error_array.items,
-    }, .{});
-    defer alloc.free(json_out);
-    try stdout.print("{s}", .{json_out});
+    var json_arrl = std.ArrayList(u8).init(alloc);
+    defer json_arrl.deinit();
+    var json_writer = json_arrl.writer();
+
+    try json_writer.writeAll("{\"errors\":[");
+
+    const errors_len = error_array.items.len - 1;
+    for (error_array.items, 0..) |err, idx| {
+        try err.write_json(alloc, json_writer);
+
+        // write a comma only if there are items left
+        if (idx < errors_len) {
+            try json_writer.writeAll(",");
+        }
+    }
+    try json_writer.writeAll("]}");
+
+    try stdout.print("{s}", .{json_arrl.items});
     try bw.flush();
 
     // the end
