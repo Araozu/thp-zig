@@ -35,5 +35,6 @@ Now in Zig!
 - [x] Parse minimal variable binding
 - [x] Parse minimal statement
 - [x] Parse minimal module
-- [x] Recuperate errors & generate error messages for the lexer
+- [x] Recover errors & generate error messages for the lexer
+- [x] Serialize lex errors/tokens into JSON
 
