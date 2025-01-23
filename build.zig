@@ -5,10 +5,13 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Create options module for tracing
+    // Create options module for conditional compilation
     const executionTracing = b.option(bool, "tracing", "enable execution tracing") orelse false;
+    const json_serialization = b.option(bool, "json", "enable JSON serialization of the compiler outputs") orelse false;
+
     const options = b.addOptions();
     options.addOption(bool, "tracing", executionTracing);
+    options.addOption(bool, "json", json_serialization);
 
     // Create the options module that will be shared
     const options_module = options.createModule();

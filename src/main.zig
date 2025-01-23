@@ -5,7 +5,9 @@ const errors = @import("errors");
 
 const cli = @import("cli.zig");
 
-const tracing = @import("config").tracing;
+const config = @import("config");
+const tracing = config.tracing;
+const json = config.json;
 
 const thp_version: []const u8 = "0.0.1";
 
@@ -18,12 +20,16 @@ fn repl() !void {
     var args = std.process.args();
     defer args.deinit();
 
+    // If compiling for JSON serialization, enable the binary `lex` command
+
     // ignore executable
     _ = args.next();
     if (args.next()) |arg| {
-        if (std.mem.eql(u8, "lex", arg)) {
-            try cli.tokenize_to_json();
-            return;
+        if (json) {
+            if (std.mem.eql(u8, "lex", arg)) {
+                try cli.tokenize_to_json();
+                return;
+            }
         }
     }
 
