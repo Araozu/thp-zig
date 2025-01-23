@@ -3,14 +3,8 @@ pipeline {
 
 	stages {
 		stage('Build binary with JSON flag') {
-			agent {
-				docker {
-					reuseNode true
-					image 'denisgolius/zig:0.13.0'
-				}
-			}
 			steps {
-				sh 'zig build -Djson=true -Doptimize=ReleaseSmall'
+				sh 'docker run -v $PWD:/app denisgolius/zig:0.13.0 build -Djson=true -Doptimize=ReleaseSmall'
 			}
 		}
 		stage('Move binary') {
