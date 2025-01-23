@@ -6,7 +6,7 @@ pipeline {
 			agent {
 				docker {
 					reuseNode true
-					image 'eloitor/zig:0.13.0'
+					image 'denisgolius/zig:0.13.0'
 				}
 			}
 			steps {
