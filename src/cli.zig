@@ -46,7 +46,15 @@ pub fn tokenize_to_json() !void {
             try json_writer.writeAll(",");
         }
     }
-    try json_writer.writeAll("]}");
+    try json_writer.writeAll("],\"tokens\":");
+
+    // write tokens as JSON
+    const tokens_json = try std.json.stringifyAlloc(alloc, tokens.items, .{});
+    defer alloc.free(tokens_json);
+
+    try json_writer.writeAll(tokens_json);
+
+    try json_writer.writeAll("}");
 
     try stdout.print("{s}", .{json_arrl.items});
     try bw.flush();
