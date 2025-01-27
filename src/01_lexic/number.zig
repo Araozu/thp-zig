@@ -123,8 +123,10 @@ fn integer(
 
     // if we hit eof, return the current integer
     if (last_pos >= cap) {
-        // leading zero on an integer, throw an error
-        if (first_char == '0') {
+        // if there is a leading zero, two possibilities:
+        // - a number with a leading zero. throw an error
+        // - a single zero. valid
+        if (first_char == '0' and last_pos > start + 1) {
             try err.init("Leading zero", start, start + 1, alloc);
             try err.add_label("This decimal number has a leading zero.", start, last_pos);
             err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
@@ -293,6 +295,19 @@ test "int lexer 3" {
     if (result) |tuple| {
         const r = tuple[0];
         try std.testing.expectEqualDeep("4", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "int lexer 4: should lex a single zero" {
+    const input = "0";
+    var err: errors.ErrorData = undefined;
+    const result = try integer(input, input.len, 0, &err, std.heap.page_allocator);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0", r.value);
     } else {
         try std.testing.expect(false);
     }

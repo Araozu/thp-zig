@@ -1,11 +1,10 @@
 # Typed Hypertext Preprocessor
 
-The latest rewrite of the THP programming language.
+The latest & greatest rewrite of the THP programming language.
 Now in Zig!
 
 ## TODO
 
-- [ ] Rewrite lexer
 - [ ] Rewrite parser
 - [ ] Rewrite semantic analyzer
 - [ ] Rewrite type checker
@@ -37,4 +36,5 @@ Now in Zig!
 - [x] Parse minimal module
 - [x] Recover errors & generate error messages for the lexer
 - [x] Serialize lex errors/tokens into JSON
+- [x] Rewrite lexer
 
