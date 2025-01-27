@@ -96,14 +96,25 @@ fn repl() !void {
             }
         }
 
-        // Print errors
-        for (error_array.items) |e| {
-            var err = e;
-            const err_str = try err.get_error_str(line, "repl", alloc);
-            try stdout.print("\n{s}\n", .{err_str});
-            try bw.flush();
-            alloc.free(err_str);
+        // Print errors and continue, if any
+        if (error_array.items.len > 0) {
+            for (error_array.items) |e| {
+                var err = e;
+                const err_str = try err.get_error_str(line, "repl", alloc);
+                try stdout.print("\n{s}\n", .{err_str});
+                try bw.flush();
+                alloc.free(err_str);
+            }
+            continue;
         }
+
+        std.debug.print("should be syntax analizing the tokens...\n", .{});
+
+        //
+        // Syntax analysis
+        //
+        var ast: syntax.Module = undefined;
+        try ast.init(&tokens, 0, alloc, &error_array);
 
         // next repl line
     }

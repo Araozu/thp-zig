@@ -27,7 +27,7 @@ pub const Module = struct {
         tokens: *const TokenStream,
         pos: usize,
         allocator: std.mem.Allocator,
-        error_target: *errors.ErrorData,
+        err_arrl: *std.ArrayList(errors.ErrorData),
     ) ParseError!void {
         var arrl = std.ArrayList(*statement.Statement).init(allocator);
         errdefer arrl.deinit();
@@ -48,12 +48,15 @@ pub const Module = struct {
                 switch (e) {
                     error.Unmatched => {
                         // create the error value
+                        var error_target: errors.ErrorData = undefined;
                         try error_target.init(
                             "No statement found",
                             current_pos,
                             current_pos + 1,
                             allocator,
                         );
+                        defer error_target.deinit();
+                        try err_arrl.append(error_target);
                         return error.Unmatched;
                     },
                     else => return e,
@@ -90,11 +93,8 @@ test "should parse a single statement" {
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
-    const error_target = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(error_target);
-
     var module: Module = undefined;
-    _ = try module.init(&tokens, 0, std.testing.allocator, error_target);
+    _ = try module.init(&tokens, 0, std.testing.allocator, &error_list);
 
     defer module.deinit();
 }
@@ -106,11 +106,8 @@ test "should clean memory if a statement parsing fails after one item has been i
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
-    const error_target = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(error_target);
-
     var module: Module = undefined;
-    _ = module.init(&tokens, 0, std.testing.allocator, error_target) catch {
+    _ = module.init(&tokens, 0, std.testing.allocator, &error_list) catch {
         return;
     };
     defer module.deinit();

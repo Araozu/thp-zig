@@ -41,6 +41,7 @@ pub fn tokenize(
             break;
         }
 
+        // FIXME: should defer deinit, otherwise we leak memory?
         var current_error: errors.ErrorData = undefined;
 
         // attempt to lex a number
@@ -49,6 +50,8 @@ pub fn tokenize(
             LexError.Incomplete, LexError.LeadingZero, LexError.IncompleteFloatingNumber, LexError.IncompleteScientificNumber => {
                 // add to list of errors
                 try err_arrl.append(current_error);
+
+                // FIXME: should deinit current_error now that its been allocated, otherwise we leak memory?
 
                 // ignore everything until whitespace and loop
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
