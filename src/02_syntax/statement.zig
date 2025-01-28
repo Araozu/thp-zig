@@ -29,26 +29,16 @@ pub const Statement = struct {
         };
         errdefer allocator.destroy(vardef);
 
-        var parse_failed = false;
-        const vardef_end = vardef.init(tokens, pos, allocator) catch |err| switch (err) {
-            error.Unmatched => blk: {
-                parse_failed = true;
-                break :blk 0;
-            },
-            else => {
-                return err;
-            },
-        };
-        if (vardef_end) |v| {
-            if (!parse_failed) {
-                // return the parsed variable definition
-                target.* = .{
-                    .alloc = allocator,
-                    .value = .{ .variableBinding = vardef },
-                };
-                return v;
-            }
+        if (try vardef.init(tokens, pos, allocator)) |vardef_end| {
+            // variable definition parsed
+            // return the parsed variable definition
+            target.* = .{
+                .alloc = allocator,
+                .value = .{ .variableBinding = vardef },
+            };
+            return vardef_end;
         }
+        // TODO: handle other errors of vardef parsing
 
         // fail
         return ParseError.Unmatched;
