@@ -33,11 +33,13 @@ pub const VariableBinding = struct {
         // check there is still input
         if (pos + 1 >= tokens.items.len) {
             // return error
+            // TODO: populate error information
             return ParseError.Error;
         }
 
         // try to parse an identifier
         const identifier = if (utils.expect_token_type(lexic.TokenType.Identifier, &tokens.items[pos + 1])) |i| i else {
+            // TODO: populate error information
             return ParseError.Error;
         };
 
@@ -51,14 +53,12 @@ pub const VariableBinding = struct {
         // parse expression
         if (pos + 3 >= tokens.items.len) return ParseError.Error;
 
-        const exp = allocator.create(expression.Expression) catch {
-            return ParseError.OutOfMemory;
-        };
+        const exp = try allocator.create(expression.Expression);
         errdefer allocator.destroy(exp);
-        const res = exp.init(tokens, pos + 3);
-        if (res == null) {
+        const next_pos = if (exp.init(tokens, pos + 3)) |x| x else {
+            // TODO: populate error information
             return ParseError.Error;
-        }
+        };
 
         // return
         target.* = .{
@@ -68,8 +68,7 @@ pub const VariableBinding = struct {
             .expression = exp,
             .alloc = allocator,
         };
-        // TODO: when expression parses more than one token this will break.
-        return pos + 4;
+        return next_pos;
     }
 
     pub fn deinit(self: @This()) void {

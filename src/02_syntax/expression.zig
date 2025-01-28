@@ -10,8 +10,9 @@ pub const Expression = union(enum) {
 
     /// Attempts to parse an expression from a token stream.
     ///
-    /// Receives a pointer to the memory for initialization
-    pub fn init(self: *@This(), tokens: *const std.ArrayList(Token), pos: usize) ?void {
+    /// Receives a pointer to the memory for initialization,
+    /// returns the position of the next token
+    pub fn init(self: *@This(), tokens: *const std.ArrayList(Token), pos: usize) ?usize {
         std.debug.assert(pos < tokens.items.len);
 
         const t = tokens.items[pos];
@@ -22,6 +23,7 @@ pub const Expression = union(enum) {
         self.* = .{
             .number = &t,
         };
+        return pos + 1;
     }
 };
 
