@@ -3,7 +3,6 @@ const lexic = @import("lexic");
 const errors = @import("errors");
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
-const ParseError = @import("./types.zig").ParseError;
 
 pub const Expression = union(enum) {
     number: *const Token,

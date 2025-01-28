@@ -13,7 +13,7 @@ const ParseError = types.ParseError;
 const TokenStream = types.TokenStream;
 
 pub const Module = struct {
-    statements: std.ArrayList(*statement.Statement),
+    statements: std.ArrayList(statement.Statement),
     alloc: std.mem.Allocator,
 
     /// Parses a module.
@@ -29,11 +29,10 @@ pub const Module = struct {
         allocator: std.mem.Allocator,
         err_arrl: *std.ArrayList(errors.ErrorData),
     ) ParseError!void {
-        var arrl = std.ArrayList(*statement.Statement).init(allocator);
+        var arrl = std.ArrayList(statement.Statement).init(allocator);
         errdefer arrl.deinit();
         errdefer for (arrl.items) |i| {
             i.deinit();
-            allocator.destroy(i);
         };
 
         const input_len = tokens.items.len;
@@ -41,30 +40,27 @@ pub const Module = struct {
 
         // parse many statements
         while (current_pos < input_len) {
-            var stmt = try allocator.create(statement.Statement);
-            errdefer allocator.destroy(stmt);
+            var stmt: statement.Statement = undefined;
 
-            const next_pos = stmt.init(tokens, current_pos, allocator) catch |e| {
-                switch (e) {
-                    error.Unmatched => {
-                        // create the error value
-                        var error_target: errors.ErrorData = undefined;
-                        try error_target.init(
-                            "No statement found",
-                            current_pos,
-                            current_pos + 1,
-                            allocator,
-                        );
-                        defer error_target.deinit();
-                        try err_arrl.append(error_target);
-                        return error.Unmatched;
-                    },
-                    else => return e,
-                }
-            };
-            current_pos = next_pos;
+            // TODO: handle other errors of vardef parsing
+            const next_pos = try stmt.init(tokens, current_pos, allocator);
+            if (next_pos) |next_pos_actual| {
+                current_pos = next_pos_actual;
 
-            try arrl.append(stmt);
+                try arrl.append(stmt);
+                continue;
+            }
+
+            // nothing matched, but there are tokens. this in an error
+            var err: errors.ErrorData = undefined;
+            try err.init(
+                "No statement matched",
+                current_pos,
+                current_pos + 1,
+                allocator,
+            );
+            try err_arrl.append(err);
+            return error.Error;
         }
 
         target.* = .{
@@ -76,7 +72,6 @@ pub const Module = struct {
     pub fn deinit(self: @This()) void {
         for (self.statements.items) |stmt| {
             stmt.deinit();
-            self.alloc.destroy(stmt);
         }
         self.statements.deinit();
     }

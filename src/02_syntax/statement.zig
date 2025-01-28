@@ -21,14 +21,13 @@ pub const Statement = struct {
         tokens: *const TokenStream,
         pos: usize,
         allocator: std.mem.Allocator,
-    ) ParseError!usize {
+    ) ParseError!?usize {
         // try to parse a variable definition
 
-        var vardef = allocator.create(variable.VariableBinding) catch {
-            return ParseError.OutOfMemory;
-        };
+        var vardef = try allocator.create(variable.VariableBinding);
         errdefer allocator.destroy(vardef);
 
+        // TODO: handle other errors of vardef parsing
         if (try vardef.init(tokens, pos, allocator)) |vardef_end| {
             // variable definition parsed
             // return the parsed variable definition
@@ -38,10 +37,10 @@ pub const Statement = struct {
             };
             return vardef_end;
         }
-        // TODO: handle other errors of vardef parsing
 
-        // fail
-        return ParseError.Unmatched;
+        // manually deallocate
+        allocator.destroy(vardef);
+        return null;
     }
 
     pub fn deinit(self: @This()) void {
@@ -81,15 +80,11 @@ test "should fail on other constructs" {
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    _ = statement.init(&tokens, 0, std.testing.allocator) catch |e| switch (e) {
-        error.Unmatched => {
-            return;
-        },
-        else => {
-            try std.testing.expect(false);
-            return;
-        },
-    };
+    const result = try statement.init(&tokens, 0, std.testing.allocator);
+    if (result == null) {
+        // good path
+        return;
+    }
 
     try std.testing.expect(false);
 }
