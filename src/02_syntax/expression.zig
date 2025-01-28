@@ -11,12 +11,12 @@ pub const Expression = union(enum) {
     /// Attempts to parse an expression from a token stream.
     ///
     /// Receives a pointer to the memory for initialization
-    pub fn init(self: *@This(), tokens: *const std.ArrayList(Token), pos: usize) error{Unmatched}!void {
+    pub fn init(self: *@This(), tokens: *const std.ArrayList(Token), pos: usize) ?void {
         std.debug.assert(pos < tokens.items.len);
 
         const t = tokens.items[pos];
         if (t.token_type != TokenType.Int) {
-            return error.Unmatched;
+            return null;
         }
 
         self.* = .{
@@ -33,9 +33,12 @@ test "should parse expression" {
     defer tokens.deinit();
 
     var expr: Expression = undefined;
-    try expr.init(&tokens, 0);
-    try std.testing.expectEqualDeep("322", expr.number.value);
-    try std.testing.expectEqualDeep(TokenType.Int, expr.number.token_type);
+    if (expr.init(&tokens, 0)) |_| {
+        try std.testing.expectEqualDeep("322", expr.number.value);
+        try std.testing.expectEqualDeep(TokenType.Int, expr.number.token_type);
+        return;
+    }
+    try std.testing.expect(false);
 }
 
 test "should fail on non expression" {
@@ -46,11 +49,10 @@ test "should fail on non expression" {
     defer tokens.deinit();
 
     var expr: Expression = undefined;
-    expr.init(&tokens, 0) catch |err| {
-        try std.testing.expectEqual(ParseError.Unmatched, err);
-        return;
-    };
+    if (expr.init(&tokens, 0)) |_| {
+        std.debug.print("v: {s}", .{expr.number.value});
+        try std.testing.expect(false);
+    }
 
-    std.debug.print("v: {s}", .{expr.number.value});
-    try std.testing.expect(false);
+    return;
 }

@@ -48,9 +48,10 @@ pub const VariableBinding = struct {
             return ParseError.OutOfMemory;
         };
         errdefer allocator.destroy(exp);
-        exp.init(tokens, pos + 3) catch {
+        const res = exp.init(tokens, pos + 3);
+        if (res == null) {
             return ParseError.Error;
-        };
+        }
 
         // return
         target.* = .{
