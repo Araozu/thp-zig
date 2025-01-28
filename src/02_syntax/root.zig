@@ -41,9 +41,19 @@ pub const Module = struct {
         // parse many statements
         while (current_pos < input_len) {
             var stmt: statement.Statement = undefined;
+            var current_error: errors.ErrorData = undefined;
 
             // TODO: handle other errors of vardef parsing
-            const next_pos = try stmt.init(tokens, current_pos, allocator);
+            const next_pos = stmt.init(tokens, current_pos, &current_error, allocator) catch |e| switch (e) {
+                error.Error => {
+                    // add the error to the list of errors,
+                    // and exit for now because i havent implemented
+                    // error recovery yet
+                    try err_arrl.append(current_error);
+                    return error.Error;
+                },
+                else => return e,
+            };
             if (next_pos) |next_pos_actual| {
                 current_pos = next_pos_actual;
 

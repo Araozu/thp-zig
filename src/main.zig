@@ -74,6 +74,10 @@ fn repl() !void {
         //
         var error_array = std.ArrayList(errors.ErrorData).init(alloc);
         defer error_array.deinit();
+        defer for (error_array.items) |item| {
+            var i = item;
+            i.deinit();
+        };
 
         const tokens = lexic.tokenize(line, alloc, &error_array) catch |e| switch (e) {
             error.OutOfMemory => {
@@ -114,7 +118,20 @@ fn repl() !void {
         // Syntax analysis
         //
         var ast: syntax.Module = undefined;
-        try ast.init(&tokens, 0, alloc, &error_array);
+        ast.init(&tokens, 0, alloc, &error_array) catch |e| switch (e) {
+            error.Error => {
+                // Print all the errors
+                for (error_array.items) |ee| {
+                    var err_item = ee;
+                    const err_str = try err_item.get_error_str(line, "repl", alloc);
+                    try stdout.print("\n{s}\n", .{err_str});
+                    try bw.flush();
+                    alloc.free(err_str);
+                }
+                continue;
+            },
+            else => return e,
+        };
 
         // next repl line
     }

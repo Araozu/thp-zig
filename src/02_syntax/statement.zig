@@ -20,6 +20,7 @@ pub const Statement = struct {
         target: *Statement,
         tokens: *const TokenStream,
         pos: usize,
+        err: *errors.ErrorData,
         allocator: std.mem.Allocator,
     ) ParseError!?usize {
         // try to parse a variable definition
@@ -27,8 +28,8 @@ pub const Statement = struct {
         var vardef = try allocator.create(variable.VariableBinding);
         errdefer allocator.destroy(vardef);
 
-        // TODO: handle other errors of vardef parsing
-        if (try vardef.init(tokens, pos, undefined, allocator)) |vardef_end| {
+        const vardef_result = try vardef.init(tokens, pos, err, allocator);
+        if (vardef_result) |vardef_end| {
             // variable definition parsed
             // return the parsed variable definition
             target.* = .{
@@ -61,7 +62,7 @@ test "should parse a variable declaration statement" {
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    _ = try statement.init(&tokens, 0, std.testing.allocator);
+    _ = try statement.init(&tokens, 0, undefined, std.testing.allocator);
     defer statement.deinit();
 
     switch (statement.value) {
@@ -80,7 +81,7 @@ test "should fail on other constructs" {
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    const result = try statement.init(&tokens, 0, std.testing.allocator);
+    const result = try statement.init(&tokens, 0, undefined, std.testing.allocator);
     if (result == null) {
         // good path
         return;
