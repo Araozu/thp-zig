@@ -16,7 +16,12 @@ pub const Statement = struct {
     },
 
     /// Parses a Statement and return the position of the next token
-    pub fn init(target: *Statement, tokens: *const TokenStream, pos: usize, allocator: std.mem.Allocator) ParseError!usize {
+    pub fn init(
+        target: *Statement,
+        tokens: *const TokenStream,
+        pos: usize,
+        allocator: std.mem.Allocator,
+    ) ParseError!usize {
         // try to parse a variable definition
 
         var vardef = allocator.create(variable.VariableBinding) catch {
@@ -34,13 +39,15 @@ pub const Statement = struct {
                 return err;
             },
         };
-        if (!parse_failed) {
-            // return the parsed variable definition
-            target.* = .{
-                .alloc = allocator,
-                .value = .{ .variableBinding = vardef },
-            };
-            return vardef_end;
+        if (vardef_end) |v| {
+            if (!parse_failed) {
+                // return the parsed variable definition
+                target.* = .{
+                    .alloc = allocator,
+                    .value = .{ .variableBinding = vardef },
+                };
+                return v;
+            }
         }
 
         // fail
