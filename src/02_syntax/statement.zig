@@ -28,7 +28,7 @@ pub const Statement = struct {
         errdefer allocator.destroy(vardef);
 
         // TODO: handle other errors of vardef parsing
-        if (try vardef.init(tokens, pos, allocator)) |vardef_end| {
+        if (try vardef.init(tokens, pos, undefined, allocator)) |vardef_end| {
             // variable definition parsed
             // return the parsed variable definition
             target.* = .{

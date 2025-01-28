@@ -20,6 +20,7 @@ pub const VariableBinding = struct {
         target: *VariableBinding,
         tokens: *const TokenStream,
         pos: usize,
+        err: *errors.ErrorData,
         allocator: std.mem.Allocator,
     ) ParseError!?usize {
         std.debug.assert(pos < tokens.items.len);
@@ -28,12 +29,22 @@ pub const VariableBinding = struct {
         const var_keyword = if (utils.expect_token_type(lexic.TokenType.K_Var, &tokens.items[pos])) |t| t else {
             return null;
         };
-        _ = var_keyword;
 
         // check there is still input
         if (pos + 1 >= tokens.items.len) {
             // return error
-            // TODO: populate error information
+            try err.init(
+                "Incomplete variable declaration",
+                var_keyword.start_pos,
+                var_keyword.start_pos + var_keyword.value.len,
+                allocator,
+            );
+            try err.add_label(
+                "This variable declaration is incomplete",
+                var_keyword.start_pos,
+                var_keyword.start_pos + var_keyword.value.len,
+            );
+
             return ParseError.Error;
         }
 
@@ -84,7 +95,7 @@ test "should parse a minimal var" {
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = try binding.init(&tokens, 0, std.testing.allocator);
+    _ = try binding.init(&tokens, 0, undefined, std.testing.allocator);
     defer binding.deinit();
 
     try std.testing.expectEqual(true, binding.is_mutable);
@@ -106,7 +117,7 @@ test "should return null if stream doesnt start with var" {
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    if (try binding.init(&tokens, 0, std.testing.allocator)) |_| {
+    if (try binding.init(&tokens, 0, undefined, std.testing.allocator)) |_| {
         try std.testing.expect(false);
     }
 }
@@ -118,9 +129,18 @@ test "should fail if the identifier is missing" {
     const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
     defer tokens.deinit();
 
+    var error_data: errors.ErrorData = undefined;
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, &error_data, std.testing.allocator) catch |err| {
+        defer error_data.deinit();
         try std.testing.expectEqual(ParseError.Error, err);
+        try std.testing.expectEqualStrings("Incomplete variable declaration", error_data.reason);
+        try std.testing.expectEqual(0, error_data.start_position);
+        try std.testing.expectEqual(3, error_data.end_position);
+        try std.testing.expectEqual(1, error_data.labels.items.len);
+        const l = error_data.labels.items[0];
+        try std.testing.expectEqual(0, l.start);
+        try std.testing.expectEqual(3, l.end);
         return;
     };
 
@@ -135,7 +155,7 @@ test "should fail if there is not an identifier after var" {
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
@@ -151,7 +171,7 @@ test "should fail if the equal sign is missing" {
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
@@ -167,7 +187,7 @@ test "should fail if the equal sign is not found" {
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
@@ -183,7 +203,7 @@ test "should fail if the expression parsing fails" {
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
