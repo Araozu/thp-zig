@@ -113,6 +113,7 @@ pub fn build(b: *std.Build) void {
         "src/01_lexic/root.zig",
         "src/02_syntax/root.zig",
         "src/errors/root.zig",
+        "src/context/root.zig",
     };
     for (files) |file| {
         const file_unit_test = b.addTest(.{

@@ -208,6 +208,22 @@ pub const ErrorData = struct {
     // - Get previous, current and next line
     // - Display message
 
+    /// Writes this error as a JSON to the writer
+    pub fn write_json(self: ErrorData, alloc: std.mem.Allocator, writer: anytype) !void {
+        // get this as JSON
+        const json_str = try std.json.stringifyAlloc(alloc, .{
+            .reason = self.reason,
+            .help = self.help,
+            .start_position = self.start_position,
+            .end_position = self.end_position,
+            .labels = self.labels.items,
+        }, .{});
+        defer alloc.free(json_str);
+
+        // write the JSON to the writer
+        try writer.writeAll(json_str);
+    }
+
     pub fn deinit(self: *ErrorData, allocator: std.mem.Allocator) void {
         // Clean any labels. Those are assumed to have been initialized
         // by the same allocator this function receives
@@ -280,3 +296,188 @@ fn get_line(input: []const u8, at: usize) LineInfo {
         .column_number = column_number,
     };
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}
+
+test "should get a single line" {
+    const input = "print(hello)";
+    const at = 4;
+    const output = get_line(input, at);
+
+    try std.testing.expectEqualStrings("print(hello)", output.line);
+    try std.testing.expectEqual(1, output.line_number);
+    try std.testing.expectEqual(5, output.column_number);
+}
+
+test "should get line from 2 lines (1)" {
+    const input = "print(hello)\nprint(bye)";
+    const at = 4;
+    const output = get_line(input, at);
+
+    try std.testing.expectEqualStrings("print(hello)", output.line);
+    try std.testing.expectEqual(1, output.line_number);
+    try std.testing.expectEqual(5, output.column_number);
+}
+
+test "should get line from 2 lines (2)" {
+    const input = "print(hello)\nprint(bye)";
+    const at = 15;
+    const output = get_line(input, at);
+
+    try std.testing.expectEqualStrings("print(bye)", output.line);
+    try std.testing.expectEqual(2, output.line_number);
+    try std.testing.expectEqual(3, output.column_number);
+}
+
+test "should get line from 2 lines (3)" {
+    const input = "print(hello)\nprint(sure?)\nprint(bye!)";
+    const at = 15;
+    const output = get_line(input, at);
+
+    try std.testing.expectEqualStrings("print(sure?)", output.line);
+    try std.testing.expectEqual(2, output.line_number);
+    try std.testing.expectEqual(3, output.column_number);
+}
+
+test "should gen error message" {
+    const source = "print(ehh)";
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .help = null,
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+    };
+    const out = try err.get_error_str(source, "repl", std.testing.allocator);
+    defer std.testing.allocator.free(out);
+
+    try std.testing.expectEqualStrings(
+        \\Error: Invalid identifier
+        \\[repl:1:7]
+    , out);
+}
+
+test "should gen error message with label (1)" {
+    const source = "print(ehh)";
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .help = null,
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+    };
+    defer err.deinit(std.testing.allocator);
+
+    const label = .{
+        .message = .{ .static = "This identifier was not found" },
+        .start = 6,
+        .end = 9,
+    };
+    try err.add_label(label);
+
+    const out = try err.get_error_str(source, "repl", std.testing.allocator);
+    defer std.testing.allocator.free(out);
+
+    try std.testing.expectEqualStrings(
+        \\Error: Invalid identifier
+        \\[repl:1:7]
+        \\
+        \\ 1 | print(ehh)
+        \\           ╭──
+        \\           ╰─ This identifier was not found
+        \\
+    , out);
+}
+
+test "should gen error message with label and help" {
+    const source = "print(ehh)";
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .help = null,
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+    };
+    defer err.deinit(std.testing.allocator);
+
+    const label = .{
+        .message = .{ .static = "This identifier was not found" },
+        .start = 6,
+        .end = 9,
+    };
+    try err.add_label(label);
+    err.set_help("Define the identifier");
+
+    const out = try err.get_error_str(source, "repl", std.testing.allocator);
+    defer std.testing.allocator.free(out);
+
+    try std.testing.expectEqualStrings(
+        \\Error: Invalid identifier
+        \\[repl:1:7]
+        \\
+        \\ 1 | print(ehh)
+        \\           ╭──
+        \\           ╰─ This identifier was not found
+        \\
+        \\ Help: Define the identifier
+    , out);
+}
+
+test "should serialize a minimal error" {
+    var err = ErrorData{
+        .reason = "Invalid identifier",
+        .help = null,
+        .start_position = 6,
+        .end_position = 9,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+    };
+    defer err.deinit(std.testing.allocator);
+    var out_writer = std.ArrayList(u8).init(std.testing.allocator);
+    defer out_writer.deinit();
+
+    try err.write_json(std.testing.allocator, out_writer.writer());
+
+    const expected =
+        \\{"reason":"Invalid identifier","help":null,"start_position":6,"end_position":9,"labels":[]}
+    ;
+    try std.testing.expectEqualStrings(expected, out_writer.items);
+}
+
+test "should serialize a complex error" {
+    var err = ErrorData{
+        .reason = "Invalid \"hello\"",
+        .help = "Try to do better",
+        .start_position = 0,
+        .end_position = 1,
+        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+    };
+    defer err.deinit(std.testing.allocator);
+
+    try err.add_label(.{
+        .message = .{ .static = "This one" },
+        .start = 0,
+        .end = 32,
+    });
+    try err.add_label(.{
+        .message = .{ .static = "And this other" },
+        .start = 32,
+        .end = 64,
+    });
+
+    var out_writer = std.ArrayList(u8).init(std.testing.allocator);
+    defer out_writer.deinit();
+
+    try err.write_json(std.testing.allocator, out_writer.writer());
+
+    const expected =
+        \\{"reason":"Invalid \"hello\"","help":"Try to do better","start_position":0,"end_position":1,"labels":[{"message":{"static":"This one"},"start":0,"end":32},{"message":{"static":"And this other"},"start":32,"end":64}]}
+    ;
+    try std.testing.expectEqualStrings(expected, out_writer.items);
+}
+
+// TODO: add more tests:
+// - when the error has len=1
+// - when the error has len=0
+// - when the error spans across 2 lines
