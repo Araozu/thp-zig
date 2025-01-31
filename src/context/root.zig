@@ -13,15 +13,26 @@ pub const CompilerContext = struct {
         };
     }
 
-    /// Appends a new error to the compiler context
-    /// and returns a handle to the just created error
+    /// Creates a new compiler error and appends it to the context's error list.
+    ///
+    /// This function creates an `ErrorData` instance and adds it to the context's error list.
+    /// IMPORTANT: The returned pointer becomes invalid if the error list needs to reallocate,
+    /// which happens when a new error is appended to the context.
+    ///
+    /// Example:
+    /// ```zig
+    /// const err = try ctx.create_and_append_error("Syntax error", 10, 15);
+    /// // Safe to use err here
+    /// try err.add_label(...);
+    /// // After this point, err might become invalid if new errors are added
+    /// ```
     pub fn create_and_append_error(
         self: *CompilerContext,
         reason: []const u8,
         start_position: usize,
         end_position: usize,
     ) !*ErrorData {
-        var new_error = ErrorData{
+        const new_error = ErrorData{
             .reason = reason,
             .start_position = start_position,
             .end_position = end_position,
@@ -29,8 +40,11 @@ pub const CompilerContext = struct {
             .help = null,
         };
 
+        // Append the error to the array list
         try self.errors.append(new_error);
-        return &new_error;
+        // Get a pointer to the newly appended error
+        const ptr = &self.errors.items[self.errors.items.len - 1];
+        return ptr;
     }
 
     /// Creates a new ErrorLabel with a static message.
@@ -70,8 +84,8 @@ pub const ErrorData = struct {
     /// A list of detailed messages about the error
     labels: std.ArrayList(ErrorLabel),
 
-    pub fn add_label(self: *ErrorData, label: *ErrorLabel) !void {
-        try self.labels.append(label.*);
+    pub fn add_label(self: *ErrorData, label: ErrorLabel) !void {
+        try self.labels.append(label);
     }
 
     /// Sets the help message of this error.

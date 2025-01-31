@@ -66,8 +66,7 @@ fn prefixed(
     if (end_position >= cap or !validator(input[end_position])) {
         // populate error information
         var new_error = try ctx.create_and_append_error("Incomplete number", start, end_position);
-        var new_label = ctx.create_error_label("Expected a valid digit after the '" ++ [_]u8{prefix} ++ "'", start, end_position);
-        try new_error.add_label(&new_label);
+        try new_error.add_label(ctx.create_error_label("Expected a valid digit after the '" ++ [_]u8{prefix} ++ "'", start, end_position));
 
         switch (prefix) {
             'x' => new_error.set_help("Hex numbers should have at least one 0-9a-fA-F after the x"),
@@ -128,8 +127,7 @@ fn integer(
         // - a single zero. valid
         if (first_char == '0' and last_pos > start + 1) {
             var err = try ctx.create_and_append_error("Leading zero", start, start + 1);
-            var label = ctx.create_error_label("This decimal number has a leading zero.", start, last_pos);
-            try err.add_label(&label);
+            try err.add_label(ctx.create_error_label("This decimal number has a leading zero.", start, last_pos));
             err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
 
             return LexError.LeadingZero;
@@ -157,8 +155,7 @@ fn integer(
             // leading zero on an integer, throw an error
             if (first_char == '0') {
                 var err = try ctx.create_and_append_error("Leading zero", start, start + 1);
-                var label = ctx.create_error_label("This decimal number has a leading zero.", start, last_pos);
-                try err.add_label(&label);
+                try err.add_label(ctx.create_error_label("This decimal number has a leading zero.", start, last_pos));
                 err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
 
                 return LexError.LeadingZero;
@@ -189,8 +186,7 @@ fn floating_point(
     if (current_pos >= cap or !utils.is_decimal_digit(input[current_pos])) {
         // This is an error
         var err = try ctx.create_and_append_error("Incomplete floating point number", token_start, current_pos);
-        var label = ctx.create_error_label("This number is incomplete", token_start, current_pos);
-        try err.add_label(&label);
+        try err.add_label(ctx.create_error_label("This number is incomplete", token_start, current_pos));
         err.set_help("Add a number after the period");
 
         return LexError.IncompleteFloatingNumber;
@@ -228,8 +224,7 @@ fn scientific(
     // expect `+` or `-`
     if (current_pos >= cap) {
         var err = try ctx.create_and_append_error("Incomplete scientific point number", token_start, current_pos);
-        var label = ctx.create_error_label("Expected a '+' or '-' after the exponent", token_start, current_pos);
-        try err.add_label(&label);
+        try err.add_label(ctx.create_error_label("Expected a '+' or '-' after the exponent", token_start, current_pos));
         err.set_help("Add a sign and a digit to complete the scientific number");
 
         return LexError.IncompleteScientificNumber;
@@ -237,8 +232,7 @@ fn scientific(
     const sign_char = input[current_pos];
     if (sign_char != '+' and sign_char != '-') {
         var err = try ctx.create_and_append_error("Incomplete scientific point number", current_pos, current_pos + 1);
-        var label = ctx.create_error_label("Expected a '+' or '-' here, found another char", current_pos, current_pos + 1);
-        try err.add_label(&label);
+        try err.add_label(ctx.create_error_label("Expected a '+' or '-' here, found another char", current_pos, current_pos + 1));
         err.set_help("Add a sign and a digit after the first 'e' to complete the scientific number");
 
         return LexError.IncompleteScientificNumber;
@@ -254,8 +248,7 @@ fn scientific(
     // if there is no difference, no extra digits were lexed.
     if (digits_start == current_pos) {
         var err = try ctx.create_and_append_error("Incomplete scientific point number", current_pos - 1, current_pos);
-        var label = ctx.create_error_label("Expected at least one digit after this sign", current_pos - 1, current_pos);
-        try err.add_label(&label);
+        try err.add_label(ctx.create_error_label("Expected at least one digit after this sign", current_pos - 1, current_pos));
         err.set_help("Add a digit after the sign to complit the scientific number");
 
         return LexError.IncompleteScientificNumber;

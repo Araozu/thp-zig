@@ -31,8 +31,7 @@ pub fn lex(
             // check for CR, and throw error
             if (input[current_pos] == '\r') {
                 var err = try ctx.create_and_append_error("Usage of CRLF", current_pos, current_pos + 1);
-                var label = ctx.create_error_label("There is a line feed (CR) here", current_pos, current_pos + 1);
-                try err.add_label(&label);
+                try err.add_label(ctx.create_error_label("There is a line feed (CR) here", current_pos, current_pos + 1));
                 err.set_help("All THP code must use LF newline delimiters.");
 
                 return LexError.CRLF;
