@@ -4,7 +4,6 @@ const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const variable = @import("./variable.zig");
-const errors = @import("errors");
 const context = @import("context");
 
 const TokenStream = types.TokenStream;
@@ -59,14 +58,12 @@ test "should parse a variable declaration statement" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    _ = try statement.init(&tokens, 0, undefined, std.testing.allocator);
-    defer statement.deinit();
+    _ = try statement.init(&tokens, 0, &ctx);
+    defer statement.deinit(&ctx);
 
     switch (statement.value) {
         .variableBinding => |v| {
@@ -80,17 +77,16 @@ test "should fail on other constructs" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "a_function_call(322)";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var statement: Statement = undefined;
-    const result = try statement.init(&tokens, 0, undefined, std.testing.allocator);
+    const result = try statement.init(&tokens, 0, &ctx);
     if (result == null) {
         // good path
         return;
     }
+    defer statement.deinit(&ctx);
 
     try std.testing.expect(false);
 }

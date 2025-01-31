@@ -10,7 +10,6 @@ const string = @import("string.zig");
 const grouping = @import("grouping.zig");
 const punctuation = @import("punctiation.zig");
 
-const errors = @import("errors");
 const context = @import("context");
 
 pub const TokenType = token.TokenType;

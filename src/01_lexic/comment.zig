@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const token = @import("./token.zig");
 const utils = @import("./utils.zig");
-const errors = @import("errors");
 const context = @import("context");
 
 const Token = token.Token;

@@ -3,7 +3,6 @@ const lexic = @import("lexic");
 const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
-const errors = @import("errors");
 const context = @import("context");
 
 const TokenStream = types.TokenStream;
@@ -91,14 +90,12 @@ test "should parse a minimal var" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = try binding.init(&tokens, 0, undefined, std.testing.allocator);
-    defer binding.deinit();
+    _ = try binding.init(&tokens, 0, &ctx);
+    defer binding.deinit(&ctx);
 
     try std.testing.expectEqual(true, binding.is_mutable);
     try std.testing.expect(binding.datatype == null);
@@ -115,13 +112,11 @@ test "should return null if stream doesnt start with var" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "different_token_stream()";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    if (try binding.init(&tokens, 0, undefined, std.testing.allocator)) |_| {
+    if (try binding.init(&tokens, 0, &ctx)) |_| {
         try std.testing.expect(false);
     }
 }
@@ -130,15 +125,14 @@ test "should fail if the identifier is missing" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var ";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
-    var error_data: errors.ErrorData = undefined;
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, &error_data, std.testing.allocator) catch |err| {
-        defer error_data.deinit();
+    _ = binding.init(&tokens, 0, &ctx) catch |err| {
+        try std.testing.expectEqual(1, ctx.errors.items.len);
+        const error_data = ctx.errors.items[0];
+
         try std.testing.expectEqual(ParseError.Error, err);
         try std.testing.expectEqualStrings("Incomplete variable declaration", error_data.reason);
         try std.testing.expectEqual(0, error_data.start_position);
@@ -149,6 +143,7 @@ test "should fail if the identifier is missing" {
         try std.testing.expectEqual(3, l.end);
         return;
     };
+    defer binding.deinit(&ctx);
 
     try std.testing.expect(false);
 }
@@ -157,16 +152,15 @@ test "should fail if there is not an identifier after var" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var 322";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, &ctx) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
+    defer binding.deinit(&ctx);
 
     try std.testing.expect(false);
 }
@@ -175,16 +169,15 @@ test "should fail if the equal sign is missing" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_id    ";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, &ctx) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
+    defer binding.deinit(&ctx);
 
     try std.testing.expect(false);
 }
@@ -193,16 +186,15 @@ test "should fail if the equal sign is not found" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_id is string";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, &ctx) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
+    defer binding.deinit(&ctx);
 
     try std.testing.expect(false);
 }
@@ -211,16 +203,15 @@ test "should fail if the expression parsing fails" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_id = ehhh";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
     const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, undefined, std.testing.allocator) catch |err| {
+    _ = binding.init(&tokens, 0, &ctx) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
+    defer binding.deinit(&ctx);
 
     try std.testing.expect(false);
 }
