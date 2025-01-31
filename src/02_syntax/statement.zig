@@ -11,7 +11,6 @@ const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
 
 pub const Statement = struct {
-    alloc: std.mem.Allocator,
     value: union(enum) {
         variableBinding: *variable.VariableBinding,
     },
@@ -21,35 +20,36 @@ pub const Statement = struct {
         target: *Statement,
         tokens: *const TokenStream,
         pos: usize,
-        err: *errors.ErrorData,
-        allocator: std.mem.Allocator,
+        ctx: *context.CompilerContext,
     ) ParseError!?usize {
         // try to parse a variable definition
 
-        var vardef = try allocator.create(variable.VariableBinding);
-        errdefer allocator.destroy(vardef);
+        var vardef = try ctx.allocator.create(variable.VariableBinding);
+        errdefer ctx.allocator.destroy(vardef);
 
-        const vardef_result = try vardef.init(tokens, pos, err, allocator);
+        const vardef_result = try vardef.init(tokens, pos, ctx);
         if (vardef_result) |vardef_end| {
             // variable definition parsed
             // return the parsed variable definition
             target.* = .{
-                .alloc = allocator,
                 .value = .{ .variableBinding = vardef },
             };
             return vardef_end;
         }
 
         // manually deallocate
-        allocator.destroy(vardef);
+        ctx.allocator.destroy(vardef);
         return null;
     }
 
-    pub fn deinit(self: @This()) void {
+    pub fn deinit(
+        self: @This(),
+        ctx: *context.CompilerContext,
+    ) void {
         switch (self.value) {
             .variableBinding => |v| {
-                v.deinit();
-                self.alloc.destroy(v);
+                v.deinit(ctx);
+                ctx.allocator.destroy(v);
             },
         }
     }

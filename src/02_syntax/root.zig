@@ -15,7 +15,6 @@ const TokenStream = types.TokenStream;
 
 pub const Module = struct {
     statements: std.ArrayList(statement.Statement),
-    alloc: std.mem.Allocator,
 
     /// Parses a module.
     ///
@@ -27,13 +26,12 @@ pub const Module = struct {
         target: *@This(),
         tokens: *const TokenStream,
         pos: usize,
-        allocator: std.mem.Allocator,
-        err_arrl: *std.ArrayList(errors.ErrorData),
+        ctx: *context.CompilerContext,
     ) ParseError!void {
-        var arrl = std.ArrayList(statement.Statement).init(allocator);
+        var arrl = std.ArrayList(statement.Statement).init(ctx.allocator);
         errdefer arrl.deinit();
         errdefer for (arrl.items) |i| {
-            i.deinit();
+            i.deinit(ctx);
         };
 
         const input_len = tokens.items.len;
@@ -42,15 +40,13 @@ pub const Module = struct {
         // parse many statements
         while (current_pos < input_len) {
             var stmt: statement.Statement = undefined;
-            var current_error: errors.ErrorData = undefined;
 
             // TODO: handle other errors of vardef parsing
-            const next_pos = stmt.init(tokens, current_pos, &current_error, allocator) catch |e| switch (e) {
+            const next_pos = stmt.init(tokens, current_pos, ctx) catch |e| switch (e) {
                 error.Error => {
                     // add the error to the list of errors,
                     // and exit for now because i havent implemented
                     // error recovery yet
-                    try err_arrl.append(current_error);
                     return error.Error;
                 },
                 else => return e,
@@ -63,20 +59,12 @@ pub const Module = struct {
             }
 
             // nothing matched, but there are tokens. this in an error
-            var err: errors.ErrorData = undefined;
-            try err.init(
-                "No statement matched",
-                current_pos,
-                current_pos + 1,
-                allocator,
-            );
-            try err_arrl.append(err);
+            _ = try ctx.create_and_append_error("No statement matched", current_pos, current_pos + 1);
             return error.Error;
         }
 
         target.* = .{
             .statements = arrl,
-            .alloc = allocator,
         };
     }
 

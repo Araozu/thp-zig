@@ -14,15 +14,13 @@ pub const VariableBinding = struct {
     datatype: ?*lexic.Token,
     identifier: *lexic.Token,
     expression: *expression.Expression,
-    alloc: std.mem.Allocator,
 
     /// Parses a variable binding and returns the position of the next token
     pub fn init(
         target: *VariableBinding,
         tokens: *const TokenStream,
         pos: usize,
-        err: *errors.ErrorData,
-        allocator: std.mem.Allocator,
+        ctx: *context.CompilerContext,
     ) ParseError!?usize {
         std.debug.assert(pos < tokens.items.len);
 
@@ -34,17 +32,16 @@ pub const VariableBinding = struct {
         // check there is still input
         if (pos + 1 >= tokens.items.len) {
             // return error
-            try err.init(
+            var err = try ctx.create_and_append_error(
                 "Incomplete variable declaration",
                 var_keyword.start_pos,
                 var_keyword.start_pos + var_keyword.value.len,
-                allocator,
             );
-            try err.add_label(
+            try err.add_label(ctx.create_error_label(
                 "This variable declaration is incomplete",
                 var_keyword.start_pos,
                 var_keyword.start_pos + var_keyword.value.len,
-            );
+            ));
 
             return ParseError.Error;
         }
@@ -65,26 +62,28 @@ pub const VariableBinding = struct {
         // parse expression
         if (pos + 3 >= tokens.items.len) return ParseError.Error;
 
-        const exp = try allocator.create(expression.Expression);
-        errdefer allocator.destroy(exp);
+        const exp = try ctx.allocator.create(expression.Expression);
+        errdefer ctx.allocator.destroy(exp);
         const next_pos = if (exp.init(tokens, pos + 3)) |x| x else {
             // TODO: populate error information
             return ParseError.Error;
         };
 
-        // return
+        // assign and return
         target.* = .{
             .is_mutable = true,
             .datatype = null,
             .identifier = identifier,
             .expression = exp,
-            .alloc = allocator,
         };
         return next_pos;
     }
 
-    pub fn deinit(self: @This()) void {
-        self.alloc.destroy(self.expression);
+    pub fn deinit(
+        self: @This(),
+        ctx: *context.CompilerContext,
+    ) void {
+        ctx.allocator.destroy(self.expression);
     }
 };
 

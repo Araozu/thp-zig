@@ -116,17 +116,14 @@ fn repl() !void {
             continue;
         }
 
-        std.debug.print("should be syntax analizing the tokens...\n", .{});
-
         //
         // Syntax analysis
         //
         var ast: syntax.Module = undefined;
-        ast.init(&tokens, 0, alloc, &error_array) catch |e| switch (e) {
+        ast.init(&tokens, 0, &ctx) catch |e| switch (e) {
             error.Error => {
                 // Print all the errors
-                for (error_array.items) |ee| {
-                    var err_item = ee;
+                for (ctx.errors.items) |*err_item| {
                     const err_str = try err_item.get_error_str(line, "repl", alloc);
                     try stdout.print("\n{s}\n", .{err_str});
                     try bw.flush();
