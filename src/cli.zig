@@ -1,6 +1,6 @@
 const std = @import("std");
-const errors = @import("errors");
 const lexic = @import("lexic");
+const context = @import("context");
 
 pub fn tokenize_to_json() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -19,17 +19,19 @@ pub fn tokenize_to_json() !void {
     const max_file_size = 16 * 1024 * 1024;
     try std.io.getStdIn().reader().readAllArrayList(&stdin_buf, max_file_size);
 
+    // Setup compiler context
+    var ctx = context.CompilerContext.init(alloc);
+    defer ctx.deinit();
+
     // Tokenize
-    var error_array = std.ArrayList(errors.ErrorData).init(alloc);
-    defer error_array.deinit();
-    const tokens = try lexic.tokenize(stdin_buf.items, alloc, &error_array);
+    const tokens = try lexic.tokenize(stdin_buf.items, &ctx);
     defer tokens.deinit();
 
     // Write JSON directly to stdout
     try stdout.writeAll("{\"errors\":[");
-    for (error_array.items, 0..) |err, idx| {
+    for (ctx.errors.items, 0..) |err, idx| {
         try err.write_json(alloc, stdout);
-        if (idx < error_array.items.len - 1) try stdout.writeAll(",");
+        if (idx < ctx.errors.items.len - 1) try stdout.writeAll(",");
     }
     try stdout.writeAll("],\"tokens\":");
     try std.json.stringify(tokens.items, .{}, stdout);
