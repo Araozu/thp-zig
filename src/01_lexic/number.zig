@@ -269,8 +269,10 @@ fn scientific(
 }
 
 test "int lexer 1" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "322   ";
-    const result = try integer(input, input.len, 0, undefined, std.heap.page_allocator);
+    const result = try integer(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -281,8 +283,10 @@ test "int lexer 1" {
 }
 
 test "int lexer 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "   644   ";
-    const result = try integer(input, input.len, 3, undefined, std.heap.page_allocator);
+    const result = try integer(input, input.len, 3, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -293,8 +297,10 @@ test "int lexer 2" {
 }
 
 test "int lexer 3" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "4";
-    const result = try integer(input, input.len, 0, undefined, std.heap.page_allocator);
+    const result = try integer(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -305,9 +311,10 @@ test "int lexer 3" {
 }
 
 test "int lexer 4: should lex a single zero" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0";
-    var err: errors.ErrorData = undefined;
-    const result = try integer(input, input.len, 0, &err, std.heap.page_allocator);
+    const result = try integer(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -318,15 +325,19 @@ test "int lexer 4: should lex a single zero" {
 }
 
 test "should return null if not an integer" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "prosor prosor";
-    const result = try integer(input, input.len, 0, undefined, std.heap.page_allocator);
+    const result = try integer(input, input.len, 0, &ctx);
 
     try std.testing.expect(result == null);
 }
 
 test "should lex hex number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0xa";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -337,12 +348,11 @@ test "should lex hex number" {
 }
 
 test "should fail on integer with leading zero" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0322";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.LeadingZero);
-        defer errdata.deinit();
         return;
     };
 
@@ -357,8 +367,10 @@ test "should fail on integer with leading zero" {
 }
 
 test "should lex hex number 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "  0Xff00AA  ";
-    const result = try lex(input, input.len, 2, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 2, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -369,12 +381,11 @@ test "should lex hex number 2" {
 }
 
 test "shouldnt parse incomplete hex number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0xZZ";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
-        defer errdata.deinit();
         return;
     };
 
@@ -389,12 +400,11 @@ test "shouldnt parse incomplete hex number" {
 }
 
 test "shouldnt parse incomplete hex number 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0x";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
-        defer errdata.deinit();
         return;
     };
 
@@ -409,8 +419,10 @@ test "shouldnt parse incomplete hex number 2" {
 }
 
 test "should lex octal number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0o755";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -421,8 +433,10 @@ test "should lex octal number" {
 }
 
 test "should lex octal number 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "  0o755  ";
-    const result = try lex(input, input.len, 2, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 2, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -433,12 +447,11 @@ test "should lex octal number 2" {
 }
 
 test "shouldnt parse incomplete octal number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0o8";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
-        defer errdata.deinit();
         return;
     };
 
@@ -453,8 +466,10 @@ test "shouldnt parse incomplete octal number" {
 }
 
 test "should lex binary number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0b1011";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -465,12 +480,11 @@ test "should lex binary number" {
 }
 
 test "shouldnt parse incomplete binary number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0b2";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.Incomplete);
-        defer errdata.deinit();
         return;
     };
 
@@ -485,8 +499,10 @@ test "shouldnt parse incomplete binary number" {
 }
 
 test "should lex fp number 1" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "1.2";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -497,10 +513,10 @@ test "should lex fp number 1" {
 }
 
 test "should lex fp number 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0.1";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = try lex(input, input.len, 0, errdata, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -511,8 +527,10 @@ test "should lex fp number 2" {
 }
 
 test "should lex fp number 3" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "123.456";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -523,12 +541,11 @@ test "should lex fp number 3" {
 }
 
 test "should fail on incomplete fp number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "123.";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
-        errdata.deinit();
         return;
     };
 
@@ -543,8 +560,10 @@ test "should fail on incomplete fp number" {
 }
 
 test "should lex scientific number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "42e+3";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];
@@ -555,12 +574,11 @@ test "should lex scientific number" {
 }
 
 test "should fail on incomplete scientific number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "123e";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
-        defer errdata.deinit();
         return;
     };
 
@@ -575,12 +593,11 @@ test "should fail on incomplete scientific number" {
 }
 
 test "should fail on incomplete scientific number 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "123e+";
-    const errdata = try std.testing.allocator.create(errors.ErrorData);
-    defer std.testing.allocator.destroy(errdata);
-    const result = lex(input, input.len, 0, errdata, std.testing.allocator) catch |err| {
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
         try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
-        defer errdata.deinit();
         return;
     };
 
@@ -595,8 +612,10 @@ test "should fail on incomplete scientific number 2" {
 }
 
 test "should lex floating scientific number" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "0.58e+3";
-    const result = try lex(input, input.len, 0, undefined, std.testing.allocator);
+    const result = try lex(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
         const r = tuple[0];

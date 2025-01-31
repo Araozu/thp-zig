@@ -80,8 +80,10 @@ pub fn lex(
 }
 
 test "should lex empty string" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"\"";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -93,8 +95,10 @@ test "should lex empty string" {
 }
 
 test "should lex string with 1 char" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"a\"";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -106,8 +110,10 @@ test "should lex string with 1 char" {
 }
 
 test "should lex string with unicode" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"😭\"";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -119,17 +125,19 @@ test "should lex string with unicode" {
 }
 
 test "shouldnt lex other things" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "322";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
     try std.testing.expect(output == null);
 }
 
 test "should fail on EOF before closing string" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"hello";
-    var errdata: errors.ErrorData = undefined;
-    _ = lex(input, 0, &errdata, std.testing.allocator) catch |err| {
+    _ = lex(input, 0, &ctx) catch |err| {
         try std.testing.expectEqual(LexError.IncompleteString, err);
-        defer errdata.deinit();
         return;
     };
 
@@ -137,11 +145,11 @@ test "should fail on EOF before closing string" {
 }
 
 test "should fail on newline before closing string" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"hello\n";
-    var errdata: errors.ErrorData = undefined;
-    _ = lex(input, 0, &errdata, std.testing.allocator) catch |err| {
+    _ = lex(input, 0, &ctx) catch |err| {
         try std.testing.expectEqual(LexError.IncompleteString, err);
-        defer errdata.deinit();
         return;
     };
 
@@ -149,8 +157,10 @@ test "should fail on newline before closing string" {
 }
 
 test "should lex string with escape character 1" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"test\\\"string\"";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -162,8 +172,10 @@ test "should lex string with escape character 1" {
 }
 
 test "should lex string with escape character 2" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"test\\\\string\"";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -175,10 +187,10 @@ test "should lex string with escape character 2" {
 }
 
 test "should fail on EOF after backslash" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"hello \\";
-    var errdata: errors.ErrorData = undefined;
-    _ = lex(input, 0, &errdata, std.testing.allocator) catch |err| {
-        defer errdata.deinit();
+    _ = lex(input, 0, &ctx) catch |err| {
         try std.testing.expectEqual(LexError.IncompleteString, err);
         return;
     };
@@ -187,10 +199,10 @@ test "should fail on EOF after backslash" {
 }
 
 test "should fail on newline after backslash" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "\"hello \\\n";
-    var errdata: errors.ErrorData = undefined;
-    _ = lex(input, 0, &errdata, std.testing.allocator) catch |err| {
-        defer errdata.deinit();
+    _ = lex(input, 0, &ctx) catch |err| {
         try std.testing.expectEqual(LexError.IncompleteString, err);
         return;
     };

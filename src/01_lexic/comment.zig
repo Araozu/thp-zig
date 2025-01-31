@@ -47,8 +47,10 @@ pub fn lex(
 }
 
 test "should lex comment until EOF" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "// aea";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -60,8 +62,10 @@ test "should lex comment until EOF" {
 }
 
 test "should lex comment until newline (LF)" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "// my comment\n// other comment";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
 
     if (output) |tuple| {
         const t = tuple[0];
@@ -73,16 +77,18 @@ test "should lex comment until newline (LF)" {
 }
 
 test "shouldn lex incomplete comment" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "/aa";
-    const output = try lex(input, 0, undefined, std.testing.allocator);
+    const output = try lex(input, 0, &ctx);
     try std.testing.expect(output == null);
 }
 
 test "should fail on CRLF" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "// my comment\x0D\x0A// other comment";
-    var errdata: errors.ErrorData = undefined;
-    _ = lex(input, 0, &errdata, std.testing.allocator) catch |err| {
-        defer errdata.deinit();
+    _ = lex(input, 0, &ctx) catch |err| {
         try std.testing.expectEqual(LexError.CRLF, err);
         return;
     };
