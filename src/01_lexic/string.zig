@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const token = @import("./token.zig");
 const utils = @import("./utils.zig");
 const errors = @import("errors");
+const context = @import("context");
 
 const Token = token.Token;
 const TokenType = token.TokenType;
@@ -12,8 +13,7 @@ const LexReturn = token.LexReturn;
 pub fn lex(
     input: []const u8,
     start: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) LexError!?LexReturn {
     const cap = input.len;
     assert(start < cap);
@@ -36,7 +36,7 @@ pub fn lex(
         }
         // new line, initialize and return error
         else if (next_char == '\n') {
-            try err.init("Incomplete String", current_pos, current_pos + 1, alloc);
+            var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
             try err.add_label("Found a new line here", current_pos, current_pos + 1);
             err.set_help("Strings must always end on the same line that they start.");
 
@@ -46,14 +46,14 @@ pub fn lex(
         else if (next_char == '\\') {
             // if next char is EOF, return error
             if (current_pos + 1 == cap) {
-                try err.init("Incomplete String", current_pos, current_pos + 1, alloc);
+                var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
                 try err.add_label("Found EOF here", current_pos, current_pos + 1);
                 err.set_help("Strings must always end on the same line that they start.");
                 return LexError.IncompleteString;
             }
             // if next char is newline, return error
             else if (input[current_pos + 1] == '\n') {
-                try err.init("Incomplete String", current_pos, current_pos + 1, alloc);
+                var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
                 try err.add_label("Found a new line here", current_pos, current_pos + 1);
                 err.set_help("Strings must always end on the same line that they start.");
                 return LexError.IncompleteString;
@@ -68,7 +68,7 @@ pub fn lex(
     }
 
     // this could only reach when EOF is hit, return error
-    try err.init("Incomplete String", current_pos, current_pos + 1, alloc);
+    var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
     try err.add_label("Found EOF here", current_pos, current_pos + 1);
     err.set_help("Strings must always end on the same line that they start.");
 
