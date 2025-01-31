@@ -37,7 +37,8 @@ pub fn lex(
         // new line, initialize and return error
         else if (next_char == '\n') {
             var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
-            try err.add_label("Found a new line here", current_pos, current_pos + 1);
+            var label = ctx.create_error_label("Found a new line here", current_pos, current_pos + 1);
+            try err.add_label(&label);
             err.set_help("Strings must always end on the same line that they start.");
 
             return LexError.IncompleteString;
@@ -47,14 +48,16 @@ pub fn lex(
             // if next char is EOF, return error
             if (current_pos + 1 == cap) {
                 var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
-                try err.add_label("Found EOF here", current_pos, current_pos + 1);
+                var label = ctx.create_error_label("Found EOF here", current_pos, current_pos + 1);
+                try err.add_label(&label);
                 err.set_help("Strings must always end on the same line that they start.");
                 return LexError.IncompleteString;
             }
             // if next char is newline, return error
             else if (input[current_pos + 1] == '\n') {
                 var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
-                try err.add_label("Found a new line here", current_pos, current_pos + 1);
+                var label = ctx.create_error_label("Found a new line here", current_pos, current_pos + 1);
+                try err.add_label(&label);
                 err.set_help("Strings must always end on the same line that they start.");
                 return LexError.IncompleteString;
             }
@@ -69,7 +72,8 @@ pub fn lex(
 
     // this could only reach when EOF is hit, return error
     var err = try ctx.create_and_append_error("Incomplete String", current_pos, current_pos + 1);
-    try err.add_label("Found EOF here", current_pos, current_pos + 1);
+    var label = ctx.create_error_label("Found EOF here", current_pos, current_pos + 1);
+    try err.add_label(&label);
     err.set_help("Strings must always end on the same line that they start.");
 
     return LexError.IncompleteString;

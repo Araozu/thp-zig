@@ -11,6 +11,7 @@ const grouping = @import("grouping.zig");
 const punctuation = @import("punctiation.zig");
 
 const errors = @import("errors");
+const context = @import("context");
 
 pub const TokenType = token.TokenType;
 pub const Token = token.Token;
@@ -24,7 +25,7 @@ const LexError = token.LexError;
 pub fn tokenize(
     input: []const u8,
     alloc: std.mem.Allocator,
-    err_arrl: *std.ArrayList(errors.ErrorData),
+    ctx: *context.CompilerContext,
 ) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
@@ -41,19 +42,12 @@ pub fn tokenize(
             break;
         }
 
-        // FIXME: should defer deinit, otherwise we leak memory?
-        var current_error: errors.ErrorData = undefined;
-
         // attempt to lex a number
-        const number_lex = number.lex(input, input_len, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
+        // the lexer adds any errors to the context as neccesary
+        const number_lex = number.lex(input, input_len, actual_next_pos, ctx) catch |e| switch (e) {
             // recoverable errors
             LexError.Incomplete, LexError.LeadingZero, LexError.IncompleteFloatingNumber, LexError.IncompleteScientificNumber => {
-                // add to list of errors
-                try err_arrl.append(current_error);
-
-                // FIXME: should deinit current_error now that its been allocated, otherwise we leak memory?
-
-                // ignore everything until whitespace and loop
+                // move to next syncronization point (whitespace) to recover lexing
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
                 continue;
             },
@@ -80,9 +74,8 @@ pub fn tokenize(
         }
 
         // attempt to lex a string
-        const str_lex = string.lex(input, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
+        const str_lex = string.lex(input, actual_next_pos, ctx) catch |e| switch (e) {
             LexError.IncompleteString => {
-                try err_arrl.append(current_error);
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
                 continue;
             },
@@ -108,9 +101,8 @@ pub fn tokenize(
         }
 
         // attempt to lex a comment
-        const comment_lex = comment.lex(input, actual_next_pos, &current_error, alloc) catch |e| switch (e) {
+        const comment_lex = comment.lex(input, actual_next_pos, ctx) catch |e| switch (e) {
             LexError.CRLF => {
-                try err_arrl.append(current_error);
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
                 continue;
             },
@@ -154,8 +146,7 @@ pub fn tokenize(
         else {
             // Create an error "nothing matched" and continue lexing
             // after the whitespace
-            try current_error.init("Unrecognized character", actual_next_pos, actual_next_pos + 1, alloc);
-            try err_arrl.append(current_error);
+            _ = try ctx.create_and_append_error("Unrecognized character", actual_next_pos, actual_next_pos + 1);
             current_pos = ignore_until_whitespace(input, actual_next_pos);
             continue;
         }

@@ -84,7 +84,7 @@ fn repl() !void {
             i.deinit();
         };
 
-        const tokens = lexic.tokenize(line, alloc, &error_array) catch |e| switch (e) {
+        const tokens = lexic.tokenize(line, alloc, &ctx) catch |e| switch (e) {
             error.OutOfMemory => {
                 try stdout.print("FATAL ERROR: System Out of Memory!", .{});
                 try bw.flush();

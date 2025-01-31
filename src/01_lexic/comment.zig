@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const token = @import("./token.zig");
 const utils = @import("./utils.zig");
 const errors = @import("errors");
+const context = @import("context");
 
 const Token = token.Token;
 const TokenType = token.TokenType;
@@ -12,8 +13,7 @@ const LexReturn = token.LexReturn;
 pub fn lex(
     input: []const u8,
     start: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) LexError!?LexReturn {
     const cap = input.len;
     assert(start < cap);
@@ -30,8 +30,9 @@ pub fn lex(
         while (current_pos < cap and input[current_pos] != '\n') {
             // check for CR, and throw error
             if (input[current_pos] == '\r') {
-                try err.init("Usage of CRLF", current_pos, current_pos + 1, alloc);
-                try err.add_label("There is a line feed (CR) here", current_pos, current_pos + 1);
+                var err = try ctx.create_and_append_error("Usage of CRLF", current_pos, current_pos + 1);
+                var label = ctx.create_error_label("There is a line feed (CR) here", current_pos, current_pos + 1);
+                try err.add_label(&label);
                 err.set_help("All THP code must use LF newline delimiters.");
 
                 return LexError.CRLF;
