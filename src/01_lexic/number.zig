@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const token = @import("./token.zig");
 const utils = @import("./utils.zig");
 const errors = @import("errors");
+const context = @import("context");
 
 const Token = token.Token;
 const TokenType = token.TokenType;
@@ -18,8 +19,7 @@ pub fn lex(
     input: []const u8,
     cap: usize,
     start: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) LexError!?LexReturn {
     assert(start < cap);
     const first_char = input[start];
@@ -28,9 +28,9 @@ pub fn lex(
     if (first_char == '0' and cap > start + 1) {
         const second_char = input[start + 1];
         switch (second_char) {
-            'x', 'X' => return prefixed('x', input, cap, start, err, alloc),
-            'o', 'O' => return prefixed('o', input, cap, start, err, alloc),
-            'b', 'B' => return prefixed('b', input, cap, start, err, alloc),
+            'x', 'X' => return prefixed('x', input, cap, start, ctx),
+            'o', 'O' => return prefixed('o', input, cap, start, ctx),
+            'b', 'B' => return prefixed('b', input, cap, start, ctx),
             else => {
                 // Continue
             },
@@ -39,7 +39,7 @@ pub fn lex(
 
     // Attempt to lex an integer.
     // Floating point numbers are lexed through the int lexer
-    return integer(input, cap, start, err, alloc);
+    return integer(input, cap, start, ctx);
 }
 
 /// comptime function for lexing hex, octal and binary numbers.
@@ -51,8 +51,7 @@ fn prefixed(
     input: []const u8,
     cap: usize,
     start: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) !?LexReturn {
     const validator = switch (prefix) {
         'x' => utils.is_hex_digit,
@@ -66,12 +65,14 @@ fn prefixed(
     // There should be at least 1 valid digit
     if (end_position >= cap or !validator(input[end_position])) {
         // populate error information
-        try err.init("Incomplete number", start, end_position, alloc);
-        try err.add_label("Expected a valid digit after the '" ++ [_]u8{prefix} ++ "'", start, end_position);
+        var new_error = try ctx.create_and_append_error("Incomplete number", start, end_position);
+        var new_label = ctx.create_error_label("Expected a valid digit after the '" ++ [_]u8{prefix} ++ "'", start, end_position);
+        new_error.add_label(&new_label);
+
         switch (prefix) {
-            'x' => err.set_help("Hex numbers should have at least one 0-9a-fA-F after the x"),
-            'o' => err.set_help("Octal numbers should have at least one 0-7 after the o"),
-            'b' => err.set_help("Binary numbers should have at least one 0-1 after the b"),
+            'x' => new_error.set_help("Hex numbers should have at least one 0-9a-fA-F after the x"),
+            'o' => new_error.set_help("Octal numbers should have at least one 0-7 after the o"),
+            'b' => new_error.set_help("Binary numbers should have at least one 0-1 after the b"),
             else => @compileError("Invalid prefix passed to `prefixed` function."),
         }
 
@@ -104,8 +105,7 @@ fn integer(
     input: []const u8,
     cap: usize,
     start: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) LexError!?LexReturn {
     assert(start < cap);
     const first_char = input[start];
@@ -127,7 +127,7 @@ fn integer(
         // - a number with a leading zero. throw an error
         // - a single zero. valid
         if (first_char == '0' and last_pos > start + 1) {
-            try err.init("Leading zero", start, start + 1, alloc);
+            var err = try ctx.create_and_append_error("Leading zero", start, start + 1);
             try err.add_label("This decimal number has a leading zero.", start, last_pos);
             err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
 
@@ -145,17 +145,17 @@ fn integer(
     return switch (next_char) {
         // if a dot is found, lex a fp number
         '.' => {
-            return floating_point(input, cap, start, last_pos, err, alloc);
+            return floating_point(input, cap, start, last_pos, ctx);
         },
         // if an `e` (exponential notiation) is found, lex that
         'e' => {
-            return scientific(input, cap, start, last_pos, err, alloc);
+            return scientific(input, cap, start, last_pos, ctx);
         },
         // otherwise return the current integer
         else => {
             // leading zero on an integer, throw an error
             if (first_char == '0') {
-                try err.init("Leading zero", start, start + 1, alloc);
+                var err = try ctx.create_and_append_error("Leading zero", start, start + 1);
                 try err.add_label("This decimal number has a leading zero.", start, last_pos);
                 err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
 
@@ -179,15 +179,14 @@ fn floating_point(
     cap: usize,
     token_start: usize,
     period_pos: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) LexError!?LexReturn {
     var current_pos = period_pos + 1;
 
     // there should be at least 1 digit after the period
     if (current_pos >= cap or !utils.is_decimal_digit(input[current_pos])) {
         // This is an error
-        try err.init("Incomplete floating point number", token_start, current_pos, alloc);
+        var err = try ctx.create_and_append_error("Incomplete floating point number", token_start, current_pos);
         try err.add_label("This number is incomplete", token_start, current_pos);
         err.set_help("Add a number after the period");
 
@@ -203,7 +202,7 @@ fn floating_point(
     // check if the current character is a `e`,
     // if so lex a scientific number
     if (current_pos < cap and input[current_pos] == 'e') {
-        return scientific(input, cap, token_start, current_pos, err, alloc);
+        return scientific(input, cap, token_start, current_pos, ctx);
     }
 
     // return the matched fp number
@@ -219,14 +218,13 @@ fn scientific(
     cap: usize,
     token_start: usize,
     exp_pos: usize,
-    err: *errors.ErrorData,
-    alloc: std.mem.Allocator,
+    ctx: *context.CompilerContext,
 ) LexError!?LexReturn {
     var current_pos = exp_pos + 1;
 
     // expect `+` or `-`
     if (current_pos >= cap) {
-        try err.init("Incomplete scientific point number", token_start, current_pos, alloc);
+        var err = try ctx.create_and_append_error("Incomplete scientific point number", token_start, current_pos);
         try err.add_label("Expected a '+' or '-' after the exponent", token_start, current_pos);
         err.set_help("Add a sign and a digit to complete the scientific number");
 
@@ -234,7 +232,7 @@ fn scientific(
     }
     const sign_char = input[current_pos];
     if (sign_char != '+' and sign_char != '-') {
-        try err.init("Incomplete scientific point number", current_pos, current_pos + 1, alloc);
+        var err = try ctx.create_and_append_error("Incomplete scientific point number", current_pos, current_pos + 1);
         try err.add_label("Expected a '+' or '-' here, found another char", current_pos, current_pos + 1);
         err.set_help("Add a sign and a digit after the first 'e' to complete the scientific number");
 
@@ -250,7 +248,7 @@ fn scientific(
 
     // if there is no difference, no extra digits were lexed.
     if (digits_start == current_pos) {
-        try err.init("Incomplete scientific point number", current_pos - 1, current_pos, alloc);
+        var err = try ctx.create_and_append_error("Incomplete scientific point number", current_pos - 1, current_pos);
         try err.add_label("Expected at least one digit after this sign", current_pos - 1, current_pos);
         err.set_help("Add a digit after the sign to complit the scientific number");
 
