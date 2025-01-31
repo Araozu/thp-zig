@@ -106,9 +106,8 @@ fn repl() !void {
         }
 
         // Print errors and continue, if any
-        if (error_array.items.len > 0) {
-            for (error_array.items) |e| {
-                var err = e;
+        if (ctx.errors.items.len > 0) {
+            for (ctx.errors.items) |*err| {
                 const err_str = try err.get_error_str(line, "repl", alloc);
                 try stdout.print("\n{s}\n", .{err_str});
                 try bw.flush();
