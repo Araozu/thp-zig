@@ -4,6 +4,7 @@ const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const errors = @import("errors");
+const context = @import("context");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
@@ -88,10 +89,12 @@ pub const VariableBinding = struct {
 };
 
 test "should parse a minimal var" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var my_variable = 322";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
@@ -110,10 +113,12 @@ test "should parse a minimal var" {
 }
 
 test "should return null if stream doesnt start with var" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "different_token_stream()";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
@@ -123,10 +128,12 @@ test "should return null if stream doesnt start with var" {
 }
 
 test "should fail if the identifier is missing" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var ";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var error_data: errors.ErrorData = undefined;
@@ -148,10 +155,12 @@ test "should fail if the identifier is missing" {
 }
 
 test "should fail if there is not an identifier after var" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var 322";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
@@ -164,10 +173,12 @@ test "should fail if there is not an identifier after var" {
 }
 
 test "should fail if the equal sign is missing" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var my_id    ";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
@@ -180,10 +191,12 @@ test "should fail if the equal sign is missing" {
 }
 
 test "should fail if the equal sign is not found" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var my_id is string";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;
@@ -196,10 +209,12 @@ test "should fail if the equal sign is not found" {
 }
 
 test "should fail if the expression parsing fails" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var my_id = ehhh";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var binding: VariableBinding = undefined;

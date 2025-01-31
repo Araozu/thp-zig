@@ -1,6 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const errors = @import("errors");
+const context = @import("context");
 
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
@@ -92,10 +93,12 @@ test {
 }
 
 test "should parse a single statement" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var my_variable = 322";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var module: Module = undefined;
@@ -105,10 +108,12 @@ test "should parse a single statement" {
 }
 
 test "should clean memory if a statement parsing fails after one item has been inserted" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "var my_variable = 322 unrelated()";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var module: Module = undefined;

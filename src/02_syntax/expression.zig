@@ -1,6 +1,8 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const errors = @import("errors");
+const context = @import("context");
+
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
 
@@ -27,10 +29,12 @@ pub const Expression = union(enum) {
 };
 
 test "should parse expression" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "322";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var expr: Expression = undefined;
@@ -43,10 +47,12 @@ test "should parse expression" {
 }
 
 test "should fail on non expression" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "identifier";
     var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
     defer error_list.deinit();
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &error_list);
+    const tokens = try lexic.tokenize(input, &ctx);
     defer tokens.deinit();
 
     var expr: Expression = undefined;

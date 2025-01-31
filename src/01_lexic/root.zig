@@ -24,13 +24,12 @@ const LexError = token.LexError;
 /// found while lexing. The caller is responsible for freeing it.
 pub fn tokenize(
     input: []const u8,
-    alloc: std.mem.Allocator,
     ctx: *context.CompilerContext,
 ) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
 
-    var tokens = std.ArrayList(Token).init(alloc);
+    var tokens = std.ArrayList(Token).init(ctx.allocator);
     errdefer tokens.deinit();
 
     while (current_pos < input_len) {
@@ -189,30 +188,27 @@ test {
 }
 
 test "should insert 1 item" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "322";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
-    const arrl = try tokenize(input, std.testing.allocator, &error_list);
+    const arrl = try tokenize(input, &ctx);
     arrl.deinit();
 }
 
 test "should insert 2 item" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "322 644";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
-    const arrl = try tokenize(input, std.testing.allocator, &error_list);
+    const arrl = try tokenize(input, &ctx);
     arrl.deinit();
 }
 
 test "should insert an item, fail, and not leak" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "322 \"hello";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
-    defer for (error_list.items) |*i| {
-        i.deinit();
-    };
 
-    const arrl = tokenize(input, std.testing.allocator, &error_list) catch |e| switch (e) {
+    const arrl = tokenize(input, &ctx) catch |e| switch (e) {
         else => {
             try std.testing.expect(false);
             return;
@@ -222,25 +218,25 @@ test "should insert an item, fail, and not leak" {
 }
 
 test "shouldnt leak" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
     const input = "";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
-    const arrl = try tokenize(input, std.testing.allocator, &error_list);
+    const arrl = try tokenize(input, &ctx);
     arrl.deinit();
 }
 
 test "should handle recoverable errors" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
     const input = "322 0b 644";
-    var error_list = std.ArrayList(errors.ErrorData).init(std.testing.allocator);
-    defer error_list.deinit();
-    defer for (error_list.items) |*err| err.deinit();
-    const arrl = try tokenize(input, std.testing.allocator, &error_list);
+    const arrl = try tokenize(input, &ctx);
     defer arrl.deinit();
 
-    try std.testing.expectEqual(@as(usize, 1), error_list.items.len);
+    try std.testing.expectEqual(@as(usize, 1), ctx.errors.items.len);
     try std.testing.expectEqual(@as(usize, 2), arrl.items.len);
 
-    try std.testing.expectEqualStrings("Incomplete number", error_list.items[0].reason);
-    try std.testing.expectEqual(@as(usize, 4), error_list.items[0].start_position);
-    try std.testing.expectEqual(@as(usize, 6), error_list.items[0].end_position);
+    try std.testing.expectEqualStrings("Incomplete number", ctx.errors.items[0].reason);
+    try std.testing.expectEqual(@as(usize, 4), ctx.errors.items[0].start_position);
+    try std.testing.expectEqual(@as(usize, 6), ctx.errors.items[0].end_position);
 }
