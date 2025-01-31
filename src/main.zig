@@ -2,6 +2,7 @@ const std = @import("std");
 const lexic = @import("lexic");
 const syntax = @import("syntax");
 const errors = @import("errors");
+const context = @import("context");
 
 const cli = @import("cli.zig");
 
@@ -68,6 +69,10 @@ fn repl() !void {
         };
         defer std.heap.page_allocator.free(bare_line);
         const line = std.mem.trim(u8, bare_line, "\r");
+
+        // Setup compiler context
+        var ctx = context.CompilerContext.init(alloc);
+        defer ctx.deinit();
 
         //
         // Tokenize

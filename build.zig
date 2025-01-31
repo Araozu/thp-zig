@@ -38,6 +38,17 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("errors", error_module);
 
     //
+    // Context module
+    //
+    const context_module = b.addModule("context", .{
+        .root_source_file = b.path("src/context/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    context_module.addImport("config", options_module);
+    exe.root_module.addImport("context", context_module);
+
+    //
     // Lexic module
     //
     const lexic_module = b.addModule("lexic", .{
@@ -47,6 +58,7 @@ pub fn build(b: *std.Build) void {
     });
     lexic_module.addImport("config", options_module);
     lexic_module.addImport("errors", error_module);
+    lexic_module.addImport("context", context_module);
     exe.root_module.addImport("lexic", lexic_module);
 
     //
@@ -60,6 +72,7 @@ pub fn build(b: *std.Build) void {
     syntax_module.addImport("config", options_module);
     syntax_module.addImport("lexic", lexic_module);
     syntax_module.addImport("errors", error_module);
+    syntax_module.addImport("context", context_module);
     exe.root_module.addImport("syntax", syntax_module);
 
     // Install step
@@ -88,6 +101,7 @@ pub fn build(b: *std.Build) void {
     exe_unit_tests.root_module.addImport("lexic", lexic_module);
     exe_unit_tests.root_module.addImport("syntax", syntax_module);
     exe_unit_tests.root_module.addImport("errors", error_module);
+    exe_unit_tests.root_module.addImport("context", context_module);
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -110,6 +124,7 @@ pub fn build(b: *std.Build) void {
         file_unit_test.root_module.addImport("lexic", lexic_module);
         file_unit_test.root_module.addImport("syntax", syntax_module);
         file_unit_test.root_module.addImport("errors", error_module);
+        file_unit_test.root_module.addImport("context", context_module);
 
         var test_artifact = b.addRunArtifact(file_unit_test);
         test_step.dependOn(&test_artifact.step);
