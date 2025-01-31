@@ -27,17 +27,6 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("config", options_module);
 
     //
-    // Error handling module
-    //
-    const error_module = b.addModule("errors", .{
-        .root_source_file = b.path("src/errors/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    error_module.addImport("config", options_module);
-    exe.root_module.addImport("errors", error_module);
-
-    //
     // Context module
     //
     const context_module = b.addModule("context", .{
@@ -57,7 +46,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     lexic_module.addImport("config", options_module);
-    lexic_module.addImport("errors", error_module);
     lexic_module.addImport("context", context_module);
     exe.root_module.addImport("lexic", lexic_module);
 
@@ -71,7 +59,6 @@ pub fn build(b: *std.Build) void {
     });
     syntax_module.addImport("config", options_module);
     syntax_module.addImport("lexic", lexic_module);
-    syntax_module.addImport("errors", error_module);
     syntax_module.addImport("context", context_module);
     exe.root_module.addImport("syntax", syntax_module);
 
@@ -100,7 +87,6 @@ pub fn build(b: *std.Build) void {
     exe_unit_tests.root_module.addImport("config", options_module);
     exe_unit_tests.root_module.addImport("lexic", lexic_module);
     exe_unit_tests.root_module.addImport("syntax", syntax_module);
-    exe_unit_tests.root_module.addImport("errors", error_module);
     exe_unit_tests.root_module.addImport("context", context_module);
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
@@ -112,7 +98,6 @@ pub fn build(b: *std.Build) void {
     const files = [_][]const u8{
         "src/01_lexic/root.zig",
         "src/02_syntax/root.zig",
-        "src/errors/root.zig",
         "src/context/root.zig",
     };
     for (files) |file| {
@@ -124,7 +109,6 @@ pub fn build(b: *std.Build) void {
         file_unit_test.root_module.addImport("config", options_module);
         file_unit_test.root_module.addImport("lexic", lexic_module);
         file_unit_test.root_module.addImport("syntax", syntax_module);
-        file_unit_test.root_module.addImport("errors", error_module);
         file_unit_test.root_module.addImport("context", context_module);
 
         var test_artifact = b.addRunArtifact(file_unit_test);

@@ -1,7 +1,6 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const syntax = @import("syntax");
-const errors = @import("errors");
 const context = @import("context");
 
 const cli = @import("cli.zig");
@@ -77,13 +76,6 @@ fn repl() !void {
         //
         // Tokenize
         //
-        var error_array = std.ArrayList(errors.ErrorData).init(alloc);
-        defer error_array.deinit();
-        defer for (error_array.items) |item| {
-            var i = item;
-            i.deinit();
-        };
-
         const tokens = lexic.tokenize(line, &ctx) catch |e| switch (e) {
             error.OutOfMemory => {
                 try stdout.print("FATAL ERROR: System Out of Memory!", .{});
