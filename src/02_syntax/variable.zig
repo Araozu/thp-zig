@@ -30,14 +30,13 @@ pub const VariableBinding = struct {
 
         // check there is still input
         if (pos + 1 >= tokens.items.len) {
-            // return error
             var err = try ctx.create_and_append_error(
                 "Incomplete variable declaration",
                 var_keyword.start_pos,
                 var_keyword.start_pos + var_keyword.value.len,
             );
             try err.add_label(ctx.create_error_label(
-                "This variable declaration is incomplete",
+                "Expected an identifier after this `var`",
                 var_keyword.start_pos,
                 var_keyword.start_pos + var_keyword.value.len,
             ));
@@ -65,8 +64,34 @@ pub const VariableBinding = struct {
         };
 
         // parse equal sign
-        if (pos + 2 >= tokens.items.len) return ParseError.Error;
+        if (pos + 2 >= tokens.items.len) {
+            var err = try ctx.create_and_append_error(
+                "Incomplete variable declaration",
+                identifier.start_pos,
+                identifier.start_pos + identifier.value.len,
+            );
+            try err.add_label(ctx.create_error_label(
+                "Expected a equal sign `=` after this identifier",
+                identifier.start_pos,
+                identifier.start_pos + identifier.value.len,
+            ));
+
+            return ParseError.Error;
+        }
         const equal_sign = if (utils.expect_operator("=", &tokens.items[pos + 2])) |x| x else {
+            const faulty_token = &tokens.items[pos + 2];
+            var err = try ctx.create_and_append_error(
+                "Invalid variable declaration",
+                faulty_token.start_pos,
+                faulty_token.start_pos + faulty_token.value.len,
+            );
+            const token_name = faulty_token.token_type.to_string();
+            const error_name = try std.fmt.allocPrint(ctx.allocator, "Expected an equal sign `=` here, found a {s}", .{token_name});
+            try err.add_label(ctx.create_error_label_alloc(
+                error_name,
+                faulty_token.start_pos,
+                faulty_token.start_pos + faulty_token.value.len,
+            ));
             return ParseError.Error;
         };
         _ = equal_sign;
