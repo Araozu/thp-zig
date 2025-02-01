@@ -18,6 +18,27 @@ pub const TokenType = enum {
     Newline,
     // Each keyword will have its own token
     K_Var,
+
+    pub fn to_string(self: *TokenType) []const u8 {
+        return switch (self.*) {
+            TokenType.Int => "Int",
+            TokenType.Float => "Float",
+            TokenType.Identifier => "Identifier",
+            TokenType.Datatype => "Datatype",
+            TokenType.Operator => "Operator",
+            TokenType.Comment => "Comment",
+            TokenType.String => "String",
+            TokenType.LeftParen => "LeftParen",
+            TokenType.RightParen => "RightParen",
+            TokenType.LeftBracket => "LeftBracket",
+            TokenType.RightBracket => "RightBracket",
+            TokenType.LeftBrace => "LeftBrace",
+            TokenType.RightBrace => "RightBrace",
+            TokenType.Comma => "Comma",
+            TokenType.Newline => "Newline",
+            TokenType.K_Var => "K_Var",
+        };
+    }
 };
 
 pub const Token = struct {

@@ -47,7 +47,20 @@ pub const VariableBinding = struct {
 
         // try to parse an identifier
         const identifier = if (utils.expect_token_type(lexic.TokenType.Identifier, &tokens.items[pos + 1])) |i| i else {
-            // TODO: populate error information
+            const faulty_token = &tokens.items[pos + 1];
+            var err = try ctx.create_and_append_error(
+                "Invalid variable declaration",
+                faulty_token.start_pos,
+                faulty_token.start_pos + faulty_token.value.len,
+            );
+            const token_name = faulty_token.token_type.to_string();
+            const error_name = try std.fmt.allocPrint(ctx.allocator, "Expected an identifier here, found a {s}", .{token_name});
+            try err.add_label(ctx.create_error_label_alloc(
+                error_name,
+                faulty_token.start_pos,
+                faulty_token.start_pos + faulty_token.value.len,
+            ));
+
             return ParseError.Error;
         };
 

@@ -64,6 +64,26 @@ pub const CompilerContext = struct {
         };
     }
 
+    /// Creates a new ErrorLabel with a dynamic message.
+    /// Resource cleanup is automatic.
+    ///
+    /// `message` **must** be allocated with the allocator
+    /// of this context, because on cleanup this will be
+    /// passed to `ctx.allocator.destroy(message)`.
+    pub fn create_error_label_alloc(
+        self: *CompilerContext,
+        message: []u8,
+        start: usize,
+        end: usize,
+    ) ErrorLabel {
+        _ = self;
+        return .{
+            .message = .{ .dynamic = message },
+            .start = start,
+            .end = end,
+        };
+    }
+
     pub fn deinit(self: *CompilerContext) void {
         for (self.errors.items) |*error_item| {
             error_item.deinit(self.allocator);
