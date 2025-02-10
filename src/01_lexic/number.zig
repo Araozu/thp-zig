@@ -152,7 +152,10 @@ fn integer(
         // otherwise return the current integer
         else => {
             // leading zero on an integer, throw an error
-            if (first_char == '0') {
+            // check if the zero is the only character.
+            // if there's a single zero, and another token, this may be an
+            // integer 0, like: `[0,1,2]`
+            if (first_char == '0' and last_pos > start + 1) {
                 var err = try ctx.create_and_append_error("Leading zero", start, start + 1);
                 try err.add_label(ctx.create_error_label("This decimal number has a leading zero.", start, last_pos));
                 err.set_help("If you want an octal number use '0o', otherwise remove the leading zero");
@@ -306,6 +309,20 @@ test "int lexer 4: should lex a single zero" {
     var ctx = context.CompilerContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0";
+    const result = try integer(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "int lexer 5: should lex a single zero with trailing characters" {
+    var ctx = context.CompilerContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0,";
     const result = try integer(input, input.len, 0, &ctx);
 
     if (result) |tuple| {
