@@ -94,15 +94,34 @@ pub const VariableBinding = struct {
             ));
             return ParseError.Error;
         };
-        _ = equal_sign;
 
         // parse expression
-        if (pos + 3 >= tokens.items.len) return ParseError.Error;
+        if (pos + 3 >= tokens.items.len) {
+            var err = try ctx.create_and_append_error("", equal_sign.start_pos, equal_sign.start_pos + equal_sign.value.len);
+            try err.add_label(ctx.create_error_label(
+                "Expected an expression after this equal sign",
+                equal_sign.start_pos,
+                equal_sign.start_pos + equal_sign.value.len,
+            ));
+            return ParseError.Error;
+        }
 
         const exp = try ctx.allocator.create(expression.Expression);
         errdefer ctx.allocator.destroy(exp);
         const next_pos = if (exp.init(tokens, pos + 3)) |x| x else {
-            // TODO: populate error information
+            const faulty_token = &tokens.items[pos + 3];
+            var err = try ctx.create_and_append_error(
+                "Invalid variable declaration",
+                faulty_token.start_pos,
+                faulty_token.start_pos + faulty_token.value.len,
+            );
+            const token_name = faulty_token.token_type.to_string();
+            const error_name = try std.fmt.allocPrint(ctx.allocator, "Expected an expression here, found a {s}", .{token_name});
+            try err.add_label(ctx.create_error_label_alloc(
+                error_name,
+                faulty_token.start_pos,
+                faulty_token.start_pos + faulty_token.value.len,
+            ));
             return ParseError.Error;
         };
 

@@ -5,13 +5,11 @@ Now in Zig!
 
 ## TODO
 
-- [ ] Rewrite parser
 - [ ] Rewrite semantic analyzer
 - [ ] Rewrite type checker
 - [ ] Rewrite code generator
 - [ ] Rewrite CLI interface
 - [ ] Rewrite REPL
-- [ ] Rewrite tests
 - [ ] Type definition generator
 - [ ] Code formatter
 - [ ] Language server
@@ -37,4 +35,6 @@ Now in Zig!
 - [x] Recover errors & generate error messages for the lexer
 - [x] Serialize lex errors/tokens into JSON
 - [x] Rewrite lexer
+- [x] Rewrite tests
+- [x] Rewrite minimal parser
 

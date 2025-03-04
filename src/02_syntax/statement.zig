@@ -14,7 +14,7 @@ pub const Statement = struct {
         variableBinding: *variable.VariableBinding,
     },
 
-    /// Parses a Statement and return the position of the next token
+    /// Parses a Statement and returns the position of the next token
     pub fn init(
         target: *Statement,
         tokens: *const TokenStream,

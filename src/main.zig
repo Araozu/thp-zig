@@ -127,6 +127,7 @@ fn repl() !void {
         };
 
         // next repl line
+        std.debug.print("Parsing successful\n", .{});
     }
 
     // var module_ast: syntax.Module = undefined;

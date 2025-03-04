@@ -40,16 +40,7 @@ pub const Module = struct {
         while (current_pos < input_len) {
             var stmt: statement.Statement = undefined;
 
-            // TODO: handle other errors of vardef parsing
-            const next_pos = stmt.init(tokens, current_pos, ctx) catch |e| switch (e) {
-                error.Error => {
-                    // add the error to the list of errors,
-                    // and exit for now because i havent implemented
-                    // error recovery yet
-                    return error.Error;
-                },
-                else => return e,
-            };
+            const next_pos = try stmt.init(tokens, current_pos, ctx);
             if (next_pos) |next_pos_actual| {
                 current_pos = next_pos_actual;
 
