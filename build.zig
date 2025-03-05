@@ -58,9 +58,23 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     syntax_module.addImport("config", options_module);
-    syntax_module.addImport("lexic", lexic_module);
     syntax_module.addImport("context", context_module);
+    syntax_module.addImport("lexic", lexic_module);
     exe.root_module.addImport("syntax", syntax_module);
+
+    //
+    // semantic module
+    //
+    const semantic_module = b.addModule("syntax", .{
+        .root_source_file = b.path("src/03_semantic/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    semantic_module.addImport("config", options_module);
+    semantic_module.addImport("context", context_module);
+    semantic_module.addImport("lexic", lexic_module);
+    semantic_module.addImport("syntax", syntax_module);
+    exe.root_module.addImport("semantic", semantic_module);
 
     // Install step
     b.installArtifact(exe);
@@ -85,9 +99,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     exe_unit_tests.root_module.addImport("config", options_module);
+    exe_unit_tests.root_module.addImport("context", context_module);
     exe_unit_tests.root_module.addImport("lexic", lexic_module);
     exe_unit_tests.root_module.addImport("syntax", syntax_module);
-    exe_unit_tests.root_module.addImport("context", context_module);
+    exe_unit_tests.root_module.addImport("semantic", semantic_module);
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -98,6 +113,7 @@ pub fn build(b: *std.Build) void {
     const files = [_][]const u8{
         "src/01_lexic/root.zig",
         "src/02_syntax/root.zig",
+        "src/03_semantic/root.zig",
         "src/context/root.zig",
     };
     for (files) |file| {
@@ -107,9 +123,10 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         });
         file_unit_test.root_module.addImport("config", options_module);
+        file_unit_test.root_module.addImport("context", context_module);
         file_unit_test.root_module.addImport("lexic", lexic_module);
         file_unit_test.root_module.addImport("syntax", syntax_module);
-        file_unit_test.root_module.addImport("context", context_module);
+        file_unit_test.root_module.addImport("semantic", semantic_module);
 
         var test_artifact = b.addRunArtifact(file_unit_test);
         test_step.dependOn(&test_artifact.step);
