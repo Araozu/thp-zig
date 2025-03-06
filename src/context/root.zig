@@ -390,7 +390,7 @@ test "should gen error message with label (1)" {
     };
     defer err.deinit(std.testing.allocator);
 
-    const label = .{
+    const label = ErrorLabel{
         .message = .{ .static = "This identifier was not found" },
         .start = 6,
         .end = 9,
@@ -422,7 +422,7 @@ test "should gen error message with label and help" {
     };
     defer err.deinit(std.testing.allocator);
 
-    const label = .{
+    const label = ErrorLabel{
         .message = .{ .static = "This identifier was not found" },
         .start = 6,
         .end = 9,

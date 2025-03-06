@@ -8,6 +8,7 @@ pub fn build(b: *std.Build) void {
     // Create options module for conditional compilation
     const executionTracing = b.option(bool, "tracing", "enable execution tracing") orelse false;
     const json_serialization = b.option(bool, "json", "enable JSON serialization of the compiler outputs") orelse false;
+    const no_bin = b.option(bool, "no-bin", "skip emitting binary") orelse false;
 
     const options = b.addOptions();
     options.addOption(bool, "tracing", executionTracing);
@@ -22,6 +23,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    if (no_bin) {
+        exe.use_llvm = false;
+        b.getInstallStep().dependOn(&exe.step);
+    } else {
+        b.installArtifact(exe);
+    }
 
     // Add options to executable
     exe.root_module.addImport("config", options_module);
