@@ -1,5 +1,18 @@
 const std = @import("std");
 
+fn create_module(
+    path: []const u8,
+    b: *std.Build,
+    t: std.Build.ResolvedTarget,
+    o: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    return b.createModule(.{
+        .root_source_file = b.path(path),
+        .target = t,
+        .optimize = o,
+    });
+}
+
 pub fn build(b: *std.Build) void {
     // Standard target options
     const target = b.standardTargetOptions(.{});
@@ -17,75 +30,54 @@ pub fn build(b: *std.Build) void {
     // Create the options module that will be shared
     const options_module = options.createModule();
 
+    //
+    // Modules
+    //
+    const error_module = create_module("src/context/root.zig", b, target, optimize);
+    const lexic_module = create_module("src/01_lexic/root.zig", b, target, optimize);
+    const syntax_module = create_module("src/02_syntax/root.zig", b, target, optimize);
+    const semantic_module = create_module("src/03_semantic/root.zig", b, target, optimize);
+    const root_module = create_module("src/main.zig", b, target, optimize);
+
+    //
+    // set up module dependencies
+    //
+    error_module.addImport("config", options_module);
+    //
+    lexic_module.addImport("config", options_module);
+    lexic_module.addImport("context", error_module);
+    //
+    syntax_module.addImport("config", options_module);
+    syntax_module.addImport("context", error_module);
+    syntax_module.addImport("lexic", lexic_module);
+    //
+    semantic_module.addImport("config", options_module);
+    semantic_module.addImport("context", error_module);
+    semantic_module.addImport("lexic", lexic_module);
+    semantic_module.addImport("syntax", syntax_module);
+    //
+    root_module.addImport("config", options_module);
+    root_module.addImport("context", error_module);
+    root_module.addImport("lexic", lexic_module);
+    root_module.addImport("syntax", syntax_module);
+    root_module.addImport("semantic", semantic_module);
+
+    //
+    // Main executable
+    //
     const exe = b.addExecutable(.{
         .name = "thp",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = root_module,
     });
 
+    // If using -Dno-bin, use the x86-backend for fast builds
     if (no_bin) {
         exe.use_llvm = false;
         b.getInstallStep().dependOn(&exe.step);
+        return;
     } else {
         b.installArtifact(exe);
     }
-
-    // Add options to executable
-    exe.root_module.addImport("config", options_module);
-
-    //
-    // Context module
-    //
-    const context_module = b.addModule("context", .{
-        .root_source_file = b.path("src/context/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    context_module.addImport("config", options_module);
-    exe.root_module.addImport("context", context_module);
-
-    //
-    // Lexic module
-    //
-    const lexic_module = b.addModule("lexic", .{
-        .root_source_file = b.path("src/01_lexic/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    lexic_module.addImport("config", options_module);
-    lexic_module.addImport("context", context_module);
-    exe.root_module.addImport("lexic", lexic_module);
-
-    //
-    // Syntax module
-    //
-    const syntax_module = b.addModule("syntax", .{
-        .root_source_file = b.path("src/02_syntax/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    syntax_module.addImport("config", options_module);
-    syntax_module.addImport("context", context_module);
-    syntax_module.addImport("lexic", lexic_module);
-    exe.root_module.addImport("syntax", syntax_module);
-
-    //
-    // semantic module
-    //
-    const semantic_module = b.addModule("syntax", .{
-        .root_source_file = b.path("src/03_semantic/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    semantic_module.addImport("config", options_module);
-    semantic_module.addImport("context", context_module);
-    semantic_module.addImport("lexic", lexic_module);
-    semantic_module.addImport("syntax", syntax_module);
-    exe.root_module.addImport("semantic", semantic_module);
-
-    // Install step
-    b.installArtifact(exe);
 
     // Run command
     const run_cmd = b.addRunArtifact(exe);
@@ -100,43 +92,20 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
+    //
     // Unit tests
-    const exe_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    exe_unit_tests.root_module.addImport("config", options_module);
-    exe_unit_tests.root_module.addImport("context", context_module);
-    exe_unit_tests.root_module.addImport("lexic", lexic_module);
-    exe_unit_tests.root_module.addImport("syntax", syntax_module);
-    exe_unit_tests.root_module.addImport("semantic", semantic_module);
+    //
 
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
+    const error_module_tests = b.addTest(.{ .name = "error_module", .root_module = error_module });
+    const lexic_module_tests = b.addTest(.{ .name = "lexic", .root_module = lexic_module });
+    const syntax_module_tests = b.addTest(.{ .name = "syntax", .root_module = syntax_module });
+    const semantic_module_tests = b.addTest(.{ .name = "semantic", .root_module = semantic_module });
+    const root_module_tests = b.addTest(.{ .name = "root", .root_module = root_module });
 
-    const test_step = b.step("test", "Run ALL unit tests");
-    test_step.dependOn(&run_exe_unit_tests.step);
-
-    // Add dependencies for unit testing
-    const files = [_][]const u8{
-        "src/01_lexic/root.zig",
-        "src/02_syntax/root.zig",
-        "src/03_semantic/root.zig",
-        "src/context/root.zig",
-    };
-    for (files) |file| {
-        const file_unit_test = b.addTest(.{
-            .root_source_file = b.path(file),
-            .target = target,
-            .optimize = optimize,
-        });
-        file_unit_test.root_module.addImport("config", options_module);
-        file_unit_test.root_module.addImport("context", context_module);
-        file_unit_test.root_module.addImport("lexic", lexic_module);
-        file_unit_test.root_module.addImport("syntax", syntax_module);
-        file_unit_test.root_module.addImport("semantic", semantic_module);
-
-        var test_artifact = b.addRunArtifact(file_unit_test);
-        test_step.dependOn(&test_artifact.step);
-    }
+    const test_step = b.step("test", "Run all unit tests");
+    test_step.dependOn(&b.addRunArtifact(error_module_tests).step);
+    test_step.dependOn(&b.addRunArtifact(lexic_module_tests).step);
+    test_step.dependOn(&b.addRunArtifact(syntax_module_tests).step);
+    test_step.dependOn(&b.addRunArtifact(semantic_module_tests).step);
+    test_step.dependOn(&b.addRunArtifact(root_module_tests).step);
 }
