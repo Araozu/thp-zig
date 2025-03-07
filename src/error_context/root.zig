@@ -2,11 +2,11 @@ const std = @import("std");
 
 /// Compiler wide state about.
 /// For now only stores errors generated
-pub const CompilerContext = struct {
+pub const ErrorContext = struct {
     allocator: std.mem.Allocator,
     errors: std.ArrayList(ErrorData),
 
-    pub fn init(allocator: std.mem.Allocator) CompilerContext {
+    pub fn init(allocator: std.mem.Allocator) ErrorContext {
         return .{
             .allocator = allocator,
             .errors = std.ArrayList(ErrorData).init(allocator),
@@ -27,7 +27,7 @@ pub const CompilerContext = struct {
     /// // After this point, err might become invalid if new errors are added
     /// ```
     pub fn create_and_append_error(
-        self: *CompilerContext,
+        self: *ErrorContext,
         reason: []const u8,
         start_position: usize,
         end_position: usize,
@@ -51,7 +51,7 @@ pub const CompilerContext = struct {
     /// This error is meant to be added to a ErrorData,
     /// and will be cleaned automatically
     pub fn create_error_label(
-        self: *CompilerContext,
+        self: *ErrorContext,
         message: []const u8,
         start: usize,
         end: usize,
@@ -71,7 +71,7 @@ pub const CompilerContext = struct {
     /// of this context, because on cleanup this will be
     /// passed to `ctx.allocator.destroy(message)`.
     pub fn create_error_label_alloc(
-        self: *CompilerContext,
+        self: *ErrorContext,
         message: []u8,
         start: usize,
         end: usize,
@@ -84,7 +84,7 @@ pub const CompilerContext = struct {
         };
     }
 
-    pub fn deinit(self: *CompilerContext) void {
+    pub fn deinit(self: *ErrorContext) void {
         for (self.errors.items) |*error_item| {
             error_item.deinit(self.allocator);
         }

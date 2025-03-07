@@ -19,7 +19,7 @@ pub const Statement = struct {
         target: *Statement,
         tokens: *const TokenStream,
         pos: usize,
-        ctx: *context.CompilerContext,
+        ctx: *context.ErrorContext,
     ) ParseError!?usize {
         // try to parse a variable definition
 
@@ -43,7 +43,7 @@ pub const Statement = struct {
 
     pub fn deinit(
         self: @This(),
-        ctx: *context.CompilerContext,
+        ctx: *context.ErrorContext,
     ) void {
         switch (self.value) {
             .variableBinding => |v| {
@@ -55,7 +55,7 @@ pub const Statement = struct {
 };
 
 test "should parse a variable declaration statement" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322";
     const tokens = try lexic.tokenize(input, &ctx);
@@ -74,7 +74,7 @@ test "should parse a variable declaration statement" {
 }
 
 test "should fail on other constructs" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "a_function_call(322)";
     const tokens = try lexic.tokenize(input, &ctx);

@@ -23,7 +23,7 @@ const LexError = token.LexError;
 /// found while lexing. The caller is responsible for freeing it.
 pub fn tokenize(
     input: []const u8,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
@@ -187,7 +187,7 @@ test {
 }
 
 test "should insert 1 item" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322";
     const arrl = try tokenize(input, &ctx);
@@ -195,7 +195,7 @@ test "should insert 1 item" {
 }
 
 test "should insert 2 item" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322 644";
     const arrl = try tokenize(input, &ctx);
@@ -203,7 +203,7 @@ test "should insert 2 item" {
 }
 
 test "should insert an item, fail, and not leak" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322 \"hello";
 
@@ -217,7 +217,7 @@ test "should insert an item, fail, and not leak" {
 }
 
 test "shouldnt leak" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "";
     const arrl = try tokenize(input, &ctx);
@@ -225,7 +225,7 @@ test "shouldnt leak" {
 }
 
 test "should handle recoverable errors" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
 
     const input = "322 0b 644";

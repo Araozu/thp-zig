@@ -12,7 +12,7 @@ const LexReturn = token.LexReturn;
 pub fn lex(
     input: []const u8,
     start: usize,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) LexError!?LexReturn {
     const cap = input.len;
     assert(start < cap);
@@ -45,7 +45,7 @@ pub fn lex(
 }
 
 test "should lex comment until EOF" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "// aea";
     const output = try lex(input, 0, &ctx);
@@ -60,7 +60,7 @@ test "should lex comment until EOF" {
 }
 
 test "should lex comment until newline (LF)" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "// my comment\n// other comment";
     const output = try lex(input, 0, &ctx);
@@ -75,7 +75,7 @@ test "should lex comment until newline (LF)" {
 }
 
 test "shouldn lex incomplete comment" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "/aa";
     const output = try lex(input, 0, &ctx);
@@ -83,7 +83,7 @@ test "shouldn lex incomplete comment" {
 }
 
 test "should fail on CRLF" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "// my comment\x0D\x0A// other comment";
     _ = lex(input, 0, &ctx) catch |err| {

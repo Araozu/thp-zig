@@ -33,7 +33,7 @@ pub fn build(b: *std.Build) void {
     //
     // Modules
     //
-    const error_module = create_module("src/context/root.zig", b, target, optimize);
+    const error_module = create_module("src/error_context/root.zig", b, target, optimize);
     const lexic_module = create_module("src/01_lexic/root.zig", b, target, optimize);
     const syntax_module = create_module("src/02_syntax/root.zig", b, target, optimize);
     const semantic_module = create_module("src/03_semantic/root.zig", b, target, optimize);

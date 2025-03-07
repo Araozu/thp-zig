@@ -25,7 +25,7 @@ pub const Module = struct {
         target: *@This(),
         tokens: *const TokenStream,
         pos: usize,
-        ctx: *context.CompilerContext,
+        ctx: *context.ErrorContext,
     ) ParseError!void {
         var arrl = std.ArrayList(statement.Statement).init(ctx.allocator);
         errdefer arrl.deinit();
@@ -58,7 +58,7 @@ pub const Module = struct {
         };
     }
 
-    pub fn deinit(self: @This(), ctx: *context.CompilerContext) void {
+    pub fn deinit(self: @This(), ctx: *context.ErrorContext) void {
         for (self.statements.items) |stmt| {
             stmt.deinit(ctx);
         }
@@ -71,7 +71,7 @@ test {
 }
 
 test "should parse a single statement" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322";
     const tokens = try lexic.tokenize(input, &ctx);
@@ -83,7 +83,7 @@ test "should parse a single statement" {
 }
 
 test "should clean memory if a statement parsing fails after one item has been inserted" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322 unrelated()";
     const tokens = try lexic.tokenize(input, &ctx);

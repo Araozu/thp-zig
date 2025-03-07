@@ -18,7 +18,7 @@ pub fn lex(
     input: []const u8,
     cap: usize,
     start: usize,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) LexError!?LexReturn {
     assert(start < cap);
     const first_char = input[start];
@@ -50,7 +50,7 @@ fn prefixed(
     input: []const u8,
     cap: usize,
     start: usize,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) !?LexReturn {
     const validator = switch (prefix) {
         'x' => utils.is_hex_digit,
@@ -103,7 +103,7 @@ fn integer(
     input: []const u8,
     cap: usize,
     start: usize,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) LexError!?LexReturn {
     assert(start < cap);
     const first_char = input[start];
@@ -180,7 +180,7 @@ fn floating_point(
     cap: usize,
     token_start: usize,
     period_pos: usize,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) LexError!?LexReturn {
     var current_pos = period_pos + 1;
 
@@ -219,7 +219,7 @@ fn scientific(
     cap: usize,
     token_start: usize,
     exp_pos: usize,
-    ctx: *context.CompilerContext,
+    ctx: *context.ErrorContext,
 ) LexError!?LexReturn {
     var current_pos = exp_pos + 1;
 
@@ -264,7 +264,7 @@ fn scientific(
 }
 
 test "int lexer 1" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322   ";
     const result = try integer(input, input.len, 0, &ctx);
@@ -278,7 +278,7 @@ test "int lexer 1" {
 }
 
 test "int lexer 2" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "   644   ";
     const result = try integer(input, input.len, 3, &ctx);
@@ -292,7 +292,7 @@ test "int lexer 2" {
 }
 
 test "int lexer 3" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "4";
     const result = try integer(input, input.len, 0, &ctx);
@@ -306,7 +306,7 @@ test "int lexer 3" {
 }
 
 test "int lexer 4: should lex a single zero" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0";
     const result = try integer(input, input.len, 0, &ctx);
@@ -320,7 +320,7 @@ test "int lexer 4: should lex a single zero" {
 }
 
 test "int lexer 5: should lex a single zero with trailing characters" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0,";
     const result = try integer(input, input.len, 0, &ctx);
@@ -334,7 +334,7 @@ test "int lexer 5: should lex a single zero with trailing characters" {
 }
 
 test "should return null if not an integer" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "prosor prosor";
     const result = try integer(input, input.len, 0, &ctx);
@@ -343,7 +343,7 @@ test "should return null if not an integer" {
 }
 
 test "should lex hex number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0xa";
     const result = try lex(input, input.len, 0, &ctx);
@@ -357,7 +357,7 @@ test "should lex hex number" {
 }
 
 test "should fail on integer with leading zero" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0322";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -376,7 +376,7 @@ test "should fail on integer with leading zero" {
 }
 
 test "should lex hex number 2" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "  0Xff00AA  ";
     const result = try lex(input, input.len, 2, &ctx);
@@ -390,7 +390,7 @@ test "should lex hex number 2" {
 }
 
 test "shouldnt parse incomplete hex number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0xZZ";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -409,7 +409,7 @@ test "shouldnt parse incomplete hex number" {
 }
 
 test "shouldnt parse incomplete hex number 2" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0x";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -428,7 +428,7 @@ test "shouldnt parse incomplete hex number 2" {
 }
 
 test "should lex octal number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0o755";
     const result = try lex(input, input.len, 0, &ctx);
@@ -442,7 +442,7 @@ test "should lex octal number" {
 }
 
 test "should lex octal number 2" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "  0o755  ";
     const result = try lex(input, input.len, 2, &ctx);
@@ -456,7 +456,7 @@ test "should lex octal number 2" {
 }
 
 test "shouldnt parse incomplete octal number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0o8";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -475,7 +475,7 @@ test "shouldnt parse incomplete octal number" {
 }
 
 test "should lex binary number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0b1011";
     const result = try lex(input, input.len, 0, &ctx);
@@ -489,7 +489,7 @@ test "should lex binary number" {
 }
 
 test "shouldnt parse incomplete binary number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0b2";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -508,7 +508,7 @@ test "shouldnt parse incomplete binary number" {
 }
 
 test "should lex fp number 1" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "1.2";
     const result = try lex(input, input.len, 0, &ctx);
@@ -522,7 +522,7 @@ test "should lex fp number 1" {
 }
 
 test "should lex fp number 2" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0.1";
     const result = try lex(input, input.len, 0, &ctx);
@@ -536,7 +536,7 @@ test "should lex fp number 2" {
 }
 
 test "should lex fp number 3" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "123.456";
     const result = try lex(input, input.len, 0, &ctx);
@@ -550,7 +550,7 @@ test "should lex fp number 3" {
 }
 
 test "should fail on incomplete fp number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "123.";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -569,7 +569,7 @@ test "should fail on incomplete fp number" {
 }
 
 test "should lex scientific number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "42e+3";
     const result = try lex(input, input.len, 0, &ctx);
@@ -583,7 +583,7 @@ test "should lex scientific number" {
 }
 
 test "should fail on incomplete scientific number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "123e";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -602,7 +602,7 @@ test "should fail on incomplete scientific number" {
 }
 
 test "should fail on incomplete scientific number 2" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "123e+";
     const result = lex(input, input.len, 0, &ctx) catch |err| {
@@ -621,7 +621,7 @@ test "should fail on incomplete scientific number 2" {
 }
 
 test "should lex floating scientific number" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "0.58e+3";
     const result = try lex(input, input.len, 0, &ctx);

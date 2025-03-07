@@ -28,7 +28,7 @@ pub const Expression = union(enum) {
 };
 
 test "should parse expression" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322";
     const tokens = try lexic.tokenize(input, &ctx);
@@ -44,7 +44,7 @@ test "should parse expression" {
 }
 
 test "should fail on non expression" {
-    var ctx = context.CompilerContext.init(std.testing.allocator);
+    var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "identifier";
     const tokens = try lexic.tokenize(input, &ctx);

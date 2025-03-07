@@ -70,7 +70,7 @@ fn repl() !void {
         const line = std.mem.trim(u8, bare_line, "\r");
 
         // Setup compiler context
-        var ctx = context.CompilerContext.init(alloc);
+        var ctx = context.ErrorContext.init(alloc);
         defer ctx.deinit();
 
         //
