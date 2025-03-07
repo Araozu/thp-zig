@@ -240,3 +240,19 @@ test "should handle recoverable errors" {
     try std.testing.expectEqual(@as(usize, 4), ctx.errors.items[0].start_position);
     try std.testing.expectEqual(@as(usize, 6), ctx.errors.items[0].end_position);
 }
+
+test "lexer fuzzing" {
+    return std.testing.fuzz({}, fuzz_impl, .{});
+}
+
+fn fuzz_impl(ctx: void, source: []const u8) anyerror!void {
+    _ = ctx;
+    const input = try std.testing.allocator.dupeZ(u8, source);
+    defer std.testing.allocator.free(input);
+
+    var err_ctx = context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+
+    const arrl = try tokenize(input, std.testing.allocator, &err_ctx);
+    defer arrl.deinit();
+}
