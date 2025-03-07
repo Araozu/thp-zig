@@ -58,7 +58,7 @@ test "should parse a variable declaration statement" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
     defer tokens.deinit();
 
     var statement: Statement = undefined;
@@ -77,7 +77,7 @@ test "should fail on other constructs" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "a_function_call(322)";
-    const tokens = try lexic.tokenize(input, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
     defer tokens.deinit();
 
     var statement: Statement = undefined;

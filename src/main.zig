@@ -74,9 +74,11 @@ fn repl() !void {
         defer ctx.deinit();
 
         //
-        // Tokenize
+        // Tokenize with an arena
         //
-        const tokens = lexic.tokenize(line, &ctx) catch |e| switch (e) {
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+        const tokens = lexic.tokenize(line, arena.allocator(), &ctx) catch |e| switch (e) {
             error.OutOfMemory => {
                 try stdout.print("FATAL ERROR: System Out of Memory!", .{});
                 try bw.flush();

@@ -23,12 +23,13 @@ const LexError = token.LexError;
 /// found while lexing. The caller is responsible for freeing it.
 pub fn tokenize(
     input: []const u8,
-    ctx: *context.ErrorContext,
+    allocator: std.mem.Allocator,
+    err_ctx: *context.ErrorContext,
 ) !std.ArrayList(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
 
-    var tokens = std.ArrayList(Token).init(ctx.allocator);
+    var tokens = std.ArrayList(Token).init(allocator);
     errdefer tokens.deinit();
 
     while (current_pos < input_len) {
@@ -42,7 +43,7 @@ pub fn tokenize(
 
         // attempt to lex a number
         // the lexer adds any errors to the context as neccesary
-        const number_lex = number.lex(input, input_len, actual_next_pos, ctx) catch |e| switch (e) {
+        const number_lex = number.lex(input, input_len, actual_next_pos, err_ctx) catch |e| switch (e) {
             // recoverable errors
             LexError.Incomplete, LexError.LeadingZero, LexError.IncompleteFloatingNumber, LexError.IncompleteScientificNumber => {
                 // move to next syncronization point (whitespace) to recover lexing
@@ -72,7 +73,7 @@ pub fn tokenize(
         }
 
         // attempt to lex a string
-        const str_lex = string.lex(input, actual_next_pos, ctx) catch |e| switch (e) {
+        const str_lex = string.lex(input, actual_next_pos, err_ctx) catch |e| switch (e) {
             LexError.IncompleteString => {
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
                 continue;
@@ -99,7 +100,7 @@ pub fn tokenize(
         }
 
         // attempt to lex a comment
-        const comment_lex = comment.lex(input, actual_next_pos, ctx) catch |e| switch (e) {
+        const comment_lex = comment.lex(input, actual_next_pos, err_ctx) catch |e| switch (e) {
             LexError.CRLF => {
                 current_pos = ignore_until_whitespace(input, actual_next_pos);
                 continue;
@@ -144,7 +145,7 @@ pub fn tokenize(
         else {
             // Create an error "nothing matched" and continue lexing
             // after the whitespace
-            _ = try ctx.create_and_append_error("Unrecognized character", actual_next_pos, actual_next_pos + 1);
+            _ = try err_ctx.create_and_append_error("Unrecognized character", actual_next_pos, actual_next_pos + 1);
             current_pos = ignore_until_whitespace(input, actual_next_pos);
             continue;
         }
@@ -190,7 +191,7 @@ test "should insert 1 item" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322";
-    const arrl = try tokenize(input, &ctx);
+    const arrl = try tokenize(input, std.testing.allocator, &ctx);
     arrl.deinit();
 }
 
@@ -198,7 +199,7 @@ test "should insert 2 item" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322 644";
-    const arrl = try tokenize(input, &ctx);
+    const arrl = try tokenize(input, std.testing.allocator, &ctx);
     arrl.deinit();
 }
 
@@ -207,7 +208,7 @@ test "should insert an item, fail, and not leak" {
     defer ctx.deinit();
     const input = "322 \"hello";
 
-    const arrl = tokenize(input, &ctx) catch |e| switch (e) {
+    const arrl = tokenize(input, std.testing.allocator, &ctx) catch |e| switch (e) {
         else => {
             try std.testing.expect(false);
             return;
@@ -220,7 +221,7 @@ test "shouldnt leak" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "";
-    const arrl = try tokenize(input, &ctx);
+    const arrl = try tokenize(input, std.testing.allocator, &ctx);
     arrl.deinit();
 }
 
@@ -229,7 +230,7 @@ test "should handle recoverable errors" {
     defer ctx.deinit();
 
     const input = "322 0b 644";
-    const arrl = try tokenize(input, &ctx);
+    const arrl = try tokenize(input, std.testing.allocator, &ctx);
     defer arrl.deinit();
 
     try std.testing.expectEqual(@as(usize, 1), ctx.errors.items.len);

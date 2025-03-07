@@ -3,9 +3,10 @@ const lexic = @import("lexic");
 const context = @import("context");
 
 pub fn tokenize_to_json() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const alloc = arena.allocator();
+    // gpa for error context and buffer reading
+    var gpa = std.heap.DebugAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const alloc = gpa.allocator();
 
     // Setup buffered stdout once
     const stdout_file = std.io.getStdOut().writer();
@@ -20,11 +21,15 @@ pub fn tokenize_to_json() !void {
     try std.io.getStdIn().reader().readAllArrayList(&stdin_buf, max_file_size);
 
     // Setup compiler context
-    var ctx = context.CompilerContext.init(alloc);
+    var ctx = context.ErrorContext.init(alloc);
     defer ctx.deinit();
 
     // Tokenize
-    const tokens = try lexic.tokenize(stdin_buf.items, &ctx);
+    // arena allocator for tokens
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const tokens = try lexic.tokenize(stdin_buf.items, arena.allocator(), &ctx);
     defer tokens.deinit();
 
     // Write JSON directly to stdout

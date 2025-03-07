@@ -74,7 +74,7 @@ test "should parse a single statement" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
     defer tokens.deinit();
 
     var module: Module = undefined;
@@ -86,7 +86,7 @@ test "should clean memory if a statement parsing fails after one item has been i
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "var my_variable = 322 unrelated()";
-    const tokens = try lexic.tokenize(input, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
     defer tokens.deinit();
 
     var module: Module = undefined;

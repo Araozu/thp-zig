@@ -31,7 +31,7 @@ test "should parse expression" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322";
-    const tokens = try lexic.tokenize(input, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
     defer tokens.deinit();
 
     var expr: Expression = undefined;
@@ -47,7 +47,7 @@ test "should fail on non expression" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "identifier";
-    const tokens = try lexic.tokenize(input, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
     defer tokens.deinit();
 
     var expr: Expression = undefined;
