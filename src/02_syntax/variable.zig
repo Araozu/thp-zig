@@ -156,11 +156,11 @@ test "should parse a minimal var" {
 
     try std.testing.expectEqual(true, binding.is_mutable);
     try std.testing.expect(binding.datatype == null);
-    try std.testing.expectEqualDeep("my_variable", binding.identifier.value);
+    try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
     switch (expr.*) {
         .number => |n| {
-            try std.testing.expectEqualDeep("322", n.value);
+            try std.testing.expectEqualStrings("322", n.value);
         },
     }
 }

@@ -12,16 +12,16 @@ pub const Expression = union(enum) {
     ///
     /// Receives a pointer to the memory for initialization,
     /// returns the position of the next token
-    pub fn init(self: *@This(), tokens: *const std.ArrayList(Token), pos: usize) ?usize {
+    pub fn init(self: *Expression, tokens: *const std.ArrayList(Token), pos: usize) ?usize {
         std.debug.assert(pos < tokens.items.len);
 
-        const t = tokens.items[pos];
+        const t = &tokens.items[pos];
         if (t.token_type != TokenType.Int) {
             return null;
         }
 
         self.* = .{
-            .number = &t,
+            .number = t,
         };
         return pos + 1;
     }
