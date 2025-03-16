@@ -1,5 +1,9 @@
 pipeline {
-	agent any
+	agent {
+		node {
+			label "hetzner-helsinki-01"
+		}
+	}
 
 	stages {
 		stage('Debug tests') {
