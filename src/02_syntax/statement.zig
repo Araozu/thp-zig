@@ -5,6 +5,7 @@ const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const variable = @import("./variable.zig");
 const context = @import("./context.zig");
+const error_context = @import("context");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
@@ -18,7 +19,7 @@ pub const Statement = struct {
     pub fn init(
         target: *Statement,
         pos: usize,
-        ctx: *context.ParserContext,
+        ctx: *const context.ParserContext,
     ) ParseError!?usize {
         // try to parse a variable definition
 
@@ -42,7 +43,7 @@ pub const Statement = struct {
 
     pub fn deinit(
         self: @This(),
-        ctx: *context.ParserContext,
+        ctx: *const context.ParserContext,
     ) void {
         switch (self.value) {
             .variableBinding => |v| {
@@ -54,15 +55,20 @@ pub const Statement = struct {
 };
 
 test "should parse a variable declaration statement" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var statement: Statement = undefined;
-    _ = try statement.init(&tokens, 0, &ctx);
-    defer statement.deinit(&ctx);
+    _ = try statement.init(0, &parser_context);
+    defer statement.deinit(&parser_context);
 
     switch (statement.value) {
         .variableBinding => |v| {
@@ -73,19 +79,24 @@ test "should parse a variable declaration statement" {
 }
 
 test "should fail on other constructs" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "a_function_call(322)";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var statement: Statement = undefined;
-    const result = try statement.init(&tokens, 0, &ctx);
+    const result = try statement.init(0, &parser_context);
     if (result == null) {
         // good path
         return;
     }
-    defer statement.deinit(&ctx);
+    defer statement.deinit(&parser_context);
 
     try std.testing.expect(false);
 }
