@@ -4,6 +4,7 @@ const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const context = @import("./context.zig");
+const error_context = @import("context");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
@@ -136,22 +137,27 @@ pub const VariableBinding = struct {
 
     pub fn deinit(
         self: @This(),
-        ctx: *context.ParserContext,
+        ctx: *const context.ParserContext,
     ) void {
         ctx.allocator.destroy(self.expression);
     }
 };
 
 test "should parse a minimal var" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    _ = try binding.init(&tokens, 0, &ctx);
-    defer binding.deinit(&ctx);
+    _ = try binding.init(0, &parser_context);
+    defer binding.deinit(&parser_context);
 
     try std.testing.expectEqual(true, binding.is_mutable);
     try std.testing.expect(binding.datatype == null);
@@ -165,29 +171,39 @@ test "should parse a minimal var" {
 }
 
 test "should return null if stream doesnt start with var" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "different_token_stream()";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    if (try binding.init(&tokens, 0, &ctx)) |_| {
+    if (try binding.init(0, &parser_context)) |_| {
         try std.testing.expect(false);
     }
 }
 
 test "should fail if the identifier is missing" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var ";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, &ctx) catch |err| {
-        try std.testing.expectEqual(1, ctx.errors.items.len);
-        const error_data = ctx.errors.items[0];
+    _ = binding.init(0, &parser_context) catch |err| {
+        try std.testing.expectEqual(1, err_ctx.errors.items.len);
+        const error_data = err_ctx.errors.items[0];
 
         try std.testing.expectEqual(ParseError.Error, err);
         try std.testing.expectEqualStrings("Incomplete variable declaration", error_data.reason);
@@ -199,75 +215,95 @@ test "should fail if the identifier is missing" {
         try std.testing.expectEqual(3, l.end);
         return;
     };
-    defer binding.deinit(&ctx);
+    defer binding.deinit(&parser_context);
 
     try std.testing.expect(false);
 }
 
 test "should fail if there is not an identifier after var" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, &ctx) catch |err| {
+    _ = binding.init(0, &parser_context) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
-    defer binding.deinit(&ctx);
+    defer binding.deinit(&parser_context);
 
     try std.testing.expect(false);
 }
 
 test "should fail if the equal sign is missing" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_id    ";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, &ctx) catch |err| {
+    _ = binding.init(0, &parser_context) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
-    defer binding.deinit(&ctx);
+    defer binding.deinit(&parser_context);
 
     try std.testing.expect(false);
 }
 
 test "should fail if the equal sign is not found" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_id is string";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, &ctx) catch |err| {
+    _ = binding.init(0, &parser_context) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
-    defer binding.deinit(&ctx);
+    defer binding.deinit(&parser_context);
 
     try std.testing.expect(false);
 }
 
 test "should fail if the expression parsing fails" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_id = ehhh";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var binding: VariableBinding = undefined;
-    _ = binding.init(&tokens, 0, &ctx) catch |err| {
+    _ = binding.init(0, &parser_context) catch |err| {
         try std.testing.expectEqual(ParseError.Error, err);
         return;
     };
-    defer binding.deinit(&ctx);
+    defer binding.deinit(&parser_context);
 
     try std.testing.expect(false);
 }
