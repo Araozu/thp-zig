@@ -1,6 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const context = @import("./context.zig");
+const error_context = @import("context");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -32,14 +33,19 @@ pub const Expression = union(enum) {
 };
 
 test "should parse expression" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var expr: Expression = undefined;
-    if (expr.init(&tokens, 0)) |_| {
+    if (expr.init(0, &parser_context)) |_| {
         try std.testing.expectEqualDeep("322", expr.number.value);
         try std.testing.expectEqualDeep(TokenType.Int, expr.number.token_type);
         return;
@@ -48,14 +54,19 @@ test "should parse expression" {
 }
 
 test "should fail on non expression" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "identifier";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var expr: Expression = undefined;
-    if (expr.init(&tokens, 0)) |_| {
+    if (expr.init(0, &parser_context)) |_| {
         std.debug.print("v: {s}", .{expr.number.value});
         try std.testing.expect(false);
     }

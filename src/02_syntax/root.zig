@@ -1,6 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
 pub const context = @import("./context.zig");
+const error_context = @import("context");
 
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
@@ -24,7 +25,7 @@ pub const Module = struct {
     pub fn init(
         target: *@This(),
         pos: usize,
-        ctx: *context.ParserContext,
+        ctx: *const context.ParserContext,
     ) ParseError!void {
         var arrl = std.ArrayList(statement.Statement).init(ctx.allocator);
         errdefer arrl.deinit();
@@ -57,7 +58,7 @@ pub const Module = struct {
         };
     }
 
-    pub fn deinit(self: @This(), ctx: *context.ErrorContext) void {
+    pub fn deinit(self: @This(), ctx: *const context.ParserContext) void {
         for (self.statements.items) |stmt| {
             stmt.deinit(ctx);
         }
@@ -70,27 +71,37 @@ test {
 }
 
 test "should parse a single statement" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var module: Module = undefined;
-    _ = try module.init(&tokens, 0, &ctx);
-    defer module.deinit(&ctx);
+    _ = try module.init(0, &parser_context);
+    defer module.deinit(&parser_context);
 }
 
 test "should clean memory if a statement parsing fails after one item has been inserted" {
-    var ctx = context.ErrorContext.init(std.testing.allocator);
-    defer ctx.deinit();
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
     const input = "var my_variable = 322 unrelated()";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &ctx);
+    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit();
 
+    const parser_context = context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &tokens,
+        .err = &err_ctx,
+    };
     var module: Module = undefined;
-    _ = module.init(&tokens, 0, &ctx) catch {
+    _ = module.init(0, &parser_context) catch {
         return;
     };
-    defer module.deinit(&ctx);
+    defer module.deinit(&parser_context);
 }
