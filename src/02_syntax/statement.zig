@@ -4,7 +4,7 @@ const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const variable = @import("./variable.zig");
-const context = @import("context");
+const context = @import("./context.zig");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
@@ -17,16 +17,15 @@ pub const Statement = struct {
     /// Parses a Statement and returns the position of the next token
     pub fn init(
         target: *Statement,
-        tokens: *const TokenStream,
         pos: usize,
-        ctx: *context.ErrorContext,
+        ctx: *context.ParserContext,
     ) ParseError!?usize {
         // try to parse a variable definition
 
         var vardef = try ctx.allocator.create(variable.VariableBinding);
         errdefer ctx.allocator.destroy(vardef);
 
-        const vardef_result = try vardef.init(tokens, pos, ctx);
+        const vardef_result = try vardef.init(pos, ctx);
         if (vardef_result) |vardef_end| {
             // variable definition parsed
             // return the parsed variable definition
@@ -43,7 +42,7 @@ pub const Statement = struct {
 
     pub fn deinit(
         self: @This(),
-        ctx: *context.ErrorContext,
+        ctx: *context.ParserContext,
     ) void {
         switch (self.value) {
             .variableBinding => |v| {

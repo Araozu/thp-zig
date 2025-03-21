@@ -1,6 +1,6 @@
 const std = @import("std");
 const lexic = @import("lexic");
-const context = @import("context");
+const context = @import("./context.zig");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -12,10 +12,14 @@ pub const Expression = union(enum) {
     ///
     /// Receives a pointer to the memory for initialization,
     /// returns the position of the next token
-    pub fn init(self: *Expression, tokens: *const std.ArrayList(Token), pos: usize) ?usize {
-        std.debug.assert(pos < tokens.items.len);
+    pub fn init(
+        self: *Expression,
+        pos: usize,
+        ctx: *const context.ParserContext,
+    ) ?usize {
+        std.debug.assert(pos < ctx.tokens.items.len);
 
-        const t = &tokens.items[pos];
+        const t = &ctx.tokens.items[pos];
         if (t.token_type != TokenType.Int) {
             return null;
         }

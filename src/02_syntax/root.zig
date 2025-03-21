@@ -1,6 +1,6 @@
 const std = @import("std");
 const lexic = @import("lexic");
-const context = @import("context");
+pub const context = @import("./context.zig");
 
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
@@ -23,9 +23,8 @@ pub const Module = struct {
     /// which will clean it.
     pub fn init(
         target: *@This(),
-        tokens: *const TokenStream,
         pos: usize,
-        ctx: *context.ErrorContext,
+        ctx: *context.ParserContext,
     ) ParseError!void {
         var arrl = std.ArrayList(statement.Statement).init(ctx.allocator);
         errdefer arrl.deinit();
@@ -33,14 +32,14 @@ pub const Module = struct {
             i.deinit(ctx);
         };
 
-        const input_len = tokens.items.len;
+        const input_len = ctx.tokens.items.len;
         var current_pos = pos;
 
         // parse many statements
         while (current_pos < input_len) {
             var stmt: statement.Statement = undefined;
 
-            const next_pos = try stmt.init(tokens, current_pos, ctx);
+            const next_pos = try stmt.init(current_pos, ctx);
             if (next_pos) |next_pos_actual| {
                 current_pos = next_pos_actual;
 
@@ -49,7 +48,7 @@ pub const Module = struct {
             }
 
             // nothing matched, but there are tokens. this in an error
-            _ = try ctx.create_and_append_error("No statement matched", current_pos, current_pos + 1);
+            _ = try ctx.err.create_and_append_error("No statement matched", current_pos, current_pos + 1);
             return error.Error;
         }
 

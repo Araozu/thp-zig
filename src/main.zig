@@ -1,7 +1,8 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const syntax = @import("syntax");
-const context = @import("context");
+const err_ctx = @import("context");
+const parser_ctx = syntax.context;
 
 const cli = @import("cli.zig");
 
@@ -70,7 +71,7 @@ fn repl() !void {
         const line = std.mem.trim(u8, bare_line, "\r");
 
         // Setup compiler context
-        var ctx = context.ErrorContext.init(alloc);
+        var ctx = err_ctx.ErrorContext.init(alloc);
         defer ctx.deinit();
 
         //
@@ -113,8 +114,14 @@ fn repl() !void {
         //
         // Syntax analysis
         //
+        var parser_context = parser_ctx.ParserContext{
+            .allocator = arena.allocator(),
+            .tokens = &tokens,
+            .err = &ctx,
+        };
+
         var ast: syntax.Module = undefined;
-        ast.init(&tokens, 0, &ctx) catch |e| switch (e) {
+        ast.init(0, &parser_context) catch |e| switch (e) {
             error.Error => {
                 // Print all the errors
                 for (ctx.errors.items) |*err_item| {

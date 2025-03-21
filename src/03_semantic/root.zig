@@ -18,7 +18,12 @@ pub const SymbolTable = struct {
 };
 
 pub fn semantic_analysis() void {
-    // TODO: ??
+    // Symbol collection
+    // Scope building
+    // Name resolution
+    // Type checking
+    // Control flow analysis
+    // Constant evaluation
 }
 
 test {
