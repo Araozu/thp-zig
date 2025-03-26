@@ -1,11 +1,10 @@
 const std = @import("std");
 const syntax = @import("syntax");
-
-const structs = @import("semantics.zig");
+const types = @import("types.zig");
 
 const StringHashMap = std.StringHashMapUnmanaged;
-const Scope = structs.Scope;
-const Symbol = structs.Symbol;
+const Scope = types.Scope;
+const Symbol = types.Symbol;
 
 const Statement = syntax.statement.Statement;
 
@@ -54,6 +53,19 @@ test "should work" {
         .scope = &sc,
     };
 
-    var visitor = symbolVisitor.visitor();
-    visitor.visitStatement(undefined);
+    var my_visitor = symbolVisitor.visitor();
+    my_visitor.visitStatement(undefined);
+
+    // ast nodes
+    // for (nodes) |node| {
+    //   switch (node.type) {
+    //     .Statement => |s| {
+    //       s.accept(visitor)
+    //     }
+    //   }
+    // }
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

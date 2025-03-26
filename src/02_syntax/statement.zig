@@ -6,9 +6,11 @@ const utils = @import("./utils.zig");
 const variable = @import("./variable.zig");
 const context = @import("./context.zig");
 const error_context = @import("context");
+const semantic = @import("semantic");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
+const Visitor = semantic.Visitor;
 
 pub const Statement = struct {
     value: union(enum) {
@@ -39,6 +41,11 @@ pub const Statement = struct {
         // manually deallocate
         ctx.allocator.destroy(vardef);
         return null;
+    }
+
+    /// Method for accepting a visitor
+    pub fn accept(self: *const Statement, v: *Visitor) void {
+        v.visitStatement(self);
     }
 
     pub fn deinit(
