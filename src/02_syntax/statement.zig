@@ -44,7 +44,7 @@ pub const Statement = struct {
     }
 
     /// Method for accepting a visitor
-    pub fn accept(self: *const Statement, v: *Visitor) void {
+    pub fn accept(self: *const Statement, v: *const Visitor) void {
         v.visitStatement(self);
     }
 
