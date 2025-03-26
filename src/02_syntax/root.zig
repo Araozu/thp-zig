@@ -6,7 +6,7 @@ const error_context = @import("context");
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
 const types = @import("./types.zig");
-const statement = @import("./statement.zig");
+pub const statement = @import("./statement.zig");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;

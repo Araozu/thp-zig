@@ -1,4 +1,5 @@
 const std = @import("std");
+const visitor = @import("./visitor.zig");
 
 pub const Type = union(enum) {
     Int,
@@ -28,4 +29,12 @@ pub fn semantic_analysis() void {
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+test "1" {
+    const v = visitor.Visitor{
+        .ptr = undefined,
+        .visitStatementFn = undefined,
+    };
+    _ = v;
 }
