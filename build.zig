@@ -33,6 +33,7 @@ pub fn build(b: *std.Build) void {
     //
     // Modules
     //
+    const structs_module = create_module("src/structs/root.zig", b, target, optimize);
     const error_module = create_module("src/error_context/root.zig", b, target, optimize);
     const lexic_module = create_module("src/01_lexic/root.zig", b, target, optimize);
     const syntax_module = create_module("src/02_syntax/root.zig", b, target, optimize);
@@ -42,20 +43,27 @@ pub fn build(b: *std.Build) void {
     //
     // set up module dependencies
     //
+    structs_module.addImport("config", options_module);
+    //
+    error_module.addImport("structs", structs_module);
     error_module.addImport("config", options_module);
     //
+    lexic_module.addImport("structs", structs_module);
     lexic_module.addImport("config", options_module);
     lexic_module.addImport("context", error_module);
     //
+    syntax_module.addImport("structs", structs_module);
     syntax_module.addImport("config", options_module);
     syntax_module.addImport("context", error_module);
     syntax_module.addImport("lexic", lexic_module);
     //
+    semantic_module.addImport("structs", structs_module);
     semantic_module.addImport("config", options_module);
     semantic_module.addImport("context", error_module);
     semantic_module.addImport("lexic", lexic_module);
     semantic_module.addImport("syntax", syntax_module);
     //
+    root_module.addImport("structs", structs_module);
     root_module.addImport("config", options_module);
     root_module.addImport("context", error_module);
     root_module.addImport("lexic", lexic_module);
@@ -96,6 +104,7 @@ pub fn build(b: *std.Build) void {
     // Unit tests
     //
 
+    const structs_module_tests = b.addTest(.{ .name = "structs_module", .root_module = structs_module });
     const error_module_tests = b.addTest(.{ .name = "error_module", .root_module = error_module });
     const lexic_module_tests = b.addTest(.{ .name = "lexic", .root_module = lexic_module });
     const syntax_module_tests = b.addTest(.{ .name = "syntax", .root_module = syntax_module });
@@ -103,6 +112,7 @@ pub fn build(b: *std.Build) void {
     const root_module_tests = b.addTest(.{ .name = "root", .root_module = root_module });
 
     const test_step = b.step("test", "Run all unit tests");
+    test_step.dependOn(&b.addRunArtifact(structs_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(error_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(lexic_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(syntax_module_tests).step);

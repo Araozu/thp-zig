@@ -1,24 +1,23 @@
 const std = @import("std");
-const visitor = @import("./visitor.zig");
+const structs = @import("structs");
 
-pub const Type = union(enum) {
-    Int,
-    Float,
-    String,
-    // TODO: function types, generic types, container types
-};
-
-pub const Symbol = struct {
-    name: []u8,
-    type: Type,
-};
-
-pub const SymbolTable = struct {
-    symbols: std.StringHashMap(*Symbol),
-    parent: ?*SymbolTable,
-};
+const HashMap = std.StringHashMapUnmanaged;
+const SymbolTable = structs.semantics.SymbolTable;
+const Symbol = structs.semantics.Symbol;
+const Scope = structs.semantics.Scope;
 
 pub fn semantic_analysis() void {
+    const symbols_hm: HashMap(*Symbol) = .empty;
+    var global_scope = Scope{
+        .symbols = symbols_hm,
+        .parent = null,
+    };
+    const symbol_table = SymbolTable{
+        .scope = &global_scope,
+    };
+
+    _ = symbol_table;
+
     // Symbol collection
     // Scope building
     // Name resolution
@@ -29,12 +28,4 @@ pub fn semantic_analysis() void {
 
 test {
     std.testing.refAllDecls(@This());
-}
-
-test "1" {
-    const v = visitor.Visitor{
-        .ptr = undefined,
-        .visitStatementFn = undefined,
-    };
-    _ = v;
 }

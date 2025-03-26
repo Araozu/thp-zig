@@ -1,6 +1,12 @@
 const std = @import("std");
 const syntax = @import("syntax");
 
+const structs = @import("semantics.zig");
+
+const StringHashMap = std.StringHashMapUnmanaged;
+const Scope = structs.Scope;
+const Symbol = structs.Symbol;
+
 const Statement = syntax.statement.Statement;
 
 // Visitor interface for traversing the AST.
@@ -17,14 +23,15 @@ pub const Visitor = struct {
 };
 
 const SymbolCollectorVisitor = struct {
-    scope: *i32,
+    scope: *Scope,
 
     fn visitStatement(ptr: *anyopaque, node: *const Statement) void {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
         _ = node;
+        _ = self;
 
         // todo: actually visit...
-        std.debug.print(":D {d}\n", .{self.scope.*});
+        std.debug.print(":o \n", .{});
     }
 
     fn visitor(self: *SymbolCollectorVisitor) Visitor {
@@ -36,7 +43,13 @@ const SymbolCollectorVisitor = struct {
 };
 
 test "should work" {
-    var sc: i32 = 322;
+    var hm: StringHashMap(*Symbol) = .empty;
+    defer hm.deinit(std.testing.allocator);
+
+    var sc = Scope{
+        .symbols = hm,
+        .parent = null,
+    };
     var symbolVisitor = SymbolCollectorVisitor{
         .scope = &sc,
     };
