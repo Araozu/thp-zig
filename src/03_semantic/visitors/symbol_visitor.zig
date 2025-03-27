@@ -9,7 +9,8 @@ const Scope = types.Scope;
 const Symbol = types.Symbol;
 const Visitor = visitor.Visitor;
 
-const Statement = syntax.statement.Statement;
+const Statement = syntax.Statement;
+const VariableBinding = syntax.VariableBinding;
 
 pub const SymbolCollectorVisitor = struct {
     scope: *Scope,
@@ -22,22 +23,29 @@ pub const SymbolCollectorVisitor = struct {
 
     pub fn visitStatement(ptr: *anyopaque, node: *const Statement) void {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
-        _ = self;
 
-        // todo: actually visit...
-        std.debug.print("I am the symbol/statement visitor, and i am visiting :o\n", .{});
         switch (node.value) {
             .variableBinding => |b| {
-                const s = if (b.is_mutable) "YES!!" else "no :c";
-                std.debug.print("the binding is mutable??? {s}\n", .{s});
+                // just delegate for now
+                const v = self.visitor();
+                b.accept(&v);
             },
         }
+    }
+
+    pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) void {
+        const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
+        _ = self;
+        _ = node;
+
+        std.debug.print("OMG! delegated VISITOR!!!\n", .{});
     }
 
     pub fn visitor(self: *SymbolCollectorVisitor) Visitor {
         return Visitor{
             .ptr = self,
             .visitStatementFn = visitStatement,
+            .visitVariableBindingFn = visitVariableBinding,
         };
     }
 };

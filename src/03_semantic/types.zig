@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const StringHashMap = std.StringHashMapUnmanaged;
+
 pub const Type = union(enum) {
     Int,
     Float,
@@ -17,6 +19,13 @@ pub const SymbolTable = struct {
 };
 
 pub const Scope = struct {
-    symbols: std.StringHashMapUnmanaged(*Symbol),
+    symbols: StringHashMap(*Symbol),
     parent: ?*Scope,
+
+    pub fn from_parent(parent: *Scope) Scope {
+        return Scope{
+            .symbols = .empty,
+            .parent = parent,
+        };
+    }
 };

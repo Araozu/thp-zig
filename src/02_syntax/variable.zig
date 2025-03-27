@@ -1,5 +1,6 @@
 const std = @import("std");
 const lexic = @import("lexic");
+const semantic = @import("semantic");
 const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
@@ -8,6 +9,7 @@ const error_context = @import("context");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
+const Visitor = semantic.Visitor;
 
 pub const VariableBinding = struct {
     is_mutable: bool,
@@ -133,6 +135,10 @@ pub const VariableBinding = struct {
             .expression = exp,
         };
         return next_pos;
+    }
+
+    pub fn accept(self: *const VariableBinding, v: *const Visitor) void {
+        v.visitVariableBinding(self);
     }
 
     pub fn deinit(

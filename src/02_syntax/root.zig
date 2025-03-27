@@ -6,7 +6,11 @@ const error_context = @import("context");
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
 const types = @import("./types.zig");
-pub const statement = @import("./statement.zig");
+const statement = @import("./statement.zig");
+
+// export AST nodes to other modules
+pub const Statement = statement.Statement;
+pub const VariableBinding = variable.VariableBinding;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
