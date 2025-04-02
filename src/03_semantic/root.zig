@@ -9,15 +9,13 @@ const ASTModule = syntax.Module;
 
 const HashMap = std.StringHashMapUnmanaged;
 const SymbolTable = types.SymbolTable;
-const Symbol = types.Symbol;
+const Type = types.Type;
 const Scope = types.Scope;
 pub const Visitor = visitor.Visitor;
 
-pub fn semantic_analysis(ast: *const ASTModule) void {
-    const symbols_hm: HashMap(*Symbol) = .empty;
-
+pub fn semantic_analysis(alloc: std.mem.Allocator, ast: *const ASTModule) void {
     var global_scope = Scope{
-        .symbols = symbols_hm,
+        .symbols = .empty,
         .parent = null,
     };
     const symbol_table = SymbolTable{
@@ -29,7 +27,7 @@ pub fn semantic_analysis(ast: *const ASTModule) void {
     // Symbol collection
     // Iterate over the AST
 
-    var symbol_visitor = SymbolVisitor.init(&global_scope);
+    var symbol_visitor = SymbolVisitor.init(alloc, &global_scope);
     const v = symbol_visitor.visitor();
     for (ast.statements.items) |*statement| {
         statement.accept(&v);

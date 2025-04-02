@@ -7,6 +7,7 @@ const visitor = @import("../visitor.zig");
 const StringHashMap = std.StringHashMapUnmanaged;
 const Scope = types.Scope;
 const Symbol = types.Symbol;
+const Type = types.Type;
 const Visitor = visitor.Visitor;
 
 const Statement = syntax.Statement;
@@ -14,10 +15,12 @@ const VariableBinding = syntax.VariableBinding;
 
 pub const SymbolCollectorVisitor = struct {
     scope: *Scope,
+    alloc: std.mem.Allocator,
 
-    pub fn init(s: *Scope) SymbolCollectorVisitor {
+    pub fn init(alloc: std.mem.Allocator, s: *Scope) SymbolCollectorVisitor {
         return SymbolCollectorVisitor{
             .scope = s,
+            .alloc = alloc,
         };
     }
 
@@ -26,19 +29,20 @@ pub const SymbolCollectorVisitor = struct {
 
         switch (node.value) {
             .variableBinding => |b| {
-                // just delegate for now
-                const v = self.visitor();
-                b.accept(&v);
+                b.accept(&self.visitor());
             },
         }
     }
 
     pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) void {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
-        _ = self;
-        _ = node;
 
-        std.debug.print("OMG! delegated VISITOR!!!\n", .{});
+        const variable_name = node.identifier.value;
+        // TODO: check if the variable is in scope
+
+        self.scope.insert(self.alloc, variable_name, Type.Int) catch {
+            @panic("memory error :c");
+        };
     }
 
     pub fn visitor(self: *SymbolCollectorVisitor) Visitor {

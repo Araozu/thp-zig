@@ -2,16 +2,11 @@ const std = @import("std");
 
 const StringHashMap = std.StringHashMapUnmanaged;
 
-pub const Type = union(enum) {
+pub const Type = enum {
     Int,
     Float,
     String,
     // TODO: function types, generic types, container types
-};
-
-pub const Symbol = struct {
-    name: []u8,
-    type: Type,
 };
 
 pub const SymbolTable = struct {
@@ -19,7 +14,7 @@ pub const SymbolTable = struct {
 };
 
 pub const Scope = struct {
-    symbols: StringHashMap(*Symbol),
+    symbols: StringHashMap(Type),
     parent: ?*Scope,
 
     pub fn from_parent(parent: *Scope) Scope {
@@ -27,5 +22,10 @@ pub const Scope = struct {
             .symbols = .empty,
             .parent = parent,
         };
+    }
+
+    pub fn insert(self: *Scope, alloc: std.mem.Allocator, name: []const u8, t: Type) !void {
+        // FIXME: !! actually receive and use an allocator
+        try self.symbols.put(alloc, name, t);
     }
 };

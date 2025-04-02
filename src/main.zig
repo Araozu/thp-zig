@@ -139,7 +139,7 @@ fn repl() !void {
         // next repl line
         std.debug.print("Parsing successful, beginning semantic analysis\n", .{});
 
-        semantic.semantic_analysis(&ast);
+        semantic.semantic_analysis(arena.allocator(), &ast);
     }
 
     // var module_ast: syntax.Module = undefined;

@@ -13,6 +13,7 @@ const VariableBinding = syntax.VariableBinding;
 pub const Visitor = struct {
     ptr: *anyopaque,
 
+    // TODO: how to handle errors?
     // Define ast nodes to visit
     visitStatementFn: *const fn (self: *anyopaque, node: *const Statement) void,
     visitVariableBindingFn: *const fn (self: *anyopaque, node: *const VariableBinding) void,
