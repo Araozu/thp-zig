@@ -22,9 +22,8 @@ pub fn semantic_analysis(alloc: std.mem.Allocator, ast: *const ASTModule) void {
         .scope = &global_scope,
     };
 
-    _ = symbol_table;
-
     // Symbol collection
+    // Scope building
     // Iterate over the AST
 
     var symbol_visitor = SymbolVisitor.init(alloc, &global_scope);
@@ -33,9 +32,14 @@ pub fn semantic_analysis(alloc: std.mem.Allocator, ast: *const ASTModule) void {
         statement.accept(&v);
     }
 
-    // Scope building
     // Name resolution
     // Type checking
     // Control flow analysis
     // Constant evaluation
+
+    var hm_iterator = symbol_table.scope.symbols.iterator();
+
+    while (hm_iterator.next()) |next| {
+        std.debug.print("analyzed:\n\t{s}: {s}\n", .{ next.key_ptr.*, next.value_ptr.to_str() });
+    }
 }

@@ -38,9 +38,12 @@ pub const SymbolCollectorVisitor = struct {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
 
         const variable_name = node.identifier.value;
-        // TODO: check if the variable is in scope
+        if (self.scope.has(variable_name)) {
+            // another symbol is already declared
+            @panic("Symbol already declared");
+        }
 
-        self.scope.insert(self.alloc, variable_name, Type.Int) catch {
+        self.scope.insert(self.alloc, variable_name, Type.Untyped) catch {
             @panic("memory error :c");
         };
     }
