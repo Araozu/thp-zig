@@ -37,6 +37,7 @@ pub fn build(b: *std.Build) void {
     const lexic_module = create_module("src/01_lexic/root.zig", b, target, optimize);
     const syntax_module = create_module("src/02_syntax/root.zig", b, target, optimize);
     const semantic_module = create_module("src/03_semantic/root.zig", b, target, optimize);
+    const codegen_module = create_module("src/04_codegen/root.zig", b, target, optimize);
     const root_module = create_module("src/main.zig", b, target, optimize);
 
     //
@@ -60,11 +61,18 @@ pub fn build(b: *std.Build) void {
     semantic_module.addImport("lexic", lexic_module);
     semantic_module.addImport("syntax", syntax_module);
     //
+    codegen_module.addImport("config", options_module);
+    codegen_module.addImport("context", error_module);
+    codegen_module.addImport("lexic", lexic_module);
+    codegen_module.addImport("syntax", syntax_module);
+    codegen_module.addImport("semantic", semantic_module);
+    //
     root_module.addImport("config", options_module);
     root_module.addImport("context", error_module);
     root_module.addImport("lexic", lexic_module);
     root_module.addImport("syntax", syntax_module);
     root_module.addImport("semantic", semantic_module);
+    root_module.addImport("codegen", codegen_module);
 
     //
     // Main executable
@@ -104,6 +112,7 @@ pub fn build(b: *std.Build) void {
     const lexic_module_tests = b.addTest(.{ .name = "lexic", .root_module = lexic_module });
     const syntax_module_tests = b.addTest(.{ .name = "syntax", .root_module = syntax_module });
     const semantic_module_tests = b.addTest(.{ .name = "semantic", .root_module = semantic_module });
+    const codegen_module_tests = b.addTest(.{ .name = "codegen", .root_module = codegen_module });
     const root_module_tests = b.addTest(.{ .name = "root", .root_module = root_module });
 
     const test_step = b.step("test", "Run all unit tests");
@@ -111,5 +120,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&b.addRunArtifact(lexic_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(syntax_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(semantic_module_tests).step);
+    test_step.dependOn(&b.addRunArtifact(codegen_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(root_module_tests).step);
 }

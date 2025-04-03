@@ -43,3 +43,7 @@ pub fn semantic_analysis(alloc: std.mem.Allocator, ast: *const ASTModule) void {
         std.debug.print("analyzed:\n\t{s}: {s}\n", .{ next.key_ptr.*, next.value_ptr.to_str() });
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}
