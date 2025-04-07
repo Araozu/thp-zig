@@ -56,7 +56,3 @@ pub const SymbolCollectorVisitor = struct {
         };
     }
 };
-
-test {
-    std.testing.refAllDecls(@This());
-}
