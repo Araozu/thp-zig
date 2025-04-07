@@ -2,6 +2,7 @@ const std = @import("std");
 const lexic = @import("lexic");
 const syntax = @import("syntax");
 const semantic = @import("semantic");
+const codegen = @import("codegen");
 const err_ctx = @import("context");
 const parser_ctx = syntax.context;
 
@@ -136,10 +137,8 @@ fn repl() !void {
             else => return e,
         };
 
-        // next repl line
-        std.debug.print("Parsing successful, beginning semantic analysis\n", .{});
-
         semantic.semantic_analysis(arena.allocator(), &ast);
+        codegen.gen_php(arena.allocator(), &ast);
     }
 
     // var module_ast: syntax.Module = undefined;
