@@ -43,7 +43,7 @@ pub const SymbolCollectorVisitor = struct {
             @panic("Symbol already declared");
         }
 
-        self.scope.insert(self.alloc, variable_name, Type.Untyped) catch {
+        self.scope.insert(variable_name, Type.Untyped) catch {
             @panic("memory error :c");
         };
     }

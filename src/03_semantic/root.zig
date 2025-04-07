@@ -15,10 +15,9 @@ pub const Visitor = visitor.Visitor;
 pub const VisitorError = visitor.VisitorError;
 
 pub fn semantic_analysis(alloc: std.mem.Allocator, ast: *const ASTModule) void {
-    var global_scope = Scope{
-        .symbols = .empty,
-        .parent = null,
-    };
+    var global_scope = Scope.init(alloc);
+    defer global_scope.deinit();
+
     const symbol_table = SymbolTable{
         .scope = &global_scope,
     };

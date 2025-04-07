@@ -26,17 +26,39 @@ pub const SymbolTable = struct {
 pub const Scope = struct {
     symbols: StringHashMap(Type),
     parent: ?*Scope,
-    const empty = Scope{ .symbols = .empty, .parent = null };
+    allocator: std.mem.Allocator,
+    children: std.ArrayListUnmanaged(*Scope),
 
-    pub fn from_parent(parent: *Scope) Scope {
+    pub fn init(allocator: std.mem.Allocator) Scope {
         return Scope{
             .symbols = .empty,
-            .parent = parent,
+            .parent = null,
+            .allocator = allocator,
+            .children = .empty,
         };
     }
 
-    pub fn insert(self: *Scope, alloc: std.mem.Allocator, name: []const u8, t: Type) !void {
-        try self.symbols.put(alloc, name, t);
+    /// Creates a new scope from a parent
+    /// Children scopes are meant to be created, used, and left alone.
+    /// The root node is responsible for cleaning up all its children scopes.
+    /// So, `deinit` should be called only on the root scope, not on any of its
+    /// children, otherwise a double free will happen.
+    pub fn from_parent(self: *Scope) !*Scope {
+        const child = try self.allocator.create(Scope);
+        child.* = Scope{
+            .symbols = .empty,
+            .parent = self,
+            .allocator = self.allocator,
+            .children = .empty,
+        };
+        errdefer self.allocator.destroy(child);
+
+        try self.children.append(self.allocator, child);
+        return child;
+    }
+
+    pub fn insert(self: *Scope, name: []const u8, t: Type) !void {
+        try self.symbols.put(self.allocator, name, t);
     }
 
     pub fn has(self: *Scope, name: []const u8) bool {
@@ -47,39 +69,47 @@ pub const Scope = struct {
         return self.symbols.get(name);
     }
 
-    pub fn deinit(self: *Scope, allocator: std.mem.Allocator) void {
-        self.symbols.deinit(allocator);
+    pub fn deinit(self: *Scope) void {
+        self.symbols.deinit(self.allocator);
     }
 };
 
 test "should insert a symbol" {
-    var scope: Scope = .empty;
-    defer scope.deinit(std.testing.allocator);
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
 
-    try scope.insert(std.testing.allocator, "foo", Type.Int);
+    try scope.insert("foo", Type.Int);
 }
 
 test "should test if a scope has a symbol" {
-    var scope: Scope = .empty;
-    defer scope.deinit(std.testing.allocator);
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
 
-    try scope.insert(std.testing.allocator, "foo", Type.Int);
+    try scope.insert("foo", Type.Int);
     try std.testing.expectEqual(true, scope.has("foo"));
 }
 
 test "should test if a scope has a symbol 2" {
-    var scope: Scope = .empty;
-    defer scope.deinit(std.testing.allocator);
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
 
-    try scope.insert(std.testing.allocator, "foo", Type.Int);
+    try scope.insert("foo", Type.Int);
     try std.testing.expectEqual(false, scope.has("bar"));
 }
 
 test "should retrieve a symbol" {
-    var scope: Scope = .empty;
-    defer scope.deinit(std.testing.allocator);
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
 
-    try scope.insert(std.testing.allocator, "foo", Type.Int);
+    try scope.insert("foo", Type.Int);
     const out = scope.get("foo") orelse std.debug.panic("foo is null", .{});
     try std.testing.expectEqual(Type.Int, out);
+}
+
+test "should create a child scope" {
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
+
+    var child_scope = try scope.from_parent();
+    try child_scope.insert("foo", Type.Int);
 }
