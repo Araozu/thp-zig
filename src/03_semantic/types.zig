@@ -70,6 +70,15 @@ pub const Scope = struct {
     }
 
     pub fn deinit(self: *Scope) void {
+        // cleanup children scopes
+        for (self.children.items) |child| {
+            child.deinit();
+            self.allocator.destroy(child);
+        }
+        // cleanup children arraylist
+        self.children.deinit(self.allocator);
+
+        // clean up symbols
         self.symbols.deinit(self.allocator);
     }
 };
@@ -112,4 +121,15 @@ test "should create a child scope" {
 
     var child_scope = try scope.from_parent();
     try child_scope.insert("foo", Type.Int);
+}
+
+test "should create a child scope 2" {
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
+
+    var child_scope = try scope.from_parent();
+    try child_scope.insert("foo", Type.Int);
+
+    var child_child_scope = try child_scope.from_parent();
+    try child_child_scope.insert("bar", Type.Float);
 }
