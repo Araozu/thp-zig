@@ -5,9 +5,6 @@ Now in Zig!
 
 ## TODO
 
-- [ ] Rewrite semantic analyzer
-- [ ] Rewrite type checker
-- [ ] Rewrite code generator
 - [ ] Rewrite CLI interface
 - [ ] Rewrite REPL
 - [ ] Type definition generator
@@ -18,6 +15,11 @@ Now in Zig!
 - [ ] Project mode compilation
 - [ ] Docs generator
 
+## v0.0.2
+
+- [ ] Add tests to semantic analysis/codegen
+- [ ] Implement more semantic phases
+- [ ] Test memory errors
 
 ## v0.0.1
 
@@ -37,4 +39,7 @@ Now in Zig!
 - [x] Rewrite lexer
 - [x] Rewrite tests
 - [x] Rewrite minimal parser
+- [x] Rewrite semantic analyzer
+- [x] Rewrite type checker
+- [x] Rewrite code generator
 

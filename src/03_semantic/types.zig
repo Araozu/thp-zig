@@ -35,7 +35,6 @@ pub const Scope = struct {
     }
 
     pub fn insert(self: *Scope, alloc: std.mem.Allocator, name: []const u8, t: Type) !void {
-        // FIXME: !! actually receive and use an allocator
         try self.symbols.put(alloc, name, t);
     }
 

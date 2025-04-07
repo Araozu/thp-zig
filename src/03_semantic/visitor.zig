@@ -16,7 +16,6 @@ pub const VisitorError = error{
 pub const Visitor = struct {
     ptr: *anyopaque,
 
-    // TODO: how to handle errors?
     // Define ast nodes to visit
     visitStatementFn: *const fn (self: *anyopaque, node: *const Statement) VisitorError!void,
     visitVariableBindingFn: *const fn (self: *anyopaque, node: *const VariableBinding) VisitorError!void,

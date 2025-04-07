@@ -57,32 +57,6 @@ pub const SymbolCollectorVisitor = struct {
     }
 };
 
-// test "should work" {
-//     var hm: StringHashMap(Type) = .empty;
-//     defer hm.deinit(std.testing.allocator);
-//
-//     var sc = Scope{
-//         .symbols = hm,
-//         .parent = null,
-//     };
-//     var symbolVisitor = SymbolCollectorVisitor{
-//         .scope = &sc,
-//         .alloc = std.testing.allocator,
-//     };
-//
-//     var my_visitor = symbolVisitor.visitor();
-//     my_visitor.visitStatement(undefined);
-//
-//     // ast nodes
-//     // for (nodes) |node| {
-//     //   switch (node.type) {
-//     //     .Statement => |s| {
-//     //       s.accept(visitor)
-//     //     }
-//     //   }
-//     // }
-// }
-
 test {
     std.testing.refAllDecls(@This());
 }
