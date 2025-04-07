@@ -45,7 +45,9 @@ pub const Statement = struct {
 
     /// Method for accepting a visitor
     pub fn accept(self: *const Statement, v: *const Visitor) void {
-        v.visitStatement(self);
+        v.visitStatement(self) catch {
+            @panic("Unhandled error return - statement");
+        };
     }
 
     pub fn deinit(

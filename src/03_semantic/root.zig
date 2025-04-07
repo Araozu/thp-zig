@@ -12,6 +12,7 @@ const SymbolTable = types.SymbolTable;
 const Type = types.Type;
 const Scope = types.Scope;
 pub const Visitor = visitor.Visitor;
+pub const VisitorError = visitor.VisitorError;
 
 pub fn semantic_analysis(alloc: std.mem.Allocator, ast: *const ASTModule) void {
     var global_scope = Scope{

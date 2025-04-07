@@ -10,6 +10,7 @@ const error_context = @import("context");
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
 const Visitor = semantic.Visitor;
+const VisitorError = semantic.VisitorError;
 
 pub const VariableBinding = struct {
     is_mutable: bool,
@@ -137,8 +138,8 @@ pub const VariableBinding = struct {
         return next_pos;
     }
 
-    pub fn accept(self: *const VariableBinding, v: *const Visitor) void {
-        v.visitVariableBinding(self);
+    pub fn accept(self: *const VariableBinding, v: *const Visitor) VisitorError!void {
+        try v.visitVariableBinding(self);
     }
 
     pub fn deinit(

@@ -8,6 +8,7 @@ const StringHashMap = std.StringHashMapUnmanaged;
 const Scope = types.Scope;
 const Type = types.Type;
 const Visitor = visitor.Visitor;
+const VisitorError = visitor.VisitorError;
 
 const Statement = syntax.Statement;
 const VariableBinding = syntax.VariableBinding;
@@ -23,17 +24,17 @@ pub const SymbolCollectorVisitor = struct {
         };
     }
 
-    pub fn visitStatement(ptr: *anyopaque, node: *const Statement) void {
+    pub fn visitStatement(ptr: *anyopaque, node: *const Statement) VisitorError!void {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
 
         switch (node.value) {
             .variableBinding => |b| {
-                b.accept(&self.visitor());
+                try b.accept(&self.visitor());
             },
         }
     }
 
-    pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) void {
+    pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!void {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
 
         const variable_name = node.identifier.value;

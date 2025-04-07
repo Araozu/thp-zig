@@ -7,6 +7,7 @@ const VariableBinding = syntax.VariableBinding;
 const ASTModule = syntax.Module;
 
 const Visitor = semantic.Visitor;
+const VisitorError = semantic.VisitorError;
 
 pub const PHPGeneratorVisitor = struct {
     alloc: std.mem.Allocator,
@@ -19,26 +20,26 @@ pub const PHPGeneratorVisitor = struct {
         };
     }
 
-    pub fn visitStatement(ptr: *anyopaque, node: *const Statement) void {
+    pub fn visitStatement(ptr: *anyopaque, node: *const Statement) VisitorError!void {
         const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
 
         switch (node.value) {
             .variableBinding => |b| {
-                b.accept(&self.visitor());
+                try b.accept(&self.visitor());
             },
         }
     }
 
-    pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) void {
+    pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!void {
         const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
 
         const out = std.fmt.allocPrint(self.alloc, "${s} = ??", .{node.identifier.value}) catch {
-            @panic("fmt error");
+            return VisitorError.OutOfMemory;
         };
         defer self.alloc.free(out);
 
         self.bytes.appendSlice(self.alloc, out) catch {
-            @panic("append error. so sad.");
+            return VisitorError.OutOfMemory;
         };
     }
 
