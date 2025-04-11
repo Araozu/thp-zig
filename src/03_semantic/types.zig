@@ -66,7 +66,15 @@ pub const Scope = struct {
     }
 
     pub fn get(self: *Scope, name: []const u8) ?Type {
-        return self.symbols.get(name);
+        // Check current scope
+        const t = self.symbols.get(name);
+        if (t != null) {
+            return t;
+        }
+        if (self.parent) |parent| {
+            return parent.get(name);
+        }
+        return null;
     }
 
     pub fn deinit(self: *Scope) void {
@@ -132,4 +140,22 @@ test "should create a child scope 2" {
 
     var child_child_scope = try child_scope.from_parent();
     try child_child_scope.insert("bar", Type.Float);
+}
+
+test "should test if a scope or parent scope has a symbol" {
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
+
+    try scope.insert("foo", Type.Int);
+
+    var child_scope = try scope.from_parent();
+    try child_scope.insert("bar", Type.Int);
+
+    var child_child_scope = try child_scope.from_parent();
+
+    const bar = child_child_scope.get("bar") orelse std.debug.panic("bar is null", .{});
+    try std.testing.expectEqual(Type.Int, bar);
+
+    const foo = child_child_scope.get("foo") orelse std.debug.panic("foo is null", .{});
+    try std.testing.expectEqual(Type.Int, foo);
 }
