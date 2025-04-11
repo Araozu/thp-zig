@@ -52,13 +52,13 @@ pub const PHPGeneratorVisitor = struct {
     }
 };
 
-pub fn gen_php(alloc: std.mem.Allocator, ast: *const ASTModule) void {
+pub fn gen_php(alloc: std.mem.Allocator, ast: *const ASTModule) VisitorError!void {
     var codegen_visitor = PHPGeneratorVisitor.init(alloc);
     const v = codegen_visitor.visitor();
 
     // walk
     for (ast.statements.items) |*statement| {
-        statement.accept(&v);
+        try statement.accept(&v);
     }
 
     // print

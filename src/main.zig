@@ -53,6 +53,17 @@ fn repl() !void {
     const alloc = gpa.allocator();
     const stdin = std.io.getStdIn().reader();
 
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    // Values for semantic analysis that persist across REPL runs
+    var global_scope = semantic.Scope.init(arena.allocator());
+    defer global_scope.deinit();
+
+    var symbol_table = semantic.SymbolTable{
+        .scope = &global_scope,
+    };
+
     while (true) {
         //
         // Print prompt
@@ -79,8 +90,6 @@ fn repl() !void {
         //
         // Tokenize with an arena
         //
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-        defer arena.deinit();
         const tokens = lexic.tokenize(line, arena.allocator(), &ctx) catch |e| switch (e) {
             error.OutOfMemory => {
                 try stdout.print("FATAL ERROR: System Out of Memory!", .{});
@@ -137,16 +146,31 @@ fn repl() !void {
             else => return e,
         };
 
-        semantic.semantic_analysis(arena.allocator(), &ast);
-        codegen.gen_php(arena.allocator(), &ast);
-    }
+        semantic.semantic_analysis_unmanaged(&symbol_table, alloc, &ast, &ctx) catch |e| switch (e) {
+            error.OutOfMemory => {
+                try stdout.print("System ran out of memory!\n", .{});
+                break;
+            },
+            else => {
+                // Print all the errors
+                for (ctx.errors.items) |*err_item| {
+                    const err_str = try err_item.get_error_str(line, "repl", alloc);
+                    try stdout.print("\n{s}\n", .{err_str});
+                    try bw.flush();
+                    alloc.free(err_str);
+                }
+                continue;
+            },
+        };
 
-    // var module_ast: syntax.Module = undefined;
-    // const parsing_error = try alloc.create(errors.ErrorData);
-    // defer parsing_error.deinit();
-    // defer alloc.destroy(parsing_error);
-    //
-    // try module_ast.init(&tokens, 0, alloc, parsing_error);
+        codegen.gen_php(arena.allocator(), &ast) catch |e| switch (e) {
+            error.OutOfMemory => {
+                try stdout.print("System ran out of memory!\n", .{});
+                break;
+            },
+            else => {},
+        };
+    }
 
     try stdout.print("\n\nExecution finished. Bye c:\n", .{});
     try bw.flush();

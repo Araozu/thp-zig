@@ -11,6 +11,7 @@ const semantic = @import("semantic");
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
 const Visitor = semantic.Visitor;
+const VisitorError = semantic.VisitorError;
 
 pub const Statement = struct {
     value: union(enum) {
@@ -44,10 +45,8 @@ pub const Statement = struct {
     }
 
     /// Method for accepting a visitor
-    pub fn accept(self: *const Statement, v: *const Visitor) void {
-        v.visitStatement(self) catch {
-            @panic("Unhandled error return - statement");
-        };
+    pub fn accept(self: *const Statement, v: *const Visitor) VisitorError!void {
+        try v.visitStatement(self);
     }
 
     pub fn deinit(

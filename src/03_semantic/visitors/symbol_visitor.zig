@@ -1,9 +1,11 @@
 const std = @import("std");
 const syntax = @import("syntax");
+const context = @import("context");
 
 const types = @import("../types.zig");
 const visitor = @import("../visitor.zig");
 
+const ErrorCtx = context.ErrorContext;
 const StringHashMap = std.StringHashMapUnmanaged;
 const Scope = types.Scope;
 const Type = types.Type;
@@ -16,11 +18,17 @@ const VariableBinding = syntax.VariableBinding;
 pub const SymbolCollectorVisitor = struct {
     scope: *Scope,
     alloc: std.mem.Allocator,
+    err: *ErrorCtx,
 
-    pub fn init(alloc: std.mem.Allocator, s: *Scope) SymbolCollectorVisitor {
+    pub fn init(
+        alloc: std.mem.Allocator,
+        s: *Scope,
+        err: *ErrorCtx,
+    ) SymbolCollectorVisitor {
         return SymbolCollectorVisitor{
             .scope = s,
             .alloc = alloc,
+            .err = err,
         };
     }
 
@@ -40,11 +48,14 @@ pub const SymbolCollectorVisitor = struct {
         const variable_name = node.identifier.value;
         if (self.scope.has(variable_name)) {
             // another symbol is already declared
-            @panic("Symbol already declared");
+            var new_error = try self.err.create_and_append_error("Semantic error!!", 0, 0);
+            try new_error.add_label(self.err.create_error_label("This symbol has already been declared on the current scope", 0, 0));
+
+            return VisitorError.SemanticError;
         }
 
         self.scope.insert(variable_name, Type.Untyped) catch {
-            @panic("memory error :c");
+            return VisitorError.OutOfMemory;
         };
     }
 

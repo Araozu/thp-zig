@@ -10,6 +10,7 @@ const VariableBinding = syntax.VariableBinding;
 
 pub const VisitorError = error{
     OutOfMemory,
+    SemanticError,
 };
 
 // Visitor interface for traversing the AST.
