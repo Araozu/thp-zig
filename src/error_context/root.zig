@@ -145,6 +145,7 @@ pub const ErrorData = struct {
             // position up to where the error starts
             const error_start_len = column_number_len + 4 + label_line.column_number - 1;
             const error_len = label.end - label.start;
+            std.debug.assert(error_len > 0);
 
             // chars for the error
             const empty_space_before_indicator = try alloc.alloc(u8, error_start_len);

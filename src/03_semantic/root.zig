@@ -19,7 +19,7 @@ pub fn semantic_analysis(
     alloc: std.mem.Allocator,
     ast: *const ASTModule,
     err: *ctx.ErrorContext,
-) void {
+) VisitorError!void {
     var global_scope = Scope.init(alloc);
     defer global_scope.deinit();
 
@@ -27,7 +27,7 @@ pub fn semantic_analysis(
         .scope = &global_scope,
     };
 
-    semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
+    try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
 }
 
 pub fn semantic_analysis_unmanaged(

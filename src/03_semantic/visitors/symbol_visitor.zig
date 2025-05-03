@@ -1,4 +1,5 @@
 const std = @import("std");
+const lexic = @import("lexic");
 const syntax = @import("syntax");
 const context = @import("context");
 
@@ -48,8 +49,8 @@ pub const SymbolCollectorVisitor = struct {
         const variable_name = node.identifier.value;
         if (self.scope.has(variable_name)) {
             // another symbol is already declared
-            var new_error = try self.err.create_and_append_error("Semantic error!!", 0, 0);
-            try new_error.add_label(self.err.create_error_label("This symbol has already been declared on the current scope", 0, 0));
+            var new_error = try self.err.create_and_append_error("Duplicated symbol", 0, 1);
+            try new_error.add_label(self.err.create_error_label("This variable has already been declared on the current scope", 0, 1));
 
             return VisitorError.SemanticError;
         }
@@ -67,3 +68,40 @@ pub const SymbolCollectorVisitor = struct {
         };
     }
 };
+
+test "ehh" {
+    var errctx = ErrorCtx.init(std.testing.allocator);
+    defer errctx.deinit();
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
+    var symbol_visitor = SymbolCollectorVisitor.init(
+        std.testing.allocator,
+        &scope,
+        &errctx,
+    );
+    const v = symbol_visitor.visitor();
+    _ = v;
+
+    // variable binding
+    // TODO: build a variable binding,
+    // run the visitor on it,
+    // test behaviour
+
+    const t = try lexic.tokenize("var identifier = 322", std.testing.allocator, &errctx);
+    defer t.deinit();
+    var ctx = syntax.context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &t,
+        .err = &errctx,
+    };
+
+    var stmt: Statement = undefined;
+    if (try stmt.init(0, &ctx)) |_| {
+        defer stmt.deinit(&ctx);
+
+        try std.testing.expect(true);
+        return;
+    }
+
+    try std.testing.expect(false);
+}
