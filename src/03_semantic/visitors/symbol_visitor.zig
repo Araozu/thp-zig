@@ -69,7 +69,7 @@ pub const SymbolCollectorVisitor = struct {
     }
 };
 
-test "test symbol visitor 1" {
+test "should visit a variable declaration" {
     //
     // Arrange
     //
@@ -108,4 +108,53 @@ test "test symbol visitor 1" {
 
     try std.testing.expect(scope.has("identifier"));
     try std.testing.expectEqual(Type.Untyped, scope.get("identifier").?);
+}
+
+test "should visit two variable declarations" {
+    //
+    // Arrange
+    //
+    var errctx = ErrorCtx.init(std.testing.allocator);
+    defer errctx.deinit();
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
+    var symbol_visitor = SymbolCollectorVisitor.init(
+        std.testing.allocator,
+        &scope,
+        &errctx,
+    );
+
+    // variable binding
+    const token_stream = try lexic.tokenize("var first = 322 var second = 644", std.testing.allocator, &errctx);
+    defer token_stream.deinit();
+    var ctx = syntax.context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &token_stream,
+        .err = &errctx,
+    };
+
+    var stmt1: Statement = undefined;
+    _ = try stmt1.init(0, &ctx) orelse unreachable;
+    defer stmt1.deinit(&ctx);
+
+    var stmt2: Statement = undefined;
+    _ = try stmt2.init(4, &ctx) orelse unreachable;
+    defer stmt2.deinit(&ctx);
+
+    //
+    // Act
+    //
+
+    try symbol_visitor.visitor().visitStatement(&stmt1);
+    try symbol_visitor.visitor().visitStatement(&stmt2);
+
+    //
+    // Assert
+    //
+
+    try std.testing.expect(scope.has("first"));
+    try std.testing.expectEqual(Type.Untyped, scope.get("first").?);
+
+    try std.testing.expect(scope.has("second"));
+    try std.testing.expectEqual(Type.Untyped, scope.get("second").?);
 }
