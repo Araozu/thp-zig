@@ -69,7 +69,10 @@ pub const SymbolCollectorVisitor = struct {
     }
 };
 
-test "ehh" {
+test "test symbol visitor 1" {
+    //
+    // Arrange
+    //
     var errctx = ErrorCtx.init(std.testing.allocator);
     defer errctx.deinit();
     var scope = Scope.init(std.testing.allocator);
@@ -79,14 +82,8 @@ test "ehh" {
         &scope,
         &errctx,
     );
-    const v = symbol_visitor.visitor();
-    _ = v;
 
     // variable binding
-    // TODO: build a variable binding,
-    // run the visitor on it,
-    // test behaviour
-
     const t = try lexic.tokenize("var identifier = 322", std.testing.allocator, &errctx);
     defer t.deinit();
     var ctx = syntax.context.ParserContext{
@@ -96,12 +93,19 @@ test "ehh" {
     };
 
     var stmt: Statement = undefined;
-    if (try stmt.init(0, &ctx)) |_| {
-        defer stmt.deinit(&ctx);
+    _ = try stmt.init(0, &ctx) orelse unreachable;
+    defer stmt.deinit(&ctx);
 
-        try std.testing.expect(true);
-        return;
-    }
+    //
+    // Act
+    //
 
-    try std.testing.expect(false);
+    try symbol_visitor.visitor().visitStatement(&stmt);
+
+    //
+    // Assert
+    //
+
+    try std.testing.expect(scope.has("identifier"));
+    try std.testing.expectEqual(Type.Untyped, scope.get("identifier").?);
 }
