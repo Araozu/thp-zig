@@ -144,17 +144,65 @@ test "should visit two variable declarations" {
     //
     // Act
     //
-
     try symbol_visitor.visitor().visitStatement(&stmt1);
     try symbol_visitor.visitor().visitStatement(&stmt2);
 
     //
     // Assert
     //
-
     try std.testing.expect(scope.has("first"));
     try std.testing.expectEqual(Type.Untyped, scope.get("first").?);
 
     try std.testing.expect(scope.has("second"));
     try std.testing.expectEqual(Type.Untyped, scope.get("second").?);
+}
+
+test "should fail on duplicated declaration" {
+    //
+    // Arrange
+    //
+    var errctx = ErrorCtx.init(std.testing.allocator);
+    defer errctx.deinit();
+    var scope = Scope.init(std.testing.allocator);
+    defer scope.deinit();
+    var symbol_visitor = SymbolCollectorVisitor.init(
+        std.testing.allocator,
+        &scope,
+        &errctx,
+    );
+
+    // variable binding
+    const token_stream = try lexic.tokenize("var first = 322 var first = 644", std.testing.allocator, &errctx);
+    defer token_stream.deinit();
+    var ctx = syntax.context.ParserContext{
+        .allocator = std.testing.allocator,
+        .tokens = &token_stream,
+        .err = &errctx,
+    };
+
+    var stmt1: Statement = undefined;
+    _ = try stmt1.init(0, &ctx) orelse unreachable;
+    defer stmt1.deinit(&ctx);
+
+    var stmt2: Statement = undefined;
+    _ = try stmt2.init(4, &ctx) orelse unreachable;
+    defer stmt2.deinit(&ctx);
+
+    //
+    // Act
+    //
+    try symbol_visitor.visitor().visitStatement(&stmt1);
+    symbol_visitor.visitor().visitStatement(&stmt2) catch |e| switch (e) {
+        //
+        // Asert
+        //
+        error.SemanticError => {
+            try std.testing.expect(true);
+            return;
+        },
+        else => {
+            try std.testing.expect(false);
+            return;
+        },
+    };
 }
