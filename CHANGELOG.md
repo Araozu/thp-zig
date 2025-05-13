@@ -20,6 +20,7 @@ Now in Zig!
 - [ ] Add tests to semantic analysis/codegen
 - [ ] Implement more semantic phases
 - [ ] Test memory errors
+- [ ] Proper error reporting on semantic analysis
 
 ## v0.0.1
 

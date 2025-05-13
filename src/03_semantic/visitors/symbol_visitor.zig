@@ -49,8 +49,13 @@ pub const SymbolCollectorVisitor = struct {
         const variable_name = node.identifier.value;
         if (self.scope.has(variable_name)) {
             // another symbol is already declared
-            var new_error = try self.err.create_and_append_error("Duplicated symbol", 0, 1);
-            try new_error.add_label(self.err.create_error_label("This variable has already been declared on the current scope", 0, 1));
+
+            const offending_token = node.identifier;
+            const error_start = offending_token.start_pos;
+            const error_end = error_start + offending_token.value.len;
+
+            var new_error = try self.err.create_and_append_error("Duplicated symbol", error_start, error_end);
+            try new_error.add_label(self.err.create_error_label("This variable has already been declared on the current scope", error_start, error_end));
 
             return VisitorError.SemanticError;
         }
