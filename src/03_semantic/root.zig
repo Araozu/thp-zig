@@ -4,6 +4,7 @@ const ctx = @import("context");
 
 const visitor = @import("visitor.zig");
 const SymbolVisitor = @import("./visitors/symbol_visitor.zig").SymbolCollectorVisitor;
+const TypecheckerVisitor = @import("./visitors/typechecker/typechecker_visitor.zig").TypecheckerVisitor;
 const types = @import("types.zig");
 
 const ASTModule = syntax.Module;
@@ -48,6 +49,12 @@ pub fn semantic_analysis_unmanaged(
 
     // Name resolution
     // Type checking
+    var typechecker_visitor = TypecheckerVisitor.init(alloc, symbol_table.scope, err);
+    const type_visitor = typechecker_visitor.visitor();
+    for (ast.statements.items) |*statement| {
+        try statement.accept(&type_visitor);
+    }
+
     // Control flow analysis
     // Constant evaluation
 
