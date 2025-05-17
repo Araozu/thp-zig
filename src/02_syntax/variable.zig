@@ -56,7 +56,7 @@ pub const VariableBinding = struct {
                 faulty_token.start_pos + faulty_token.value.len,
             );
             const token_name = faulty_token.token_type.to_string();
-            const error_name = try std.fmt.allocPrint(ctx.allocator, "Expected an identifier here, found a {s}", .{token_name});
+            const error_name = try std.fmt.allocPrint(ctx.err.allocator, "Expected an identifier here, found a {s}", .{token_name});
             try err.add_label(ctx.err.create_error_label_alloc(
                 error_name,
                 faulty_token.start_pos,
@@ -89,7 +89,7 @@ pub const VariableBinding = struct {
                 faulty_token.start_pos + faulty_token.value.len,
             );
             const token_name = faulty_token.token_type.to_string();
-            const error_name = try std.fmt.allocPrint(ctx.allocator, "Expected an equal sign `=` here, found a {s}", .{token_name});
+            const error_name = try std.fmt.allocPrint(ctx.err.allocator, "Expected an equal sign `=` here, found a {s}", .{token_name});
             try err.add_label(ctx.err.create_error_label_alloc(
                 error_name,
                 faulty_token.start_pos,
@@ -119,7 +119,7 @@ pub const VariableBinding = struct {
                 faulty_token.start_pos + faulty_token.value.len,
             );
             const token_name = faulty_token.token_type.to_string();
-            const error_name = try std.fmt.allocPrint(ctx.allocator, "Expected an expression here, found a {s}", .{token_name});
+            const error_name = try std.fmt.allocPrint(ctx.err.allocator, "Expected an expression here, found a {s}", .{token_name});
             try err.add_label(ctx.err.create_error_label_alloc(
                 error_name,
                 faulty_token.start_pos,

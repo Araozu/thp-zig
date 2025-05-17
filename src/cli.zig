@@ -1,5 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
+const syntax = @import("syntax");
+const ParserContext = syntax.context.ParserContext;
 const context = @import("context");
 
 pub fn tokenize_to_json() !void {
@@ -31,6 +33,28 @@ pub fn tokenize_to_json() !void {
 
     const tokens = try lexic.tokenize(stdin_buf.items, arena.allocator(), &ctx);
     defer tokens.deinit();
+
+    // syntax analysis
+    var parser_context = ParserContext{
+        .allocator = arena.allocator(),
+        .tokens = &tokens,
+        .err = &ctx,
+    };
+
+    var ast: syntax.Module = undefined;
+    ast.init(0, &parser_context) catch |e| switch (e) {
+        error.Error => {
+            // Print all the errors
+            for (ctx.errors.items) |*err_item| {
+                const err_str = try err_item.get_error_str(stdin_buf.items, "repl", alloc);
+                try stdout.print("\n{s}\n", .{err_str});
+                try bw.flush();
+                alloc.free(err_str);
+            }
+        },
+        else => return e,
+    };
+    // defer ast.deinit(&parser_context);
 
     // Write JSON directly to stdout
     try stdout.writeAll("{\"errors\":[");
