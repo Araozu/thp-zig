@@ -75,7 +75,7 @@ pub const TypecheckerVisitor = struct {
             if (type_hinted != expression_type) {
                 // The types differ. Return an error
 
-                // FIXME: add proper error indicators
+                // FIXME: add proper error indicators, get alraedy inserted symbol position
                 const error_start = 0;
                 const error_end = 0;
                 var new_error = try self.err.create_and_append_error("Duplicated symbol", error_start, error_end);
@@ -97,8 +97,8 @@ pub const TypecheckerVisitor = struct {
             .{
                 .t = expression_type,
                 .location = .{
-                    .start = 0,
-                    .end = 1,
+                    .start = node.identifier.start_pos,
+                    .end = node.identifier.start_pos + node.identifier.value.len,
                 },
             },
         );

@@ -61,7 +61,9 @@ pub fn semantic_analysis_unmanaged(
     var hm_iterator = symbol_table.scope.symbols.iterator();
 
     while (hm_iterator.next()) |next_entry| {
-        std.debug.print("analyzed:\n\t{s}: {s}\n", .{ next_entry.key_ptr.*, next_entry.value_ptr.*.t.to_str() });
+        var symbol_info = next_entry.value_ptr.*;
+        std.debug.print("analyzed:\n\t{s}: {s}\n", .{ next_entry.key_ptr.*, symbol_info.t.to_str() });
+        std.debug.print("\tat {d}:{d}\n", .{ symbol_info.location.start, symbol_info.location.end });
     }
 }
 
