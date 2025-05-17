@@ -44,6 +44,11 @@ pub const Module = struct {
         while (current_pos < input_len) {
             var stmt: statement.Statement = undefined;
 
+            if (ctx.tokens.items[current_pos].token_type == TokenType.Newline) {
+                current_pos += 1;
+                continue;
+            }
+
             const next_pos = try stmt.init(current_pos, ctx);
             if (next_pos) |next_pos_actual| {
                 current_pos = next_pos_actual;

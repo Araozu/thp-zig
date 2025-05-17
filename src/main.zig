@@ -145,6 +145,7 @@ fn repl() !void {
             },
             else => return e,
         };
+        defer ast.deinit(&parser_context);
 
         semantic.semantic_analysis_unmanaged(&symbol_table, alloc, &ast, &ctx) catch |e| switch (e) {
             error.OutOfMemory => {
