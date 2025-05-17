@@ -2,6 +2,14 @@ const std = @import("std");
 
 const StringHashMap = std.StringHashMapUnmanaged;
 
+pub const SymbolInfo = struct {
+    t: Type,
+    location: struct {
+        start: usize,
+        end: usize,
+    },
+};
+
 pub const Type = enum {
     Untyped,
     Int,
@@ -24,7 +32,7 @@ pub const SymbolTable = struct {
 };
 
 pub const Scope = struct {
-    symbols: StringHashMap(Type),
+    symbols: StringHashMap(SymbolInfo),
     parent: ?*Scope,
     allocator: std.mem.Allocator,
     children: std.ArrayListUnmanaged(*Scope),
@@ -57,15 +65,15 @@ pub const Scope = struct {
         return child;
     }
 
-    pub fn insert(self: *Scope, name: []const u8, t: Type) !void {
-        try self.symbols.put(self.allocator, name, t);
+    pub fn insert(self: *Scope, name: []const u8, insert_value: SymbolInfo) !void {
+        try self.symbols.put(self.allocator, name, insert_value);
     }
 
     pub fn has(self: *Scope, name: []const u8) bool {
         return self.symbols.contains(name);
     }
 
-    pub fn get(self: *Scope, name: []const u8) ?Type {
+    pub fn get(self: *Scope, name: []const u8) ?SymbolInfo {
         // Check current scope
         const t = self.symbols.get(name);
         if (t != null) {
@@ -95,14 +103,14 @@ test "should insert a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", Type.Int);
+    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
 }
 
 test "should test if a scope has a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", Type.Int);
+    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
     try std.testing.expectEqual(true, scope.has("foo"));
 }
 
@@ -110,7 +118,7 @@ test "should test if a scope has a symbol 2" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", Type.Int);
+    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
     try std.testing.expectEqual(false, scope.has("bar"));
 }
 
@@ -118,9 +126,9 @@ test "should retrieve a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", Type.Int);
+    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
     const out = scope.get("foo") orelse std.debug.panic("foo is null", .{});
-    try std.testing.expectEqual(Type.Int, out);
+    try std.testing.expectEqual(Type.Int, out.t);
 }
 
 test "should create a child scope" {
@@ -128,7 +136,7 @@ test "should create a child scope" {
     defer scope.deinit();
 
     var child_scope = try scope.from_parent();
-    try child_scope.insert("foo", Type.Int);
+    try child_scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
 }
 
 test "should create a child scope 2" {
@@ -136,26 +144,26 @@ test "should create a child scope 2" {
     defer scope.deinit();
 
     var child_scope = try scope.from_parent();
-    try child_scope.insert("foo", Type.Int);
+    try child_scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
 
     var child_child_scope = try child_scope.from_parent();
-    try child_child_scope.insert("bar", Type.Float);
+    try child_child_scope.insert("bar", .{ .t = Type.Float, .location = .{ .start = 0, .end = 0 } });
 }
 
 test "should test if a scope or parent scope has a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", Type.Int);
+    try scope.insert("foo", .{ .t = Type.Float, .location = .{ .start = 0, .end = 0 } });
 
     var child_scope = try scope.from_parent();
-    try child_scope.insert("bar", Type.Int);
+    try child_scope.insert("bar", .{ .t = Type.Float, .location = .{ .start = 0, .end = 0 } });
 
     var child_child_scope = try child_scope.from_parent();
 
     const bar = child_child_scope.get("bar") orelse std.debug.panic("bar is null", .{});
-    try std.testing.expectEqual(Type.Int, bar);
+    try std.testing.expectEqual(Type.Float, bar.t);
 
     const foo = child_child_scope.get("foo") orelse std.debug.panic("foo is null", .{});
-    try std.testing.expectEqual(Type.Int, foo);
+    try std.testing.expectEqual(Type.Float, foo.t);
 }

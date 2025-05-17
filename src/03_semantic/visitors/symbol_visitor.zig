@@ -60,7 +60,16 @@ pub const SymbolCollectorVisitor = struct {
             return VisitorError.SemanticError;
         }
 
-        self.scope.insert(variable_name, Type.Untyped) catch {
+        self.scope.insert(
+            variable_name,
+            .{
+                .t = Type.Untyped,
+                .location = .{
+                    .start = 0,
+                    .end = 0,
+                },
+            },
+        ) catch {
             return VisitorError.OutOfMemory;
         };
     }
@@ -112,7 +121,7 @@ test "should visit a variable declaration" {
     //
 
     try std.testing.expect(scope.has("identifier"));
-    try std.testing.expectEqual(Type.Untyped, scope.get("identifier").?);
+    try std.testing.expectEqual(Type.Untyped, scope.get("identifier").?.t);
 }
 
 test "should visit two variable declarations" {
@@ -156,10 +165,10 @@ test "should visit two variable declarations" {
     // Assert
     //
     try std.testing.expect(scope.has("first"));
-    try std.testing.expectEqual(Type.Untyped, scope.get("first").?);
+    try std.testing.expectEqual(Type.Untyped, scope.get("first").?.t);
 
     try std.testing.expect(scope.has("second"));
-    try std.testing.expectEqual(Type.Untyped, scope.get("second").?);
+    try std.testing.expectEqual(Type.Untyped, scope.get("second").?.t);
 }
 
 test "should fail on duplicated declaration" {

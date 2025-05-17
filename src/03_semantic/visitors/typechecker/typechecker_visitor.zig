@@ -92,7 +92,16 @@ pub const TypecheckerVisitor = struct {
             std.debug.panic("A symbol was not on the symbol table during typechecking...", .{});
         }
 
-        try self.scope.insert(symbol_name, expression_type);
+        try self.scope.insert(
+            symbol_name,
+            .{
+                .t = expression_type,
+                .location = .{
+                    .start = 0,
+                    .end = 1,
+                },
+            },
+        );
     }
 
     pub fn visitor(self: *TypecheckerVisitor) Visitor {
