@@ -17,7 +17,7 @@ pub const Type = enum {
     String,
     // TODO: function types, generic types, container types
 
-    pub fn to_str(self: *Type) []const u8 {
+    pub fn to_str(self: *const Type) []const u8 {
         return switch (self.*) {
             .Untyped => "<untyped>",
             .Int => "Int",
@@ -83,6 +83,36 @@ pub const Scope = struct {
             return parent.get(name);
         }
         return null;
+    }
+
+    pub fn symbols_json(self: *Scope, writer: anytype) !void {
+        // iterate over the symbols, write as JSON
+        var it = self.symbols.iterator();
+
+        try writer.writeAll("[");
+        var is_first = true;
+        while (it.next()) |_entry| {
+            const entry_name = _entry.key_ptr;
+            const entry = _entry.value_ptr.*;
+
+            if (!is_first) {
+                try writer.writeAll(",");
+            }
+            // try std.json.stringify(entry, .{}, writer);
+            try std.json.stringify(
+                .{
+                    .symbol_name = entry_name,
+                    .t = entry.t.to_str(),
+                    .start = entry.location.start,
+                    .end = entry.location.end,
+                },
+                .{},
+                writer,
+            );
+
+            is_first = false;
+        }
+        try writer.writeAll("]");
     }
 
     pub fn deinit(self: *Scope) void {

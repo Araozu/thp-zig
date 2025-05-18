@@ -1,6 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const syntax = @import("syntax");
+const semantic = @import("semantic");
 const ParserContext = syntax.context.ParserContext;
 const context = @import("context");
 
@@ -33,6 +34,7 @@ pub fn tokenize_to_json() !void {
 
     const tokens = try lexic.tokenize(stdin_buf.items, arena.allocator(), &ctx);
     defer tokens.deinit();
+    const tokenize_error = ctx.errors.items.len > 0;
 
     // syntax analysis
     var parser_context = ParserContext{
@@ -42,19 +44,32 @@ pub fn tokenize_to_json() !void {
     };
 
     var ast: syntax.Module = undefined;
-    ast.init(0, &parser_context) catch |e| switch (e) {
-        error.Error => {
-            // Print all the errors
-            for (ctx.errors.items) |*err_item| {
-                const err_str = try err_item.get_error_str(stdin_buf.items, "repl", alloc);
-                try stdout.print("\n{s}\n", .{err_str});
-                try bw.flush();
-                alloc.free(err_str);
-            }
-        },
-        else => return e,
+    var parser_error = false;
+    var global_scope = semantic.Scope.init(arena.allocator());
+    defer global_scope.deinit();
+    var symbol_table = semantic.SymbolTable{
+        .scope = &global_scope,
     };
-    // defer ast.deinit(&parser_context);
+
+    if (!tokenize_error) {
+        ast.init(0, &parser_context) catch |e| switch (e) {
+            error.Error => {
+                parser_error = true;
+            },
+            else => return e,
+        };
+        defer ast.deinit(&parser_context);
+
+        if (!parser_error) {
+            // semantic analysis
+            semantic.semantic_analysis_unmanaged(&symbol_table, alloc, &ast, &ctx) catch |e| switch (e) {
+                error.OutOfMemory => {
+                    try stdout.print("System ran out of memory!\n", .{});
+                },
+                else => {},
+            };
+        }
+    }
 
     // Write JSON directly to stdout
     try stdout.writeAll("{\"errors\":[");
@@ -64,6 +79,8 @@ pub fn tokenize_to_json() !void {
     }
     try stdout.writeAll("],\"tokens\":");
     try std.json.stringify(tokens.items, .{}, stdout);
+    try stdout.writeAll(",\"references\":");
+    try symbol_table.scope.symbols_json(stdout);
     try stdout.writeAll("}");
     try bw.flush();
 }

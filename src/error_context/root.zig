@@ -230,7 +230,7 @@ pub const ErrorData = struct {
     // - Display message
 
     /// Writes this error as a JSON to the writer
-    pub fn write_json(self: ErrorData, alloc: std.mem.Allocator, writer: anytype) !void {
+    pub fn write_json(self: *const ErrorData, alloc: std.mem.Allocator, writer: anytype) !void {
         // get this as JSON
         const json_str = try std.json.stringifyAlloc(alloc, .{
             .reason = self.reason,

@@ -44,7 +44,7 @@ pub const Module = struct {
         while (current_pos < input_len) {
             var stmt: statement.Statement = undefined;
 
-            if (ctx.tokens.items[current_pos].token_type == TokenType.Newline) {
+            if (ctx.tokens.items[current_pos].token_type == TokenType.Newline or ctx.tokens.items[current_pos].token_type == TokenType.Comment) {
                 current_pos += 1;
                 continue;
             }
