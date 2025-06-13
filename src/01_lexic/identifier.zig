@@ -28,7 +28,12 @@ pub fn lex(input: []const u8, start: usize) LexError!?LexReturn {
     const value = input[start..final_pos];
 
     // check for keywords
-    const new_token_type = if (utils.try_keyword("var", value)) TokenType.K_Var else TokenType.Identifier;
+    var new_token_type = TokenType.Identifier;
+    if (utils.try_keyword("var", value)) {
+        new_token_type = TokenType.K_Var;
+    } else if (utils.try_keyword("val", value)) {
+        new_token_type = TokenType.K_Val;
+    }
 
     return .{
         Token.init(value, new_token_type, start),

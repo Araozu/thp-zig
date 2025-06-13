@@ -18,6 +18,7 @@ pub const TokenType = enum {
     Newline,
     // Each keyword will have its own token
     K_Var,
+    K_Val,
 
     pub fn to_string(self: *TokenType) []const u8 {
         return switch (self.*) {
@@ -37,6 +38,7 @@ pub const TokenType = enum {
             TokenType.Comma => "Comma",
             TokenType.Newline => "Newline",
             TokenType.K_Var => "K_Var",
+            TokenType.K_Val => "K_Val",
         };
     }
 };

@@ -27,21 +27,33 @@ pub const VariableBinding = struct {
         std.debug.assert(pos < ctx.tokens.items.len);
 
         // try to parse a var keyword
-        const var_keyword = if (utils.expect_token_type(lexic.TokenType.K_Var, &ctx.tokens.items[pos])) |t| t else {
+        var variable_keyword: *lexic.Token = undefined;
+        var variable_is_mutable = false;
+        // Try to find `var`
+        if (utils.expect_token_type(lexic.TokenType.K_Var, &ctx.tokens.items[pos])) |token| {
+            variable_keyword = token;
+            variable_is_mutable = true;
+        } else if (utils.expect_token_type(lexic.TokenType.K_Val, &ctx.tokens.items[pos])) |token| {
+            variable_keyword = token;
+            variable_is_mutable = false;
+        } else {
+            // nothing found, return unmatched
             return null;
-        };
+        }
 
         // check there is still input
         if (pos + 1 >= ctx.tokens.items.len) {
             var err = try ctx.err.create_and_append_error(
                 "Incomplete variable declaration",
-                var_keyword.start_pos,
-                var_keyword.start_pos + var_keyword.value.len,
+                variable_keyword.start_pos,
+                variable_keyword.start_pos + variable_keyword.value.len,
             );
+            // FIXME: should also refer to a `val` keyword,
+            // by dynamically creating the error message
             try err.add_label(ctx.err.create_error_label(
                 "Expected an identifier after this `var`",
-                var_keyword.start_pos,
-                var_keyword.start_pos + var_keyword.value.len,
+                variable_keyword.start_pos,
+                variable_keyword.start_pos + variable_keyword.value.len,
             ));
 
             return ParseError.Error;
@@ -130,7 +142,7 @@ pub const VariableBinding = struct {
 
         // assign and return
         target.* = .{
-            .is_mutable = true,
+            .is_mutable = variable_is_mutable,
             .datatype = null,
             .identifier = identifier,
             .expression = exp,
