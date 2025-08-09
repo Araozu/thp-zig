@@ -9,6 +9,7 @@ const TokenType = lexic.TokenType;
 pub const Expression = union(enum) {
     int: *const Token,
     float: *const Token,
+    string: *const Token,
 
     /// Attempts to parse an expression from a token stream.
     ///
@@ -25,6 +26,7 @@ pub const Expression = union(enum) {
         self.* = switch (t.token_type) {
             .Int => .{ .int = t },
             .Float => .{ .float = t },
+            .String => .{ .string = t },
             else => return null,
         };
 

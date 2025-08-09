@@ -52,6 +52,7 @@ pub const TypecheckerVisitor = struct {
         const expression_type = switch (node.expression.*) {
             .float => Type.Float,
             .int => Type.Int,
+            .string => Type.String,
             // else => Type.Untyped,
         };
 

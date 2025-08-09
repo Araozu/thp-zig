@@ -33,6 +33,7 @@ pub const PHPGeneratorVisitor = struct {
     pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!void {
         const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
 
+        // FIXME: generate PHP code for an expression
         const out = std.fmt.allocPrint(self.alloc, "${s} = ??", .{node.identifier.value}) catch {
             return VisitorError.OutOfMemory;
         };
