@@ -19,6 +19,11 @@ pub const VariableBinding = struct {
     expression: *expression.Expression,
 
     /// Parses a variable binding and returns the position of the next token
+    /// of the form:
+    ///
+    /// ```thp
+    ///     val|var identifier = expression
+    /// ```
     pub fn init(
         target: *VariableBinding,
         pos: usize,

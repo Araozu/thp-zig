@@ -51,8 +51,11 @@ pub const TypecheckerVisitor = struct {
         // get the type of the binding expression
         var expression_type = Type.Untyped;
         switch (node.expression.*) {
-            .number => {
+            .float => {
                 expression_type = Type.Float;
+            },
+            .int => {
+                expression_type = Type.Int;
             },
         }
 
