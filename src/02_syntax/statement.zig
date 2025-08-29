@@ -66,8 +66,8 @@ test "should parse a variable declaration statement" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -90,8 +90,8 @@ test "should fail on other constructs" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "a_function_call(322)";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,

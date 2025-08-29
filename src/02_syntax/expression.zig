@@ -36,8 +36,8 @@ test "should parse expression" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -57,8 +57,8 @@ test "should fail on non expression" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "identifier";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,

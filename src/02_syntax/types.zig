@@ -11,4 +11,4 @@ pub const ParseError = error{
     OutOfMemory,
 };
 
-pub const TokenStream = std.ArrayList(lexic.Token);
+pub const TokenStream = std.ArrayListUnmanaged(lexic.Token);

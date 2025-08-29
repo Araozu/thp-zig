@@ -191,16 +191,16 @@ test "should insert 1 item" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322";
-    const arrl = try tokenize(input, std.testing.allocator, &ctx);
-    arrl.deinit();
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    arrl.deinit(std.testing.allocator);
 }
 
 test "should insert 2 item" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "322 644";
-    const arrl = try tokenize(input, std.testing.allocator, &ctx);
-    arrl.deinit();
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    arrl.deinit(std.testing.allocator);
 }
 
 test "should insert an item, fail, and not leak" {
@@ -208,21 +208,21 @@ test "should insert an item, fail, and not leak" {
     defer ctx.deinit();
     const input = "322 \"hello";
 
-    const arrl = tokenize(input, std.testing.allocator, &ctx) catch |e| switch (e) {
+    var arrl = tokenize(input, std.testing.allocator, &ctx) catch |e| switch (e) {
         else => {
             try std.testing.expect(false);
             return;
         },
     };
-    defer arrl.deinit();
+    defer arrl.deinit(std.testing.allocator);
 }
 
 test "shouldnt leak" {
     var ctx = context.ErrorContext.init(std.testing.allocator);
     defer ctx.deinit();
     const input = "";
-    const arrl = try tokenize(input, std.testing.allocator, &ctx);
-    arrl.deinit();
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    arrl.deinit(std.testing.allocator);
 }
 
 test "should handle recoverable errors" {
@@ -230,8 +230,8 @@ test "should handle recoverable errors" {
     defer ctx.deinit();
 
     const input = "322 0b 644";
-    const arrl = try tokenize(input, std.testing.allocator, &ctx);
-    defer arrl.deinit();
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
 
     try std.testing.expectEqual(@as(usize, 1), ctx.errors.items.len);
     try std.testing.expectEqual(@as(usize, 2), arrl.items.len);
@@ -253,6 +253,6 @@ fn fuzz_impl(ctx: void, source: []const u8) anyerror!void {
     var err_ctx = context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
 
-    const arrl = try tokenize(input, std.testing.allocator, &err_ctx);
-    defer arrl.deinit();
+    var arrl = try tokenize(input, std.testing.allocator, &err_ctx);
+    defer arrl.deinit(std.testing.allocator);
 }

@@ -98,8 +98,8 @@ test "should visit a variable declaration" {
     );
 
     // variable binding
-    const t = try lexic.tokenize("var identifier = 322", std.testing.allocator, &errctx);
-    defer t.deinit();
+    var t = try lexic.tokenize("var identifier = 322", std.testing.allocator, &errctx);
+    defer t.deinit(std.testing.allocator);
     var ctx = syntax.context.ParserContext{
         .allocator = std.testing.allocator,
         .tokens = &t,
@@ -139,8 +139,8 @@ test "should visit two variable declarations" {
     );
 
     // variable binding
-    const token_stream = try lexic.tokenize("var first = 322 var second = 644", std.testing.allocator, &errctx);
-    defer token_stream.deinit();
+    var token_stream = try lexic.tokenize("var first = 322 var second = 644", std.testing.allocator, &errctx);
+    defer token_stream.deinit(std.testing.allocator);
     var ctx = syntax.context.ParserContext{
         .allocator = std.testing.allocator,
         .tokens = &token_stream,
@@ -186,8 +186,8 @@ test "should fail on duplicated declaration" {
     );
 
     // variable binding
-    const token_stream = try lexic.tokenize("var first = 322 var first = 644", std.testing.allocator, &errctx);
-    defer token_stream.deinit();
+    var token_stream = try lexic.tokenize("var first = 322 var first = 644", std.testing.allocator, &errctx);
+    defer token_stream.deinit(std.testing.allocator);
     var ctx = syntax.context.ParserContext{
         .allocator = std.testing.allocator,
         .tokens = &token_stream,

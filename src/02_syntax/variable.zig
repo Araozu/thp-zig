@@ -166,8 +166,8 @@ test "should parse a minimal var" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var my_variable = 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -193,8 +193,8 @@ test "should return null if stream doesnt start with var" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "different_token_stream()";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -211,8 +211,8 @@ test "should fail if the identifier is missing" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var ";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -243,8 +243,8 @@ test "should fail if there is not an identifier after var" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var 322";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -265,8 +265,8 @@ test "should fail if the equal sign is missing" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var my_id    ";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -287,8 +287,8 @@ test "should fail if the equal sign is not found" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var my_id is string";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,
@@ -309,8 +309,8 @@ test "should fail if the expression parsing fails" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
     const input = "var my_id = ehhh";
-    const tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{
         .allocator = std.testing.allocator,

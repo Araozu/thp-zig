@@ -81,14 +81,11 @@ fn repl() !void {
         // Read stdin, break if EOF (C-d)
         //
         const bare_line = stdin.takeDelimiterExclusive('\n') catch |e| switch (e) {
-            // const bare_line = stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192) catch |e| switch (e) {
             error.EndOfStream => {
                 break;
             },
             else => return e,
         };
-
-        // defer std.heap.page_allocator.free(bare_line);
         const line = std.mem.trim(u8, bare_line, "\r");
 
         // Setup compiler context

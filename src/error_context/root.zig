@@ -103,7 +103,7 @@ pub const ErrorData = struct {
     /// The absolute position where the faulty code ends
     end_position: usize,
     /// A list of detailed messages about the error
-    labels: std.ArrayList(ErrorLabel),
+    labels: std.ArrayListUnmanaged(ErrorLabel),
     allocator: std.mem.Allocator,
 
     pub fn add_label(self: *ErrorData, label: ErrorLabel) !void {
@@ -232,9 +232,9 @@ pub const ErrorData = struct {
     // - Display message
 
     /// Writes this error as a JSON to the writer
-    pub fn write_json(self: *const ErrorData, alloc: std.mem.Allocator, writer: anytype) !void {
+    pub fn write_json(self: *const ErrorData, alloc: std.mem.Allocator, writer: *std.Io.Writer) !void {
         // get this as JSON
-        const json_str = try std.json.stringifyAlloc(alloc, .{
+        const json_str = try std.json.Stringify.valueAlloc(alloc, .{
             .reason = self.reason,
             .help = self.help,
             .start_position = self.start_position,
@@ -371,7 +371,8 @@ test "should gen error message" {
         .help = null,
         .start_position = 6,
         .end_position = 9,
-        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .labels = std.ArrayListUnmanaged(ErrorLabel).empty,
+        .allocator = std.testing.allocator,
     };
     const out = try err.get_error_str(source, "repl", std.testing.allocator);
     defer std.testing.allocator.free(out);
@@ -389,9 +390,10 @@ test "should gen error message with label (1)" {
         .help = null,
         .start_position = 6,
         .end_position = 9,
-        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .labels = std.ArrayListUnmanaged(ErrorLabel).empty,
+        .allocator = std.testing.allocator,
     };
-    defer err.deinit(std.testing.allocator);
+    defer err.deinit();
 
     const label = ErrorLabel{
         .message = .{ .static = "This identifier was not found" },
@@ -421,9 +423,10 @@ test "should gen error message with label and help" {
         .help = null,
         .start_position = 6,
         .end_position = 9,
-        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .labels = std.ArrayListUnmanaged(ErrorLabel).empty,
+        .allocator = std.testing.allocator,
     };
-    defer err.deinit(std.testing.allocator);
+    defer err.deinit();
 
     const label = ErrorLabel{
         .message = .{ .static = "This identifier was not found" },
@@ -454,18 +457,20 @@ test "should serialize a minimal error" {
         .help = null,
         .start_position = 6,
         .end_position = 9,
-        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .labels = std.ArrayListUnmanaged(ErrorLabel).empty,
+        .allocator = std.testing.allocator,
     };
-    defer err.deinit(std.testing.allocator);
-    var out_writer = std.ArrayList(u8).init(std.testing.allocator);
-    defer out_writer.deinit();
+    defer err.deinit();
 
-    try err.write_json(std.testing.allocator, out_writer.writer());
+    var aw: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer aw.deinit();
+
+    try err.write_json(std.testing.allocator, &aw.writer);
 
     const expected =
         \\{"reason":"Invalid identifier","help":null,"start_position":6,"end_position":9,"labels":[]}
     ;
-    try std.testing.expectEqualStrings(expected, out_writer.items);
+    try std.testing.expectEqualStrings(expected, aw.written());
 }
 
 test "should serialize a complex error" {
@@ -474,9 +479,10 @@ test "should serialize a complex error" {
         .help = "Try to do better",
         .start_position = 0,
         .end_position = 1,
-        .labels = std.ArrayList(ErrorLabel).init(std.testing.allocator),
+        .labels = std.ArrayListUnmanaged(ErrorLabel).empty,
+        .allocator = std.testing.allocator,
     };
-    defer err.deinit(std.testing.allocator);
+    defer err.deinit();
 
     try err.add_label(.{
         .message = .{ .static = "This one" },
@@ -489,15 +495,15 @@ test "should serialize a complex error" {
         .end = 64,
     });
 
-    var out_writer = std.ArrayList(u8).init(std.testing.allocator);
-    defer out_writer.deinit();
+    var aw: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer aw.deinit();
 
-    try err.write_json(std.testing.allocator, out_writer.writer());
+    try err.write_json(std.testing.allocator, &aw.writer);
 
     const expected =
         \\{"reason":"Invalid \"hello\"","help":"Try to do better","start_position":0,"end_position":1,"labels":[{"message":{"static":"This one"},"start":0,"end":32},{"message":{"static":"And this other"},"start":32,"end":64}]}
     ;
-    try std.testing.expectEqualStrings(expected, out_writer.items);
+    try std.testing.expectEqualStrings(expected, aw.written());
 }
 
 // TODO: add more tests:
