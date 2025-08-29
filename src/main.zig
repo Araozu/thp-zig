@@ -80,18 +80,16 @@ fn repl() !void {
         //
         // Read stdin, break if EOF (C-d)
         //
-        var bare_line: [8192]u8 = undefined;
-        var w: std.Io.Writer = .fixed(&bare_line);
-
-        _ = stdin.streamDelimiter(&w, '\n') catch |e| switch (e) {
+        const bare_line = stdin.takeDelimiterExclusive('\n') catch |e| switch (e) {
             // const bare_line = stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192) catch |e| switch (e) {
             error.EndOfStream => {
                 break;
             },
             else => return e,
         };
+
         // defer std.heap.page_allocator.free(bare_line);
-        const line = std.mem.trim(u8, &bare_line, "\r");
+        const line = std.mem.trim(u8, bare_line, "\r");
 
         // Setup compiler context
         var ctx = err_ctx.ErrorContext.init(alloc);

@@ -17,8 +17,9 @@ const TokenType = lexic.TokenType;
 const ParseError = types.ParseError;
 const TokenStream = types.TokenStream;
 
+/// A module in the AST.
 pub const Module = struct {
-    statements: std.ArrayList(statement.Statement),
+    statements: std.ArrayListUnmanaged(statement.Statement),
 
     /// Parses a module.
     ///
@@ -31,8 +32,8 @@ pub const Module = struct {
         pos: usize,
         ctx: *const context.ParserContext,
     ) ParseError!void {
-        var arrl = std.ArrayList(statement.Statement).init(ctx.allocator);
-        errdefer arrl.deinit();
+        var arrl = std.ArrayListUnmanaged(statement.Statement).empty;
+        errdefer arrl.deinit(ctx.allocator);
         errdefer for (arrl.items) |i| {
             i.deinit(ctx);
         };
@@ -53,7 +54,7 @@ pub const Module = struct {
             if (next_pos) |next_pos_actual| {
                 current_pos = next_pos_actual;
 
-                try arrl.append(stmt);
+                try arrl.append(ctx.allocator, stmt);
                 continue;
             }
 
@@ -67,11 +68,11 @@ pub const Module = struct {
         };
     }
 
-    pub fn deinit(self: @This(), ctx: *const context.ParserContext) void {
+    pub fn deinit(self: *@This(), ctx: *const context.ParserContext) void {
         for (self.statements.items) |stmt| {
             stmt.deinit(ctx);
         }
-        self.statements.deinit();
+        self.statements.deinit(ctx.allocator);
     }
 };
 
