@@ -49,37 +49,36 @@ pub const TypecheckerVisitor = struct {
 
         // ensure the binding is on the symbol table
         // get the type of the binding expression
-        var expression_type = Type.Untyped;
-        switch (node.expression.*) {
-            .number => {
-                expression_type = Type.Float;
-            },
-        }
+        const expression_type = switch (node.expression.*) {
+            .float => Type.Float,
+            .int => Type.Int,
+            .string => Type.String,
+            // else => Type.Untyped,
+        };
 
         // get the type of the type hint, if any
-        var type_hinted = Type.Untyped;
-        if (node.datatype) |type_hint| {
-            switch (type_hint.token_type) {
-                .Float => {
-                    type_hinted = Type.Float;
-                },
-                else => {
-                    std.debug.panic("not implemented: other datatypes during typechecking", .{});
-                },
-            }
-        }
+        const hinted_type = if (node.datatype) |type_hint| switch (type_hint.token_type) {
+            // Should match against Datatype and parse its value...
+            .Datatype => {
+                // TODO: Match token value against common datatypes?
+                std.debug.panic("not implemented: type hints in a variable declaration", .{});
+            },
+            else => {
+                std.debug.panic("not implemented: other datatypes during typechecking", .{});
+            },
+        } else Type.Untyped;
 
         // check types
-        if (type_hinted != Type.Untyped) {
+        if (hinted_type != Type.Untyped) {
             // Assert both the type hint and the actual type are the same
-            if (type_hinted != expression_type) {
+            if (hinted_type != expression_type) {
                 // The types differ. Return an error
 
-                // FIXME: add proper error indicators, get alraedy inserted symbol position
+                // FIXME: add proper error indicators, get already inserted symbol position
                 const error_start = 0;
                 const error_end = 0;
-                var new_error = try self.err.create_and_append_error("Duplicated symbol", error_start, error_end);
-                try new_error.add_label(self.err.create_error_label("This variable has already been declared on the current scope", error_start, error_end));
+                var new_error = try self.err.create_and_append_error("Mismatched types", error_start, error_end);
+                try new_error.add_label(self.err.create_error_label("The declared type and the received type are not the same", error_start, error_end));
 
                 return VisitorError.SemanticError;
             }

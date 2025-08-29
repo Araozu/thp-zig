@@ -7,7 +7,9 @@ const Token = lexic.Token;
 const TokenType = lexic.TokenType;
 
 pub const Expression = union(enum) {
-    number: *const Token,
+    int: *const Token,
+    float: *const Token,
+    string: *const Token,
 
     /// Attempts to parse an expression from a token stream.
     ///
@@ -21,13 +23,13 @@ pub const Expression = union(enum) {
         std.debug.assert(pos < ctx.tokens.items.len);
 
         const t = &ctx.tokens.items[pos];
-        if (t.token_type != TokenType.Int) {
-            return null;
-        }
-
-        self.* = .{
-            .number = t,
+        self.* = switch (t.token_type) {
+            .Int => .{ .int = t },
+            .Float => .{ .float = t },
+            .String => .{ .string = t },
+            else => return null,
         };
+
         return pos + 1;
     }
 };
@@ -46,8 +48,8 @@ test "should parse expression" {
     };
     var expr: Expression = undefined;
     if (expr.init(0, &parser_context)) |_| {
-        try std.testing.expectEqualDeep("322", expr.number.value);
-        try std.testing.expectEqualDeep(TokenType.Int, expr.number.token_type);
+        try std.testing.expectEqualDeep("322", expr.int.value);
+        try std.testing.expectEqualDeep(TokenType.Int, expr.int.token_type);
         return;
     }
     try std.testing.expect(false);
@@ -67,7 +69,7 @@ test "should fail on non expression" {
     };
     var expr: Expression = undefined;
     if (expr.init(0, &parser_context)) |_| {
-        std.debug.print("v: {s}", .{expr.number.value});
+        std.debug.print("v: {s}", .{expr.int.value});
         try std.testing.expect(false);
     }
 

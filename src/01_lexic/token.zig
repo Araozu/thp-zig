@@ -1,11 +1,11 @@
 pub const TokenType = enum {
     Int,
     Float,
+    String,
     Identifier,
     Datatype,
     Operator,
     Comment,
-    String,
     // grouping signs
     LeftParen,
     RightParen,

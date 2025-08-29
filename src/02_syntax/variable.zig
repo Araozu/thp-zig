@@ -19,6 +19,11 @@ pub const VariableBinding = struct {
     expression: *expression.Expression,
 
     /// Parses a variable binding and returns the position of the next token
+    /// of the form:
+    ///
+    /// ```thp
+    ///     val|var identifier = expression
+    /// ```
     pub fn init(
         target: *VariableBinding,
         pos: usize,
@@ -183,8 +188,11 @@ test "should parse a minimal var" {
     try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
     switch (expr.*) {
-        .number => |n| {
+        .int => |n| {
             try std.testing.expectEqualStrings("322", n.value);
+        },
+        else => {
+            try std.testing.expect(false);
         },
     }
 }
