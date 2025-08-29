@@ -25,12 +25,12 @@ pub fn tokenize(
     input: []const u8,
     allocator: std.mem.Allocator,
     err_ctx: *context.ErrorContext,
-) !std.ArrayList(Token) {
+) !std.ArrayListUnmanaged(Token) {
     const input_len = input.len;
     var current_pos: usize = 0;
 
-    var tokens = std.ArrayList(Token).init(allocator);
-    errdefer tokens.deinit();
+    var tokens = try std.ArrayListUnmanaged(Token).initCapacity(allocator, 10);
+    errdefer tokens.deinit(allocator);
 
     while (current_pos < input_len) {
         const actual_next_pos = ignore_whitespace(input, current_pos);
@@ -58,7 +58,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
             continue;
         }
 
@@ -68,7 +68,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
             continue;
         }
 
@@ -85,7 +85,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
             continue;
         }
 
@@ -95,7 +95,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
             continue;
         }
 
@@ -112,7 +112,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
             continue;
         }
 
@@ -122,7 +122,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
         }
         // attempt to lex grouping signs
         else if (try grouping.lex(input, actual_next_pos)) |tuple| {
@@ -130,7 +130,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
         }
         // lex punctuation
         else if (try punctuation.lex(input, actual_next_pos)) |tuple| {
@@ -138,7 +138,7 @@ pub fn tokenize(
             const t = tuple[0];
             current_pos = tuple[1];
 
-            try tokens.append(t);
+            try tokens.append(allocator, t);
         }
 
         // nothing was matched. fail

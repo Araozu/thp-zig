@@ -11,6 +11,7 @@ const cli = @import("cli.zig");
 const config = @import("config");
 const tracing = config.tracing;
 const json = config.json;
+const Io = std.Io;
 
 const thp_version: []const u8 = "0.0.1";
 
@@ -36,22 +37,27 @@ fn repl() !void {
         }
     }
 
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    // io implementation
+
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
 
     if (tracing) {
         try stdout.print("\n|\n| DEBUG MODE\n|\n\n", .{});
-        try bw.flush();
+        try stdout.flush();
     }
 
     try stdout.print("The THP REPL, v{s}\n", .{thp_version});
     try stdout.print("Enter expressions to evaluate. Enter CTRL-D to exit.\n", .{});
-    try bw.flush();
+    try stdout.flush();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
-    const stdin = std.io.getStdIn().reader();
+
+    var stdin_buffer: [8192]u8 = undefined;
+    var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
+    const stdin = &stdin_reader.interface;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -69,19 +75,23 @@ fn repl() !void {
         // Print prompt
         //
         try stdout.print("\nthp => ", .{});
-        try bw.flush();
+        try stdout.flush();
 
         //
         // Read stdin, break if EOF (C-d)
         //
-        const bare_line = stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192) catch |e| switch (e) {
+        var bare_line: [8192]u8 = undefined;
+        var w: std.Io.Writer = .fixed(&bare_line);
+
+        _ = stdin.streamDelimiter(&w, '\n') catch |e| switch (e) {
+            // const bare_line = stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', 8192) catch |e| switch (e) {
             error.EndOfStream => {
                 break;
             },
             else => return e,
         };
-        defer std.heap.page_allocator.free(bare_line);
-        const line = std.mem.trim(u8, bare_line, "\r");
+        // defer std.heap.page_allocator.free(bare_line);
+        const line = std.mem.trim(u8, &bare_line, "\r");
 
         // Setup compiler context
         var ctx = err_ctx.ErrorContext.init(alloc);
@@ -90,15 +100,16 @@ fn repl() !void {
         //
         // Tokenize with an arena
         //
-        const tokens = lexic.tokenize(line, arena.allocator(), &ctx) catch |e| switch (e) {
+        const arena_alloc = arena.allocator();
+        var tokens = lexic.tokenize(line, arena_alloc, &ctx) catch |e| switch (e) {
             error.OutOfMemory => {
                 try stdout.print("FATAL ERROR: System Out of Memory!", .{});
-                try bw.flush();
+                try stdout.flush();
                 return e;
             },
             else => return e,
         };
-        defer tokens.deinit();
+        defer tokens.deinit(arena_alloc);
 
         // Trace tokens
         if (tracing) {
@@ -116,7 +127,7 @@ fn repl() !void {
             for (ctx.errors.items) |*err| {
                 const err_str = try err.get_error_str(line, "repl", alloc);
                 try stdout.print("\n{s}\n", .{err_str});
-                try bw.flush();
+                try stdout.flush();
                 alloc.free(err_str);
             }
             continue;
@@ -138,7 +149,7 @@ fn repl() !void {
                 for (ctx.errors.items) |*err_item| {
                     const err_str = try err_item.get_error_str(line, "repl", alloc);
                     try stdout.print("\n{s}\n", .{err_str});
-                    try bw.flush();
+                    try stdout.flush();
                     alloc.free(err_str);
                 }
                 continue;
@@ -158,7 +169,7 @@ fn repl() !void {
                     std.debug.print("ehhh???\n", .{});
                     const err_str = try err_item.get_error_str(line, "repl", alloc);
                     try stdout.print("\n{s}\n", .{err_str});
-                    try bw.flush();
+                    try stdout.flush();
                     alloc.free(err_str);
                 }
                 continue;
@@ -175,7 +186,7 @@ fn repl() !void {
     }
 
     try stdout.print("\n\nExecution finished. Bye c:\n", .{});
-    try bw.flush();
+    try stdout.flush();
 }
 
 inline fn trace_header() void {

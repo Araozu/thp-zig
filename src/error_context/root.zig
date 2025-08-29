@@ -4,12 +4,12 @@ const std = @import("std");
 /// For now only stores errors generated
 pub const ErrorContext = struct {
     allocator: std.mem.Allocator,
-    errors: std.ArrayList(ErrorData),
+    errors: std.ArrayListUnmanaged(ErrorData),
 
     pub fn init(allocator: std.mem.Allocator) ErrorContext {
         return .{
             .allocator = allocator,
-            .errors = std.ArrayList(ErrorData).init(allocator),
+            .errors = .empty,
         };
     }
 
@@ -36,12 +36,13 @@ pub const ErrorContext = struct {
             .reason = reason,
             .start_position = start_position,
             .end_position = end_position,
-            .labels = std.ArrayList(ErrorLabel).init(self.allocator),
+            .labels = .empty,
             .help = null,
+            .allocator = self.allocator,
         };
 
         // Append the error to the array list
-        try self.errors.append(new_error);
+        try self.errors.append(self.allocator, new_error);
         // Get a pointer to the newly appended error
         const ptr = &self.errors.items[self.errors.items.len - 1];
         return ptr;
@@ -86,9 +87,9 @@ pub const ErrorContext = struct {
 
     pub fn deinit(self: *ErrorContext) void {
         for (self.errors.items) |*error_item| {
-            error_item.deinit(self.allocator);
+            error_item.deinit();
         }
-        self.errors.deinit();
+        self.errors.deinit(self.allocator);
     }
 };
 
@@ -103,9 +104,10 @@ pub const ErrorData = struct {
     end_position: usize,
     /// A list of detailed messages about the error
     labels: std.ArrayList(ErrorLabel),
+    allocator: std.mem.Allocator,
 
     pub fn add_label(self: *ErrorData, label: ErrorLabel) !void {
-        try self.labels.append(label);
+        try self.labels.append(self.allocator, label);
     }
 
     /// Sets the help message of this error.
@@ -245,13 +247,13 @@ pub const ErrorData = struct {
         try writer.writeAll(json_str);
     }
 
-    pub fn deinit(self: *ErrorData, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: *ErrorData) void {
         // Clean any labels. Those are assumed to have been initialized
         // by the same allocator this function receives
         for (self.labels.items) |*label| {
-            label.deinit(allocator);
+            label.deinit(self.allocator);
         }
-        self.labels.deinit();
+        self.labels.deinit(self.allocator);
     }
 };
 
