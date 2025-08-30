@@ -99,7 +99,7 @@ pub const Scope = struct {
                 try writer.writeAll(",");
             }
             // try std.json.stringify(entry, .{}, writer);
-            try std.json.stringify(
+            try std.json.Stringify.value(
                 .{
                     .symbol_name = entry_name,
                     .t = entry.t.to_str(),

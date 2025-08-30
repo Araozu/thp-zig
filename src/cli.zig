@@ -12,16 +12,18 @@ pub fn tokenize_to_json() !void {
     const alloc = gpa.allocator();
 
     // Setup buffered stdout once
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
 
     // Read all stdin
-    var stdin_buf = std.ArrayList(u8).init(alloc);
-    defer stdin_buf.deinit();
+    var aw: std.Io.Writer.Allocating = .init(alloc);
+    defer aw.deinit();
+
     // 16MB, why would anyone ever have source code bigger than that??
-    const max_file_size = 16 * 1024 * 1024;
-    try std.io.getStdIn().reader().readAllArrayList(&stdin_buf, max_file_size);
+    var stdin_buffer: [16 * 1024 * 1024]u8 = undefined;
+    var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
+    _ = try stdin_reader.interface.streamRemaining(&aw.writer);
 
     // Setup compiler context
     var ctx = context.ErrorContext.init(alloc);
@@ -32,8 +34,8 @@ pub fn tokenize_to_json() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
-    const tokens = try lexic.tokenize(stdin_buf.items, arena.allocator(), &ctx);
-    defer tokens.deinit();
+    var tokens = try lexic.tokenize(aw.written(), arena.allocator(), &ctx);
+    defer tokens.deinit(arena.allocator());
     const tokenize_error = ctx.errors.items.len > 0;
 
     // syntax analysis
@@ -78,9 +80,9 @@ pub fn tokenize_to_json() !void {
         if (idx < ctx.errors.items.len - 1) try stdout.writeAll(",");
     }
     try stdout.writeAll("],\"tokens\":");
-    try std.json.stringify(tokens.items, .{}, stdout);
+    try std.json.Stringify.value(tokens.items, .{}, stdout);
     try stdout.writeAll(",\"references\":");
     try symbol_table.scope.symbols_json(stdout);
     try stdout.writeAll("}");
-    try bw.flush();
+    try stdout.flush();
 }
