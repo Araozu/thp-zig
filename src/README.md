@@ -6,7 +6,7 @@ Overall architecture is that of a typical compiler:
 - Syntax analysis
 - Semantic analysis
 
-BUT! instead the language is compiled down to PHP (until i write my own VM).
+BUT! instead the language is compiled down to PHP (until i write my own VM)(or go LLVM).
 So then theres other phases:
 
 - IR lowering
