@@ -25,7 +25,7 @@ pub fn main() !void {
 
     const cli_args = cli_interface.CliArgs.parse(&args) catch |err| switch (err) {
         error.CompileMissingFilename => {
-            std.debug.print("{s}\n\n", .{cli_compile_command.CompileOptions.usage()});
+            std.debug.print("{s}\n\n", .{cli_interface.compile_command.CompileOptions.usage()});
             std.debug.print("Error: Missing <file> for compile command.\n", .{});
             return;
         },
@@ -33,7 +33,16 @@ pub fn main() !void {
             return;
         },
     };
-    _ = cli_args;
+
+    switch (cli_args) {
+        .Compile => |opts| {
+            _ = try cli_interface.compile_runner.run(&opts);
+        },
+        else => {
+            std.debug.print("CLI command not implemented.\n", .{});
+            return;
+        },
+    }
 
     // try repl();
 }
