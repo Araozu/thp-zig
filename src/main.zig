@@ -8,6 +8,7 @@ const parser_ctx = syntax.context;
 
 const cli = @import("./cli/root.zig");
 const cli_interface = @import("./cli/interface.zig");
+const cli_compile_command = @import("./cli/compile_command.zig");
 
 const config = @import("config");
 const tracing = config.tracing;
@@ -22,10 +23,15 @@ pub fn main() !void {
     var args = std.process.args();
     defer args.deinit();
 
-    const cli_args = cli_interface.CliArgs.parse(&args) orelse {
-        //
-        std.debug.print("{s}\n\nNo command found.\n", .{cli_interface.CliArgs.usage()});
-        return;
+    const cli_args = cli_interface.CliArgs.parse(&args) catch |err| switch (err) {
+        error.CompileMissingFilename => {
+            std.debug.print("{s}\n\n", .{cli_compile_command.CompileOptions.usage()});
+            std.debug.print("Error: Missing <file> for compile command.\n", .{});
+            return;
+        },
+        else => {
+            return;
+        },
     };
     _ = cli_args;
 

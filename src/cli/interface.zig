@@ -19,12 +19,7 @@
 //!       <file> -p          - compiles a single file in place. the output file is the input file with .php extension
 
 const std = @import("std");
-
-pub const CompileOptions = struct {
-    filename: [:0]const u8,
-    output: ?[]const u8,
-    in_place: bool,
-};
+const compile_options = @import("./compile_command.zig");
 
 /// Represents the possible command line arguments.
 pub const CliArgs = union(enum) {
@@ -32,49 +27,28 @@ pub const CliArgs = union(enum) {
     Dev,
     Build,
     Init,
-    Compile: CompileOptions,
+    Compile: compile_options.CompileOptions,
     Lex,
 
     /// Parses the command line arguments and returns the corresponding `CliArgs` variant.
     ///
     /// Expects a pointer to an argument iterator.
     /// This function assumes the first argument (the executable name) has not been consumed.
-    ///
-    /// If no arguments can be parsed, returns null.
-    pub fn parse(args: *std.process.ArgIterator) ?CliArgs {
+    pub fn parse(args: *std.process.ArgIterator) !CliArgs {
         // Ignore executable name
         _ = args.next();
 
         // check command
         if (args.next()) |arg| {
             if (std.mem.eql(u8, arg, "compile") or std.mem.eql(u8, arg, "c")) {
-                const compile_opts = parse_compile(args) orelse return null;
+                const compile_opts = try compile_options.CompileOptions.parse(args);
                 return CliArgs{ .Compile = compile_opts };
             }
+
+            // Other cases
         }
 
-        return null;
-    }
-
-    /// Parses the compile command line arguments.
-    ///
-    /// <compile> options
-    ///
-    /// thp c <file>             - compiles a single file, outputs to stdout
-    ///       <file> -o <output> - compiles a single file, outputs to <output>
-    ///       <file> -p          - compiles a single file in place. the output file
-    ///                            is the input file with .php extension
-    fn parse_compile(args: *std.process.ArgIterator) ?CompileOptions {
-        // get file name
-        const filename = args.next() orelse return null;
-
-        // TODO: parse -o and -i flags
-
-        return CompileOptions{
-            .filename = filename,
-            .output = null,
-            .in_place = false,
-        };
+        return .None;
     }
 
     /// Returns a usage string for the command line interface.
