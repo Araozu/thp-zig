@@ -7,6 +7,7 @@ const err_ctx = @import("context");
 const parser_ctx = syntax.context;
 
 const cli = @import("./cli/root.zig");
+const cli_interface = @import("./cli/interface.zig");
 
 const config = @import("config");
 const tracing = config.tracing;
@@ -16,7 +17,19 @@ const Io = std.Io;
 const thp_version: []const u8 = "0.0.1";
 
 pub fn main() !void {
-    try repl();
+    // just run the CLI
+
+    var args = std.process.args();
+    defer args.deinit();
+
+    const cli_args = cli_interface.CliArgs.parse(&args) orelse {
+        //
+        std.debug.print("{s}\n\nNo command found.\n", .{cli_interface.CliArgs.usage()});
+        return;
+    };
+    _ = cli_args;
+
+    // try repl();
 }
 
 fn repl() !void {
