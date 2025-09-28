@@ -1,5 +1,15 @@
 const std = @import("std");
 
+const lexic = @import("lexic");
+const syntax = @import("syntax");
+const semantic = @import("semantic");
+const codegen = @import("codegen");
+const err_ctx = @import("context");
+const parser_ctx = syntax.context;
+
+const config = @import("config");
+const tracing = config.tracing;
+
 const CompileOptions = @import("../compile_command.zig").CompileOptions;
 
 /// Runs the compile command.
@@ -15,16 +25,142 @@ pub fn run(self: *const CompileOptions) !void {
     });
 
     // 20MB max buffer
-    var buf: [1024 * 1024 * 20]u8 = undefined;
-    const bytes_read = try source_file.read(&buf);
+    var file_bytes: [1024 * 1024 * 20]u8 = undefined;
+    _ = try source_file.read(&file_bytes);
 
-    std.debug.print("Read {d} bytes from {s}\n", .{ bytes_read, self.filename });
+    // ==========================================
+    //   Setup
+    // ==========================================
+    // FIXME: handle writing to disk
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
 
-    std.debug.print("file:\n\n{s}\n", .{buf[0..]});
+    if (tracing) {
+        try stdout.print("\n|\n| DEBUG MODE\n|\n\n", .{});
+        try stdout.flush();
+    }
 
-    // Lex
-    // Parse
-    // Analyze
-    // Emit
-    // Out
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
+
+    // Setup compiler context
+    var ctx = err_ctx.ErrorContext.init(alloc);
+    defer ctx.deinit();
+
+    var global_scope = semantic.Scope.init(arena.allocator());
+    defer global_scope.deinit();
+
+    // ==========================================
+    //   Lex
+    // ==========================================
+
+    var tokens = lexic.tokenize(&file_bytes, alloc, &ctx) catch |e| switch (e) {
+        error.OutOfMemory => {
+            try stdout.print("FATAL ERROR: System Out of Memory!", .{});
+            try stdout.flush();
+            return e;
+        },
+        else => return e,
+    };
+    defer tokens.deinit(alloc);
+
+    // Trace tokens
+    if (tracing) {
+        for (tokens.items) |token| {
+            trace_header();
+            std.debug.print(
+                "token: `{s}`, type: `{s}`, start: `{d}` \n",
+                .{ token.value, @tagName(token.token_type), token.start_pos },
+            );
+        }
+    }
+
+    // Display errors
+    if (ctx.errors.items.len > 0) {
+        for (ctx.errors.items) |*err| {
+            const err_str = try err.get_error_str(&file_bytes, "<file>", alloc);
+            try stdout.print("\n{s}\n", .{err_str});
+            try stdout.flush();
+            alloc.free(err_str);
+        }
+
+        // FIXME: return with error
+        return;
+    }
+
+    // ==========================================
+    //   Parse
+    // ==========================================
+
+    var parser_context = parser_ctx.ParserContext{
+        .allocator = arena.allocator(),
+        .tokens = &tokens,
+        .err = &ctx,
+    };
+
+    var ast: syntax.Module = undefined;
+    ast.init(0, &parser_context) catch |e| switch (e) {
+        error.Error => {
+            // Print all the errors
+            for (ctx.errors.items) |*err_item| {
+                const err_str = try err_item.get_error_str(&file_bytes, "repl", alloc);
+                try stdout.print("\n{s}\n", .{err_str});
+                try stdout.flush();
+                alloc.free(err_str);
+            }
+            return;
+        },
+        else => return e,
+    };
+    defer ast.deinit(&parser_context);
+
+    // ==========================================
+    //   Analyze
+    // ==========================================
+
+    var symbol_table = semantic.SymbolTable{
+        .scope = &global_scope,
+    };
+
+    semantic.semantic_analysis_unmanaged(&symbol_table, alloc, &ast, &ctx) catch |e| switch (e) {
+        error.OutOfMemory => {
+            try stdout.print("System ran out of memory!\n", .{});
+            return;
+        },
+        else => {
+            // Print all the errors
+            for (ctx.errors.items) |*err_item| {
+                std.debug.print("ehhh???\n", .{});
+                const err_str = try err_item.get_error_str(&file_bytes, "repl", alloc);
+                try stdout.print("\n{s}\n", .{err_str});
+                try stdout.flush();
+                alloc.free(err_str);
+            }
+            return;
+        },
+    };
+
+    // ==========================================
+    //   Emit
+    // ==========================================
+
+    codegen.gen_php(arena.allocator(), &ast) catch |e| switch (e) {
+        error.OutOfMemory => {
+            try stdout.print("System ran out of memory!\n", .{});
+            return;
+        },
+        else => {},
+    };
+
+    // ==========================================
+    //   Out
+    // ==========================================
+
+    // FIXME: ugh
+}
+
+inline fn trace_header() void {
+    std.debug.print("  |TRACE> ", .{});
 }

@@ -62,6 +62,7 @@ pub fn gen_php(alloc: std.mem.Allocator, ast: *const ASTModule) VisitorError!voi
         try statement.accept(&v);
     }
 
+    // FIXME: should return bytes rather than printing
     // print
     std.debug.print("{s}", .{codegen_visitor.bytes.items});
 }
