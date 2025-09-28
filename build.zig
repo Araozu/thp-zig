@@ -33,6 +33,7 @@ pub fn build(b: *std.Build) void {
     //
     // Modules
     //
+    const cli_module = create_module("src/cli/root.zig", b, target, optimize);
     const error_module = create_module("src/error_context/root.zig", b, target, optimize);
     const lexic_module = create_module("src/01_lexic/root.zig", b, target, optimize);
     const syntax_module = create_module("src/02_syntax/root.zig", b, target, optimize);
@@ -42,6 +43,8 @@ pub fn build(b: *std.Build) void {
 
     //
     // set up module dependencies
+    //
+    cli_module.addImport("config", options_module);
     //
     error_module.addImport("config", options_module);
     //
@@ -108,6 +111,7 @@ pub fn build(b: *std.Build) void {
     // Unit tests
     //
 
+    const cli_module_tests = b.addTest(.{ .name = "cli_module", .root_module = cli_module });
     const error_module_tests = b.addTest(.{ .name = "error_module", .root_module = error_module });
     const lexic_module_tests = b.addTest(.{ .name = "lexic", .root_module = lexic_module });
     const syntax_module_tests = b.addTest(.{ .name = "syntax", .root_module = syntax_module });
@@ -116,6 +120,7 @@ pub fn build(b: *std.Build) void {
     const root_module_tests = b.addTest(.{ .name = "root", .root_module = root_module });
 
     const test_step = b.step("test", "Run all unit tests");
+    test_step.dependOn(&b.addRunArtifact(cli_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(error_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(lexic_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(syntax_module_tests).step);

@@ -6,7 +6,7 @@ const codegen = @import("codegen");
 const err_ctx = @import("context");
 const parser_ctx = syntax.context;
 
-const cli = @import("cli.zig");
+const cli = @import("./cli/root.zig");
 
 const config = @import("config");
 const tracing = config.tracing;

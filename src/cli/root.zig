@@ -86,3 +86,7 @@ pub fn tokenize_to_json() !void {
     try stdout.writeAll("}");
     try stdout.flush();
 }
+
+test "should fail" {
+    try std.testing.expect(false);
+}
