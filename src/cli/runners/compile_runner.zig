@@ -25,8 +25,9 @@ pub fn run(self: *const CompileOptions) !void {
     });
 
     // 20MB max buffer
-    var file_bytes: [1024 * 1024 * 20]u8 = undefined;
-    _ = try source_file.read(&file_bytes);
+    var file_buffer: [1024 * 1024 * 20]u8 = undefined;
+    const read_bytes = try source_file.read(&file_buffer);
+    const file_bytes = file_buffer[0..read_bytes];
 
     // ==========================================
     //   Setup
@@ -56,7 +57,7 @@ pub fn run(self: *const CompileOptions) !void {
     //   Lex
     // ==========================================
 
-    var tokens = lexic.tokenize(&file_bytes, alloc, &ctx) catch |e| switch (e) {
+    var tokens = lexic.tokenize(file_bytes, alloc, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {
             try stdout.print("FATAL ERROR: System Out of Memory!", .{});
             try stdout.flush();
@@ -80,7 +81,7 @@ pub fn run(self: *const CompileOptions) !void {
     // Display errors
     if (ctx.errors.items.len > 0) {
         for (ctx.errors.items) |*err| {
-            const err_str = try err.get_error_str(&file_bytes, "<file>", alloc);
+            const err_str = try err.get_error_str(file_bytes, "<file>", alloc);
             try stdout.print("\n{s}\n", .{err_str});
             try stdout.flush();
             alloc.free(err_str);
@@ -105,7 +106,7 @@ pub fn run(self: *const CompileOptions) !void {
         error.Error => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
-                const err_str = try err_item.get_error_str(&file_bytes, "repl", alloc);
+                const err_str = try err_item.get_error_str(file_bytes, "<file>", alloc);
                 try stdout.print("\n{s}\n", .{err_str});
                 try stdout.flush();
                 alloc.free(err_str);
@@ -132,8 +133,7 @@ pub fn run(self: *const CompileOptions) !void {
         else => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
-                std.debug.print("ehhh???\n", .{});
-                const err_str = try err_item.get_error_str(&file_bytes, "repl", alloc);
+                const err_str = try err_item.get_error_str(file_bytes, "<file>", alloc);
                 try stdout.print("\n{s}\n", .{err_str});
                 try stdout.flush();
                 alloc.free(err_str);

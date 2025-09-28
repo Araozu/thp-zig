@@ -189,7 +189,6 @@ fn repl() !void {
             else => {
                 // Print all the errors
                 for (ctx.errors.items) |*err_item| {
-                    std.debug.print("ehhh???\n", .{});
                     const err_str = try err_item.get_error_str(line, "repl", alloc);
                     try stdout.print("\n{s}\n", .{err_str});
                     try stdout.flush();

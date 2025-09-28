@@ -34,7 +34,7 @@ pub const PHPGeneratorVisitor = struct {
         const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
 
         // FIXME: generate PHP code for an expression
-        const out = std.fmt.allocPrint(self.alloc, "${s} = ??", .{node.identifier.value}) catch {
+        const out = std.fmt.allocPrint(self.alloc, "${s} = ??;\n", .{node.identifier.value}) catch {
             return VisitorError.OutOfMemory;
         };
         defer self.alloc.free(out);
