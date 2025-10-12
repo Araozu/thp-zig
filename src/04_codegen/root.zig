@@ -34,7 +34,7 @@ pub const PHPGeneratorVisitor = struct {
         const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
 
         // FIXME: generate PHP code for an expression
-        const out = std.fmt.allocPrint(self.alloc, "${s} = ??", .{node.identifier.value}) catch {
+        const out = std.fmt.allocPrint(self.alloc, "${s} = ??;\n", .{node.identifier.value}) catch {
             return VisitorError.OutOfMemory;
         };
         defer self.alloc.free(out);
@@ -62,6 +62,7 @@ pub fn gen_php(alloc: std.mem.Allocator, ast: *const ASTModule) VisitorError!voi
         try statement.accept(&v);
     }
 
+    // FIXME: should return bytes rather than printing
     // print
     std.debug.print("{s}", .{codegen_visitor.bytes.items});
 }
