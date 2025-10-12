@@ -53,6 +53,12 @@ pub const TypecheckerVisitor = struct {
             .float => Type.Float,
             .int => Type.Int,
             .string => Type.String,
+            .identifier => {
+                std.debug.panic("Not implemented: get type of an identifier.", .{});
+            },
+            .paren => {
+                std.debug.panic("Not implemented: get type of expression within paren.", .{});
+            },
             // else => Type.Untyped,
         };
 

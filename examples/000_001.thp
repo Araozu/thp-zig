@@ -6,6 +6,6 @@ var my_string_1 = "Hello"
 var my_string_2 = "Bye"
 
 val eh = 322
-var _ = "? ?"
+var eh = "??"
 
 

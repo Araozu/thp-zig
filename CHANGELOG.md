@@ -17,9 +17,9 @@ Now in Zig!
 
 ## v0.0.2
 
-- [ ] Define how the CLI will operate
-- [ ] Create a proper pipeline for the CLI
-- [ ] Pipeline for reading file from stdin & emitting to stdout
+- [x] Define how the CLI will operate
+- [x] Create a proper pipeline for the CLI
+- [x] Pipeline for reading file from stdin & emitting to stdout
 - [ ] Add tests to semantic analysis/codegen
 - [ ] Implement more semantic phases
 - [ ] Test memory errors

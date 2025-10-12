@@ -316,7 +316,7 @@ test "should fail if the equal sign is not found" {
 test "should fail if the expression parsing fails" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
-    const input = "var my_id = ehhh";
+    const input = "var my_id = %@!";
     var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit(std.testing.allocator);
 
