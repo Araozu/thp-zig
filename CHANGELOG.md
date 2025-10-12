@@ -9,7 +9,7 @@ Now in Zig!
 - [ ] Rewrite REPL
 - [ ] Type definition generator
 - [ ] Code formatter
-- [!] Language server - first implementation will be done elsewhere, in go
+- [!] Language server - first implementation will be done elsewhere
 - [ ] stdlib
 - [ ] Watch mode compilation
 - [ ] Project mode compilation
@@ -24,6 +24,8 @@ Now in Zig!
 - [ ] Implement more semantic phases
 - [ ] Test memory errors
 - [ ] Proper error reporting on semantic analysis
+- [x] Extract expression typechecking
+- [x] Parse variable type hint
 
 ## v0.0.1
 

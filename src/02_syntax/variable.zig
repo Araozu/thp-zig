@@ -31,14 +31,17 @@ pub const VariableBinding = struct {
     ) ParseError!?usize {
         std.debug.assert(pos < ctx.tokens.items.len);
 
+        var current_pos = pos;
+
         // try to parse a var keyword
         var variable_keyword: *lexic.Token = undefined;
         var variable_is_mutable = false;
+
         // Try to find `var`
-        if (utils.expect_token_type(lexic.TokenType.K_Var, &ctx.tokens.items[pos])) |token| {
+        if (utils.expect_token_type(lexic.TokenType.K_Var, &ctx.tokens.items[current_pos])) |token| {
             variable_keyword = token;
             variable_is_mutable = true;
-        } else if (utils.expect_token_type(lexic.TokenType.K_Val, &ctx.tokens.items[pos])) |token| {
+        } else if (utils.expect_token_type(lexic.TokenType.K_Val, &ctx.tokens.items[current_pos])) |token| {
             variable_keyword = token;
             variable_is_mutable = false;
         } else {
@@ -47,7 +50,8 @@ pub const VariableBinding = struct {
         }
 
         // check there is still input
-        if (pos + 1 >= ctx.tokens.items.len) {
+        current_pos += 1;
+        if (ctx.oob(current_pos)) {
             var err = try ctx.err.create_and_append_error(
                 "Incomplete variable declaration",
                 variable_keyword.start_pos,
@@ -56,7 +60,7 @@ pub const VariableBinding = struct {
             // FIXME: should also refer to a `val` keyword,
             // by dynamically creating the error message
             try err.add_label(ctx.err.create_error_label(
-                "Expected an identifier after this `var`",
+                "Expected an identifier or datatype after this `var`",
                 variable_keyword.start_pos,
                 variable_keyword.start_pos + variable_keyword.value.len,
             ));
@@ -64,9 +68,33 @@ pub const VariableBinding = struct {
             return ParseError.Error;
         }
 
+        // ==============================
+        //   Datatype
+        // ==============================
+
+        const r_token = &ctx.tokens.items[current_pos];
+        var datatype_token: ?*lexic.Token = null;
+
+        if (utils.expect_token_type(.Datatype, r_token) != null) {
+            datatype_token = r_token;
+            current_pos += 1;
+
+            // Assert that theres a next token
+            if (ctx.oob(current_pos)) {
+                var err = try ctx.err.create_and_append_error("Incomplete variable declaration", r_token.start_pos, r_token.end_pos());
+                try err.add_label(ctx.err.create_error_label("Expected a identifier after this datatype", r_token.start_pos, r_token.end_pos()));
+                return ParseError.Error;
+            }
+        }
+
+        // ==============================
+        //   Identifier
+        // ==============================
+
         // try to parse an identifier
-        const identifier = if (utils.expect_token_type(lexic.TokenType.Identifier, &ctx.tokens.items[pos + 1])) |i| i else {
-            const faulty_token = &ctx.tokens.items[pos + 1];
+        const id_token = &ctx.tokens.items[current_pos];
+        const identifier = if (utils.expect_token_type(.Identifier, id_token)) |i| i else {
+            const faulty_token = &ctx.tokens.items[current_pos];
             var err = try ctx.err.create_and_append_error(
                 "Invalid variable declaration",
                 faulty_token.start_pos,
@@ -84,7 +112,8 @@ pub const VariableBinding = struct {
         };
 
         // parse equal sign
-        if (pos + 2 >= ctx.tokens.items.len) {
+        current_pos += 1;
+        if (ctx.oob(current_pos)) {
             var err = try ctx.err.create_and_append_error(
                 "Incomplete variable declaration",
                 identifier.start_pos,
@@ -98,8 +127,8 @@ pub const VariableBinding = struct {
 
             return ParseError.Error;
         }
-        const equal_sign = if (utils.expect_operator("=", &ctx.tokens.items[pos + 2])) |x| x else {
-            const faulty_token = &ctx.tokens.items[pos + 2];
+        const equal_sign = if (utils.expect_operator("=", &ctx.tokens.items[current_pos])) |x| x else {
+            const faulty_token = &ctx.tokens.items[current_pos];
             var err = try ctx.err.create_and_append_error(
                 "Invalid variable declaration",
                 faulty_token.start_pos,
@@ -116,7 +145,8 @@ pub const VariableBinding = struct {
         };
 
         // parse expression
-        if (pos + 3 >= ctx.tokens.items.len) {
+        current_pos += 1;
+        if (ctx.oob(current_pos)) {
             var err = try ctx.err.create_and_append_error("", equal_sign.start_pos, equal_sign.start_pos + equal_sign.value.len);
             try err.add_label(ctx.err.create_error_label(
                 "Expected an expression after this equal sign",
@@ -129,8 +159,8 @@ pub const VariableBinding = struct {
         const exp = try ctx.allocator.create(expression.Expression);
         errdefer ctx.allocator.destroy(exp);
 
-        const next_pos = if (try exp.init(pos + 3, ctx)) |x| x else {
-            const faulty_token = &ctx.tokens.items[pos + 3];
+        const next_pos = if (try exp.init(current_pos, ctx)) |x| x else {
+            const faulty_token = &ctx.tokens.items[current_pos];
             var err = try ctx.err.create_and_append_error(
                 "Invalid variable declaration",
                 faulty_token.start_pos,
@@ -149,7 +179,7 @@ pub const VariableBinding = struct {
         // assign and return
         target.* = .{
             .is_mutable = variable_is_mutable,
-            .datatype = null,
+            .datatype = datatype_token,
             .identifier = identifier,
             .expression = exp,
         };
