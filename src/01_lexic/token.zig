@@ -55,6 +55,10 @@ pub const Token = struct {
             .start_pos = start,
         };
     }
+
+    pub fn end_pos(self: *const Token) usize {
+        return self.start_pos + self.value.len;
+    }
 };
 
 pub const LexError = error{

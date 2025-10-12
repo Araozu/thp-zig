@@ -128,7 +128,7 @@ pub const VariableBinding = struct {
 
         const exp = try ctx.allocator.create(expression.Expression);
         errdefer ctx.allocator.destroy(exp);
-        const next_pos = if (exp.init(pos + 3, ctx)) |x| x else {
+        const next_pos = if (try exp.init(pos + 3, ctx)) |x| x else {
             const faulty_token = &ctx.tokens.items[pos + 3];
             var err = try ctx.err.create_and_append_error(
                 "Invalid variable declaration",
