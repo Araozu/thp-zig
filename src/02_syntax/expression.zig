@@ -47,9 +47,6 @@ pub const Expression = union(enum) {
             self.* = .{ .string = t };
             return pos + 1;
         } else if (t.token_type == TokenType.LeftParen) {
-            // FIXME:
-            // Parse expression inside paren
-
             // check theres tokens left after the paren
             if (ctx.oob(pos + 1)) {
                 var err = try ctx.err.create_and_append_error("Syntax error", t.start_pos, t.end_pos());
@@ -78,7 +75,36 @@ pub const Expression = union(enum) {
                 return ParseError.Error;
             };
 
-            _ = next_pos;
+            // Expect right paren
+            if (ctx.oob(next_pos)) {
+                var err = try ctx.err.create_and_append_error("Syntax error", t.start_pos, t.end_pos());
+                try err.add_label(ctx.err.create_error_label(
+                    "Expected a closing paren at the end of this expression",
+                    t.start_pos,
+                    t.end_pos(),
+                ));
+
+                return ParseError.Error;
+            }
+
+            var right_paren_t = ctx.tokens.items[next_pos];
+            if (right_paren_t.token_type != TokenType.RightParen) {
+                const err = try ctx.err.create_and_append_error("Syntax error", right_paren_t.start_pos, right_paren_t.end_pos());
+                const token_name = right_paren_t.token_type.to_string();
+                const error_name = try std.fmt.allocPrint(ctx.err.allocator, "Expected a right paren here, found a {s}", .{token_name});
+                try err.add_label(ctx.err.create_error_label_alloc(
+                    error_name,
+                    right_paren_t.start_pos,
+                    right_paren_t.end_pos(),
+                ));
+
+                return ParseError.Error;
+            }
+
+            self.* = .{ .paren = inner_exp };
+
+            // Return from where to continue parsing
+            return next_pos + 1;
         }
 
         return null;

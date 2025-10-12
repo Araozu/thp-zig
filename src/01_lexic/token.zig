@@ -20,7 +20,7 @@ pub const TokenType = enum {
     K_Var,
     K_Val,
 
-    pub fn to_string(self: *TokenType) []const u8 {
+    pub fn to_string(self: *const TokenType) []const u8 {
         return switch (self.*) {
             TokenType.Int => "Int",
             TokenType.Float => "Float",
