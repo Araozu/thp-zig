@@ -15,6 +15,7 @@ pub const Type = enum {
     Int,
     Float,
     String,
+    Bool,
     // TODO: function types, generic types, container types
 
     pub fn to_str(self: *const Type) []const u8 {

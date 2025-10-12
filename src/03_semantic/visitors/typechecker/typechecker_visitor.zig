@@ -17,6 +17,8 @@ const VisitorError = visitor.VisitorError;
 const Statement = syntax.Statement;
 const VariableBinding = syntax.VariableBinding;
 
+const ExpressionVisitor = @import("./expression_visitor.zig");
+
 pub const TypecheckerVisitor = struct {
     scope: *Scope,
     alloc: std.mem.Allocator,
@@ -49,22 +51,7 @@ pub const TypecheckerVisitor = struct {
 
         // ensure the binding is on the symbol table
         // get the type of the binding expression
-        const expression_type = switch (node.expression.*) {
-            .float => Type.Float,
-            .int => Type.Int,
-            .string => Type.String,
-            .identifier => blk: {
-                // FIXME: actually get type
-                std.debug.print("Not implemented: get type of an identifier.\n", .{});
-                break :blk Type.Untyped;
-            },
-            .paren => blk: {
-                // FIXME: actually get type
-                std.debug.print("Not implemented: get type of expression within paren.\n", .{});
-                break :blk Type.Untyped;
-            },
-            // else => Type.Untyped,
-        };
+        const expression_type = try ExpressionVisitor.visit(self, node.expression);
 
         // get the type of the type hint, if any
         const hinted_type = if (node.datatype) |type_hint| switch (type_hint.token_type) {

@@ -11,6 +11,7 @@ const statement = @import("./statement.zig");
 // export AST nodes to other modules
 pub const Statement = statement.Statement;
 pub const VariableBinding = variable.VariableBinding;
+pub const Expression = expression.Expression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
