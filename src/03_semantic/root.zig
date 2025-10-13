@@ -21,12 +21,8 @@ pub fn semantic_analysis(
     ast: *const ASTModule,
     err: *ctx.ErrorContext,
 ) VisitorError!void {
-    var global_scope = Scope.init(alloc);
-    defer global_scope.deinit();
-
-    var symbol_table = SymbolTable{
-        .scope = &global_scope,
-    };
+    var symbol_table = SymbolTable.init(alloc);
+    defer symbol_table.deinit();
 
     try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
 }
@@ -41,7 +37,7 @@ pub fn semantic_analysis_unmanaged(
     // Scope building
     // Iterate over the AST
 
-    var symbol_visitor = SymbolVisitor.init(alloc, symbol_table.scope, err);
+    var symbol_visitor = SymbolVisitor.init(alloc, &symbol_table.scope, err);
     const v = symbol_visitor.visitor();
     for (ast.statements.items) |*statement| {
         try statement.accept(&v);
@@ -49,7 +45,7 @@ pub fn semantic_analysis_unmanaged(
 
     // Name resolution
     // Type checking
-    var typechecker_visitor = TypecheckerVisitor.init(alloc, symbol_table.scope, err);
+    var typechecker_visitor = TypecheckerVisitor.init(alloc, &symbol_table.scope, err);
     const type_visitor = typechecker_visitor.visitor();
     for (ast.statements.items) |*statement| {
         try statement.accept(&type_visitor);

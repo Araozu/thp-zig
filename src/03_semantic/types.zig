@@ -10,7 +10,7 @@ pub const SymbolInfo = struct {
     },
 };
 
-pub const Type = enum {
+pub const Type = union(enum) {
     Untyped,
     Int,
     Float,
@@ -29,7 +29,23 @@ pub const Type = enum {
 };
 
 pub const SymbolTable = struct {
-    scope: *Scope,
+    allocator: std.mem.Allocator,
+    scope: Scope,
+    builtin_types: std.ArrayListUnmanaged(*Type),
+
+    pub fn init(allocator: std.mem.Allocator) SymbolTable {
+        return SymbolTable{
+            .allocator = allocator,
+            .scope = Scope.init(allocator),
+            .builtin_types = .empty,
+        };
+    }
+
+    pub fn deinit(self: *SymbolTable) void {
+        var scope_ref = &self.scope;
+        self.builtin_types.deinit(self.allocator);
+        scope_ref.deinit();
+    }
 };
 
 pub const Scope = struct {
@@ -37,6 +53,7 @@ pub const Scope = struct {
     parent: ?*Scope,
     allocator: std.mem.Allocator,
     children: std.ArrayListUnmanaged(*Scope),
+    types: std.ArrayListUnmanaged(*Type),
 
     pub fn init(allocator: std.mem.Allocator) Scope {
         return Scope{
@@ -44,6 +61,7 @@ pub const Scope = struct {
             .parent = null,
             .allocator = allocator,
             .children = .empty,
+            .types = .empty,
         };
     }
 
@@ -59,6 +77,7 @@ pub const Scope = struct {
             .parent = self,
             .allocator = self.allocator,
             .children = .empty,
+            .types = .empty,
         };
         errdefer self.allocator.destroy(child);
 
@@ -122,11 +141,15 @@ pub const Scope = struct {
             child.deinit();
             self.allocator.destroy(child);
         }
+
         // cleanup children arraylist
         self.children.deinit(self.allocator);
 
         // clean up symbols
         self.symbols.deinit(self.allocator);
+
+        // clean up types
+        self.types.deinit(self.allocator);
     }
 };
 
