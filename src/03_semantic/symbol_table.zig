@@ -24,9 +24,27 @@ pub const SymbolTable = struct {
         try self.builtin_types.put(self.allocator, "Bool", Type.Bool);
     }
 
+    pub fn lookup_type(self: *SymbolTable, type_name: []const u8) ?Type {
+        return self.builtin_types.get(type_name);
+    }
+
     pub fn deinit(self: *SymbolTable) void {
         var scope_ref = &self.scope;
         self.builtin_types.deinit(self.allocator);
         scope_ref.deinit();
     }
 };
+
+test "Should fetch a builtin type" {
+    var symbol_table: SymbolTable = undefined;
+    try symbol_table.init(std.testing.allocator);
+    defer symbol_table.deinit();
+
+    const type_name: []const u8 = "String";
+
+    if (symbol_table.lookup_type(type_name)) |t| {
+        try std.testing.expectEqual(t, Type.String);
+    } else {
+        try std.testing.expect(false);
+    }
+}
