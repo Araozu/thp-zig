@@ -22,7 +22,8 @@ pub fn semantic_analysis(
     ast: *const ASTModule,
     err: *ctx.ErrorContext,
 ) VisitorError!void {
-    var symbol_table = SymbolTable.init(alloc);
+    var symbol_table: SymbolTable = undefined;
+    try symbol_table.init(alloc);
     defer symbol_table.deinit();
 
     try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
