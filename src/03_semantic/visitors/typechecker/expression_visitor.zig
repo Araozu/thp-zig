@@ -26,7 +26,7 @@ pub fn visit(self: *TypecheckerVisitor, node: *const Expression) VisitorError!Ty
             std.debug.print("Not implemented: get type of an identifier.\n", .{});
         },
         .paren => |inner_exp| {
-            return try visit(self, inner_exp);
+            return try visit(self, inner_exp.exp);
         },
     }
 

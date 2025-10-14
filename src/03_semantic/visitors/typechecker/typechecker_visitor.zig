@@ -82,11 +82,25 @@ pub const TypecheckerVisitor = struct {
             if (!hinted_type.eql(&expression_type)) {
                 // The types differ. Return an error
 
-                // FIXME: add proper error indicators, get already inserted symbol position
-                const error_start = 0;
-                const error_end = 0;
-                var new_error = try self.err.create_and_append_error("Mismatched types", error_start, error_end);
-                try new_error.add_label(self.err.create_error_label("The declared type and the received type are not the same", error_start, error_end));
+                const expression_range = node.expression.get_range();
+                std.debug.print("Error range: {d} - {d}\n", expression_range);
+
+                // FIXME: add proper type names
+                var new_error = try self.err.create_and_append_error(
+                    "Type error",
+                    node.datatype.?.start_pos,
+                    node.datatype.?.end_pos(),
+                );
+                try new_error.add_label(self.err.create_error_label(
+                    "This variable declared type A here",
+                    node.datatype.?.start_pos,
+                    node.datatype.?.end_pos(),
+                ));
+                try new_error.add_label(self.err.create_error_label(
+                    "but this expression has type B",
+                    expression_range.@"0",
+                    expression_range.@"1",
+                ));
 
                 return VisitorError.SemanticError;
             }
