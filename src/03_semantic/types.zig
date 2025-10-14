@@ -26,6 +26,7 @@ pub const Type = union(enum) {
             .Int => "Int",
             .Float => "Float",
             .String => "String",
+            .Bool => "Bool",
         };
     }
 

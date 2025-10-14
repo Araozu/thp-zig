@@ -82,25 +82,35 @@ pub const TypecheckerVisitor = struct {
             if (!hinted_type.eql(&expression_type)) {
                 // The types differ. Return an error
 
-                const expression_range = node.expression.get_range();
-                std.debug.print("Error range: {d} - {d}\n", expression_range);
+                const hinted_type_name = hinted_type.to_str();
+                const expression_type_name = expression_type.to_str();
 
-                // FIXME: add proper type names
                 var new_error = try self.err.create_and_append_error(
-                    "Type error",
+                    "Type mismatch in variable declaration",
                     node.datatype.?.start_pos,
                     node.datatype.?.end_pos(),
                 );
-                try new_error.add_label(self.err.create_error_label(
-                    "This variable declared type A here",
-                    node.datatype.?.start_pos,
-                    node.datatype.?.end_pos(),
-                ));
-                try new_error.add_label(self.err.create_error_label(
-                    "but this expression has type B",
-                    expression_range.@"0",
-                    expression_range.@"1",
-                ));
+
+                {
+                    const err_msg = try std.fmt.allocPrint(self.err.allocator, "This variable declared type `{s}` here", .{hinted_type_name});
+                    const err_msg_label = self.err.create_error_label_alloc(
+                        err_msg,
+                        node.datatype.?.start_pos,
+                        node.datatype.?.end_pos(),
+                    );
+                    try new_error.add_label(err_msg_label);
+                }
+
+                {
+                    const expression_range = node.expression.get_range();
+                    const err_msg = try std.fmt.allocPrint(self.err.allocator, "But this expression has type `{s}`", .{expression_type_name});
+                    const err_msg_label = self.err.create_error_label_alloc(
+                        err_msg,
+                        expression_range.@"0",
+                        expression_range.@"1",
+                    );
+                    try new_error.add_label(err_msg_label);
+                }
 
                 return VisitorError.SemanticError;
             }
