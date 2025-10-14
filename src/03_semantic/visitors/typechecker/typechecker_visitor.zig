@@ -4,6 +4,7 @@ const syntax = @import("syntax");
 const context = @import("context");
 
 const types = @import("../../types.zig");
+const symbol_table = @import("../../symbol_table.zig");
 const visitor = @import("../../visitor.zig");
 
 const TokenType = lexic.TokenType;
@@ -13,6 +14,7 @@ const Scope = types.Scope;
 const Type = types.Type;
 const Visitor = visitor.Visitor;
 const VisitorError = visitor.VisitorError;
+const SymbolTable = symbol_table.SymbolTable;
 
 const Statement = syntax.Statement;
 const VariableBinding = syntax.VariableBinding;
@@ -20,17 +22,20 @@ const VariableBinding = syntax.VariableBinding;
 const ExpressionVisitor = @import("./expression_visitor.zig");
 
 pub const TypecheckerVisitor = struct {
+    symbol_table: *const SymbolTable,
     scope: *Scope,
     alloc: std.mem.Allocator,
     err: *ErrorCtx,
 
     pub fn init(
         alloc: std.mem.Allocator,
+        table: *const SymbolTable,
         s: *Scope,
         err: *ErrorCtx,
     ) TypecheckerVisitor {
         return TypecheckerVisitor{
             .scope = s,
+            .symbol_table = table,
             .alloc = alloc,
             .err = err,
         };
@@ -56,9 +61,15 @@ pub const TypecheckerVisitor = struct {
         // get the type of the type hint, if any
         const hinted_type = if (node.datatype) |type_hint| switch (type_hint.token_type) {
             // Should match against Datatype and parse its value...
-            .Datatype => {
-                // TODO: Match token value against common datatypes?
-                std.debug.panic("not implemented: type hints in a variable declaration", .{});
+            .Datatype => blk: {
+                // look for the type in the global builtin types
+
+                const t = self.symbol_table.lookup_type(type_hint.value) orelse {
+                    // TODO: return a proper error
+                    std.debug.panic("Type hint not found", .{});
+                };
+
+                break :blk t;
             },
             else => {
                 std.debug.panic("not implemented: other datatypes during typechecking", .{});
@@ -66,9 +77,9 @@ pub const TypecheckerVisitor = struct {
         } else Type.Untyped;
 
         // check types
-        if (hinted_type != Type.Untyped) {
+        if (!hinted_type.is_untyped()) {
             // Assert both the type hint and the actual type are the same
-            if (hinted_type != expression_type) {
+            if (!hinted_type.eql(&expression_type)) {
                 // The types differ. Return an error
 
                 // FIXME: add proper error indicators, get already inserted symbol position

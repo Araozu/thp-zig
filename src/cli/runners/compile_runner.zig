@@ -50,9 +50,6 @@ pub fn run(self: *const CompileOptions) !void {
     var ctx = err_ctx.ErrorContext.init(alloc);
     defer ctx.deinit();
 
-    var global_scope = semantic.Scope.init(arena.allocator());
-    defer global_scope.deinit();
-
     // ==========================================
     //   Lex
     // ==========================================
@@ -121,9 +118,9 @@ pub fn run(self: *const CompileOptions) !void {
     //   Analyze
     // ==========================================
 
-    var symbol_table = semantic.SymbolTable{
-        .scope = &global_scope,
-    };
+    var symbol_table: semantic.SymbolTable = undefined;
+    try symbol_table.init(arena.allocator());
+    defer symbol_table.deinit();
 
     semantic.semantic_analysis_unmanaged(&symbol_table, alloc, &ast, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {

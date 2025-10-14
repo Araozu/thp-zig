@@ -24,7 +24,7 @@ pub const SymbolTable = struct {
         try self.builtin_types.put(self.allocator, "Bool", Type.Bool);
     }
 
-    pub fn lookup_type(self: *SymbolTable, type_name: []const u8) ?Type {
+    pub fn lookup_type(self: *const SymbolTable, type_name: []const u8) ?Type {
         return self.builtin_types.get(type_name);
     }
 

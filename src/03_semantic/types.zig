@@ -28,6 +28,24 @@ pub const Type = union(enum) {
             .String => "String",
         };
     }
+
+    pub fn is_untyped(self: *const Type) bool {
+        return switch (self.*) {
+            .Untyped => true,
+            else => false,
+        };
+    }
+
+    pub fn eql(self: *const Type, to: *const Type) bool {
+        if (@intFromEnum(self.*) != @intFromEnum(to.*)) {
+            return false;
+        }
+
+        // FIXME: actually operate on the tags inner values
+        // like when Array is implemented
+
+        return true;
+    }
 };
 
 pub const Scope = struct {

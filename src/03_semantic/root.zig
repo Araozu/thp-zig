@@ -47,7 +47,7 @@ pub fn semantic_analysis_unmanaged(
 
     // Name resolution
     // Type checking
-    var typechecker_visitor = TypecheckerVisitor.init(alloc, &symbol_table.scope, err);
+    var typechecker_visitor = TypecheckerVisitor.init(alloc, symbol_table, &symbol_table.scope, err);
     const type_visitor = typechecker_visitor.visitor();
     for (ast.statements.items) |*statement| {
         try statement.accept(&type_visitor);
