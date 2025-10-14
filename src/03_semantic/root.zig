@@ -6,11 +6,12 @@ const visitor = @import("visitor.zig");
 const SymbolVisitor = @import("./visitors/symbol_visitor.zig").SymbolCollectorVisitor;
 const TypecheckerVisitor = @import("./visitors/typechecker/typechecker_visitor.zig").TypecheckerVisitor;
 const types = @import("types.zig");
+const symbol_table_mod = @import("./symbol_table.zig");
 
 const ASTModule = syntax.Module;
 
 const HashMap = std.StringHashMapUnmanaged;
-pub const SymbolTable = types.SymbolTable;
+pub const SymbolTable = symbol_table_mod.SymbolTable;
 const Type = types.Type;
 pub const Scope = types.Scope;
 pub const Visitor = visitor.Visitor;
