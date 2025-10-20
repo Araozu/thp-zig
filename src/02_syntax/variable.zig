@@ -7,6 +7,8 @@ const utils = @import("./utils.zig");
 const context = @import("./context.zig");
 const error_context = @import("context");
 
+const CallExpression = @import("./expression/call_expression.zig").CallExpression;
+
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;
 const Visitor = semantic.Visitor;
@@ -16,7 +18,7 @@ pub const VariableBinding = struct {
     is_mutable: bool,
     datatype: ?*lexic.Token,
     identifier: *lexic.Token,
-    expression: *expression.Expression,
+    expression: CallExpression,
 
     /// Parses a variable binding and returns the position of the next token
     /// of the form:
@@ -144,6 +146,10 @@ pub const VariableBinding = struct {
             return ParseError.Error;
         };
 
+        // ==============================
+        //   Expression
+        // ==============================
+
         // parse expression
         current_pos += 1;
         if (ctx.oob(current_pos)) {
@@ -156,10 +162,8 @@ pub const VariableBinding = struct {
             return ParseError.Error;
         }
 
-        const exp = try ctx.allocator.create(expression.Expression);
-        errdefer ctx.allocator.destroy(exp);
-
-        const next_pos = if (try exp.init(current_pos, ctx)) |x| x else {
+        var exp: CallExpression = undefined;
+        const next_pos = try exp.init(current_pos, ctx) orelse {
             const faulty_token = &ctx.tokens.items[current_pos];
             var err = try ctx.err.create_and_append_error(
                 "Invalid variable declaration",
@@ -191,11 +195,10 @@ pub const VariableBinding = struct {
     }
 
     pub fn deinit(
-        self: @This(),
+        self: *@This(),
         ctx: *const context.ParserContext,
     ) void {
         self.expression.deinit(ctx);
-        ctx.allocator.destroy(self.expression);
     }
 };
 
@@ -219,12 +222,15 @@ test "should parse a minimal var" {
     try std.testing.expect(binding.datatype == null);
     try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
-    switch (expr.*) {
-        .int => |n| {
-            try std.testing.expectEqualStrings("322", n.value);
-        },
-        else => {
-            try std.testing.expect(false);
+    switch (expr) {
+        .function => std.testing.expect(false),
+        .primary => |primary_exp| switch (primary_exp) {
+            .int => |n| {
+                try std.testing.expectEqualStrings("322", n.value);
+            },
+            else => {
+                try std.testing.expect(false);
+            },
         },
     }
 }

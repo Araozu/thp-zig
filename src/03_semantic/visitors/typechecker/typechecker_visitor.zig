@@ -56,7 +56,7 @@ pub const TypecheckerVisitor = struct {
 
         // ensure the binding is on the symbol table
         // get the type of the binding expression
-        const expression_type = try ExpressionVisitor.visit(self, node.expression);
+        const expression_type = try ExpressionVisitor.visit(self, &node.expression);
 
         // get the type of the type hint, if any
         const hinted_type = if (node.datatype) |type_hint| switch (type_hint.token_type) {
@@ -102,7 +102,8 @@ pub const TypecheckerVisitor = struct {
                 }
 
                 {
-                    const expression_range = node.expression.get_range();
+                    const expression_range = .{ 0, 1 };
+                    // const expression_range = node.expression.get_range();
                     const err_msg = try std.fmt.allocPrint(self.err.allocator, "But this expression has type `{s}`", .{expression_type_name});
                     const err_msg_label = self.err.create_error_label_alloc(
                         err_msg,

@@ -3,6 +3,7 @@ const lexic = @import("lexic");
 pub const context = @import("./context.zig");
 const error_context = @import("context");
 
+const call_expression = @import("./expression/call_expression.zig");
 const expression = @import("./expression.zig");
 const variable = @import("./variable.zig");
 const types = @import("./types.zig");
@@ -12,6 +13,7 @@ const statement = @import("./statement.zig");
 pub const Statement = statement.Statement;
 pub const VariableBinding = variable.VariableBinding;
 pub const Expression = expression.Expression;
+pub const CallExpression = call_expression.CallExpression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;

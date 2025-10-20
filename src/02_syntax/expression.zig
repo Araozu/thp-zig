@@ -8,11 +8,15 @@ const Token = lexic.Token;
 const TokenType = lexic.TokenType;
 const ParseError = types.ParseError;
 
-/// Parses a whole expression, which includes:
-/// - simple numbers/strings
-/// - identifiers
-/// - function calls
-/// - array access
+/// Parses a Primary expression:
+///
+/// ```ebnf
+/// Primary = Identifier
+///         | Int
+///         | Float
+///         | String
+///         | "(" Expresion ")"
+/// ```
 pub const Expression = union(enum) {
     int: *const Token,
     float: *const Token,
@@ -52,6 +56,7 @@ pub const Expression = union(enum) {
             return pos + 1;
         } else if (t.token_type == TokenType.LeftParen) {
             const lparen_t = t;
+            // FIXME: recursive expression on paren should call up, not this primary
 
             // check theres tokens left after the paren
             if (ctx.oob(pos + 1)) {
