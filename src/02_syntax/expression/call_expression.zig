@@ -24,7 +24,7 @@ pub const CallExpression = union(enum) {
     },
     primary: PrimaryExpression,
 
-    pub fn init(self: *CallExpression, pos: usize, ctx: *const context.ParserContext) !?usize {
+    pub fn init(self: *CallExpression, pos: usize, ctx: *const context.ParserContext) ParseError!?usize {
         std.debug.assert(pos < ctx.tokens.items.len);
         var current_pos = pos;
 

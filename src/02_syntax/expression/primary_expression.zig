@@ -3,6 +3,7 @@ const lexic = @import("lexic");
 const context = @import("../context.zig");
 const error_context = @import("context");
 const types = @import("../types.zig");
+const CallExpression = @import("./call_expression.zig").CallExpression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -23,7 +24,7 @@ pub const PrimaryExpression = union(enum) {
     string: *const Token,
     identifier: *const Token,
     paren: struct {
-        exp: *PrimaryExpression,
+        exp: *CallExpression,
         lparen: *const Token,
         rparen: *const Token,
     },
@@ -56,7 +57,6 @@ pub const PrimaryExpression = union(enum) {
             return pos + 1;
         } else if (t.token_type == TokenType.LeftParen) {
             const lparen_t = t;
-            // FIXME: recursive expression on paren should call up, not this primary
 
             // check theres tokens left after the paren
             if (ctx.oob(pos + 1)) {
@@ -70,7 +70,7 @@ pub const PrimaryExpression = union(enum) {
                 return ParseError.Error;
             }
 
-            var inner_exp = try ctx.allocator.create(PrimaryExpression);
+            var inner_exp = try ctx.allocator.create(CallExpression);
             errdefer ctx.allocator.destroy(inner_exp);
 
             const next_pos_maybe = try inner_exp.init(pos + 1, ctx);
@@ -85,6 +85,7 @@ pub const PrimaryExpression = union(enum) {
 
                 return ParseError.Error;
             };
+            errdefer inner_exp.deinit(ctx);
 
             // Expect right paren
             if (ctx.oob(next_pos)) {
@@ -216,8 +217,8 @@ test "should parse expression within parens" {
     if (try expr.init(0, &parser_context)) |_| {
         switch (expr) {
             .paren => |inner_exp| {
-                try std.testing.expectEqualDeep("322", inner_exp.exp.int.value);
-                try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.int.token_type);
+                try std.testing.expectEqualDeep("322", inner_exp.exp.*.primary.int.value);
+                try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.*.primary.int.token_type);
             },
             else => try std.testing.expect(false),
         }
