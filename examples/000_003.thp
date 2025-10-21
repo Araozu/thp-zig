@@ -1,2 +1,2 @@
-var number = get_random_number()
+var number = rnd()
 

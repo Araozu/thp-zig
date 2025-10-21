@@ -72,10 +72,11 @@ pub const CallExpression = union(enum) {
         const r_paren_t = &ctx.tokens.items[current_pos];
         if (r_paren_t.token_type == TokenType.RightParen) {
             // TODO: should return the parsed arguments
-            return current_pos;
+            return current_pos + 1;
         } else {
             // throw error, unmatched paren
             const err = try ctx.err.create_and_append_error("Syntax error", r_paren_t.start_pos, r_paren_t.end_pos());
+
             const token_name = r_paren_t.token_type.to_string();
             const error_name = try std.fmt.allocPrint(ctx.err.allocator, "Expected a right paren here, found a {s}", .{token_name});
             try err.add_label(ctx.err.create_error_label_alloc(

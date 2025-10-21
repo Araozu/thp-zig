@@ -218,7 +218,7 @@ test "should parse a minimal var" {
     _ = try binding.init(0, &parser_context);
     defer binding.deinit(&parser_context);
 
-    try std.testing.expectEqual(true, binding.is_mutable);
+    try std.testing.expect(binding.is_mutable);
     try std.testing.expect(binding.datatype == null);
     try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
@@ -232,6 +232,31 @@ test "should parse a minimal var" {
                 try std.testing.expect(false);
             },
         },
+    }
+}
+
+test "should parse a variable with a function call" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "val my_number = rnd()";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+    var binding: VariableBinding = undefined;
+    _ = try binding.init(0, &parser_context);
+    defer binding.deinit(&parser_context);
+
+    try std.testing.expect(!binding.is_mutable);
+    try std.testing.expect(binding.datatype == null);
+    try std.testing.expectEqualStrings("my_number", binding.identifier.value);
+
+    const expr = binding.expression;
+    switch (expr) {
+        .function => {
+            try std.testing.expect(true);
+        },
+        .primary => try std.testing.expect(false),
     }
 }
 

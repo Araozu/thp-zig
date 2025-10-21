@@ -62,7 +62,20 @@ pub const Module = struct {
             }
 
             // nothing matched, but there are tokens. this in an error
-            _ = try ctx.err.create_and_append_error("No statement matched", current_pos, current_pos + 1);
+            {
+                // get current token at current pos & print error
+                // there MUST be a valid token in here, otherwise this loop shouldnt even be running
+                const c_token = ctx.tokens.items[current_pos];
+                var err = try ctx.err.create_and_append_error("No statement matched", c_token.start_pos, c_token.end_pos());
+
+                const token_name = c_token.token_type.to_string();
+                const error_name = try std.fmt.allocPrint(ctx.err.allocator, "This token `{s}` didnt match any construct", .{token_name});
+                try err.add_label(ctx.err.create_error_label_alloc(
+                    error_name,
+                    c_token.start_pos,
+                    c_token.end_pos(),
+                ));
+            }
             return error.Error;
         }
 
