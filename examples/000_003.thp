@@ -1,0 +1,2 @@
+var number = get_random_number()
+

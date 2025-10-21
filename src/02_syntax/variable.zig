@@ -223,7 +223,7 @@ test "should parse a minimal var" {
     try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
     switch (expr) {
-        .function => std.testing.expect(false),
+        .function => try std.testing.expect(false),
         .primary => |primary_exp| switch (primary_exp) {
             .int => |n| {
                 try std.testing.expectEqualStrings("322", n.value);
