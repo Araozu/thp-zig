@@ -1,13 +1,13 @@
 const std = @import("std");
 const lexic = @import("lexic");
 const semantic = @import("semantic");
-const expression = @import("expression.zig");
+const call_expression = @import("./expression/call_expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const context = @import("./context.zig");
 const error_context = @import("context");
 
-const CallExpression = @import("./expression/call_expression.zig").CallExpression;
+const CallExpression = call_expression.CallExpression;
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;

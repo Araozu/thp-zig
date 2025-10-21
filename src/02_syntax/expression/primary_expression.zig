@@ -1,8 +1,8 @@
 const std = @import("std");
 const lexic = @import("lexic");
-const context = @import("./context.zig");
+const context = @import("../context.zig");
 const error_context = @import("context");
-const types = @import("./types.zig");
+const types = @import("../types.zig");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -17,13 +17,13 @@ const ParseError = types.ParseError;
 ///         | String
 ///         | "(" Expresion ")"
 /// ```
-pub const Expression = union(enum) {
+pub const PrimaryExpression = union(enum) {
     int: *const Token,
     float: *const Token,
     string: *const Token,
     identifier: *const Token,
     paren: struct {
-        exp: *Expression,
+        exp: *PrimaryExpression,
         lparen: *const Token,
         rparen: *const Token,
     },
@@ -33,7 +33,7 @@ pub const Expression = union(enum) {
     /// Receives a pointer to the memory for initialization,
     /// returns the position of the next token
     pub fn init(
-        self: *Expression,
+        self: *PrimaryExpression,
         pos: usize,
         ctx: *const context.ParserContext,
     ) !?usize {
@@ -70,7 +70,7 @@ pub const Expression = union(enum) {
                 return ParseError.Error;
             }
 
-            var inner_exp = try ctx.allocator.create(Expression);
+            var inner_exp = try ctx.allocator.create(PrimaryExpression);
             errdefer ctx.allocator.destroy(inner_exp);
 
             const next_pos_maybe = try inner_exp.init(pos + 1, ctx);
@@ -127,7 +127,7 @@ pub const Expression = union(enum) {
         return null;
     }
 
-    pub fn get_range(self: *const Expression) struct { usize, usize } {
+    pub fn get_range(self: *const PrimaryExpression) struct { usize, usize } {
         return switch (self.*) {
             .int, .float, .string, .identifier => |t| .{ t.start_pos, t.end_pos() },
             .paren => |p_struct| .{ p_struct.lparen.start_pos, p_struct.rparen.end_pos() },
@@ -135,7 +135,7 @@ pub const Expression = union(enum) {
     }
 
     pub fn deinit(
-        self: *Expression,
+        self: *PrimaryExpression,
         ctx: *const context.ParserContext,
     ) void {
         switch (self.*) {
@@ -156,7 +156,7 @@ test "should parse int expression" {
     defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
-    var expr: Expression = undefined;
+    var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
     if (try expr.init(0, &parser_context)) |_| {
         try std.testing.expectEqualDeep("322", expr.int.value);
@@ -174,7 +174,7 @@ test "should parse float expression" {
     defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
-    var expr: Expression = undefined;
+    var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
     if (try expr.init(0, &parser_context)) |_| {
         try std.testing.expectEqualDeep("322.644", expr.float.value);
@@ -192,7 +192,7 @@ test "should parse string expression" {
     defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
-    var expr: Expression = undefined;
+    var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
     if (try expr.init(0, &parser_context)) |_| {
         try std.testing.expectEqualDeep("\"hello\"", expr.string.value);
@@ -210,7 +210,7 @@ test "should parse expression within parens" {
     defer tokens.deinit(std.testing.allocator);
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
-    var expr: Expression = undefined;
+    var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
 
     if (try expr.init(0, &parser_context)) |_| {
@@ -238,7 +238,7 @@ test "should fail on non expression" {
         .tokens = &tokens,
         .err = &err_ctx,
     };
-    var expr: Expression = undefined;
+    var expr: PrimaryExpression = undefined;
 
     const m_next = try expr.init(0, &parser_context);
 
