@@ -11,6 +11,7 @@ const std = @import("std");
 const lexic = @import("lexic");
 const context = @import("../context.zig");
 const types = @import("../types.zig");
+const error_context = @import("context");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -93,6 +94,63 @@ pub const CallExpression = union(enum) {
     }
 };
 
-test "should fail" {
-    try std.testing.expect(false);
+// ```ebnf
+// CallExpression = Primary "(" Arguments_list? ")"
+//                | Primary "[" Array_expression "]"
+//                | Primary
+// ```
+
+test "should parse a primary expression" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "322";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+    var expr: CallExpression = undefined;
+    defer expr.deinit(&parser_context);
+
+    if (try expr.init(0, &parser_context)) |_| {
+        try std.testing.expectEqualDeep("322", expr.primary.int.value);
+        try std.testing.expectEqualDeep(TokenType.Int, expr.primary.int.token_type);
+        return;
+    } else try std.testing.expect(false);
 }
+
+test "should parse a function call expression" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "print()";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+    var expr: CallExpression = undefined;
+    if (try expr.init(0, &parser_context)) |_| {
+        defer expr.deinit(&parser_context);
+
+        try std.testing.expectEqualDeep(expr.function.primary.identifier.value, "print");
+        return;
+    } else try std.testing.expect(false);
+}
+
+// This should test that an arbitrary expression is used as a function, like:
+// `(1 + 2)()`, the typechecker with later on decide what to do with it
+//
+// test "should parse a expresion used as function call" {
+//     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+//     defer err_ctx.deinit();
+//     const input = "print()";
+//     var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+//     defer tokens.deinit(std.testing.allocator);
+//
+//     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+//     var expr: CallExpression = undefined;
+//     if (try expr.init(0, &parser_context)) |_| {
+//         defer expr.deinit(&parser_context);
+//
+//         try std.testing.expectEqualDeep(expr.function.primary.identifier.value, "print");
+//         return;
+//     } else try std.testing.expect(false);
+// }
