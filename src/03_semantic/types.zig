@@ -18,7 +18,10 @@ pub const Type = union(enum) {
     Float,
     String,
     Bool,
-    // TODO: function types, generic types, container types
+    Function: struct {
+        return_t: *Type,
+    },
+    // TODO: generic types, container types
 
     pub fn to_str(self: *const Type) []const u8 {
         return switch (self.*) {
@@ -27,6 +30,7 @@ pub const Type = union(enum) {
             .Float => "Float",
             .String => "String",
             .Bool => "Bool",
+            .Function => "Function",
         };
     }
 
