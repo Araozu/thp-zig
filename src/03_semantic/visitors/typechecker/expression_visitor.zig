@@ -56,15 +56,35 @@ pub fn visit_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryE
         .int => return Type.Int,
         .string => return Type.String,
         .identifier => |token| {
+            // NOTE: should the lexer emit those as their own tokens?
             if (std.mem.eql(u8, token.*.value, "true")) {
                 return Type.Bool;
             } else if (std.mem.eql(u8, token.*.value, "false")) {
                 return Type.Bool;
             }
 
-            // FIXME: actually get type
-            std.debug.print("Not implemented: get type of an identifier.\n", .{});
-            return Type.Untyped;
+            // get the type from the symbol table
+
+            const t_id = self.scope.get(token.value) orelse {
+                var new_error = try self.err.create_and_append_error(
+                    "Undeclared identifier",
+                    token.start_pos,
+                    token.end_pos(),
+                );
+                {
+                    const err_msg = try std.fmt.allocPrint(self.err.allocator, "Identifier `{s}` doesn't exist in this scope", .{token.value});
+                    const err_msg_label = self.err.create_error_label_alloc(
+                        err_msg,
+                        token.start_pos,
+                        token.end_pos(),
+                    );
+                    try new_error.add_label(err_msg_label);
+                }
+                return VisitorError.SemanticError;
+            };
+
+            // TODO: throw if untyped?!
+            return t_id.t;
         },
         .paren => |inner_exp| {
             return try visit(self, inner_exp.exp);
