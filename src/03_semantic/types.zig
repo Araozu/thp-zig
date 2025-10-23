@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const symbol_table = @import("./symbol_table.zig");
+
 const StringHashMap = std.StringHashMapUnmanaged;
 
 pub const SymbolInfo = struct {
@@ -10,12 +12,16 @@ pub const SymbolInfo = struct {
     },
 };
 
-pub const Type = enum {
+pub const Type = union(enum) {
     Untyped,
     Int,
     Float,
     String,
-    // TODO: function types, generic types, container types
+    Bool,
+    Function: struct {
+        return_t: *Type,
+    },
+    // TODO: generic types, container types
 
     pub fn to_str(self: *const Type) []const u8 {
         return switch (self.*) {
@@ -23,12 +29,28 @@ pub const Type = enum {
             .Int => "Int",
             .Float => "Float",
             .String => "String",
+            .Bool => "Bool",
+            .Function => "Function",
         };
     }
-};
 
-pub const SymbolTable = struct {
-    scope: *Scope,
+    pub fn is_untyped(self: *const Type) bool {
+        return switch (self.*) {
+            .Untyped => true,
+            else => false,
+        };
+    }
+
+    pub fn eql(self: *const Type, to: *const Type) bool {
+        if (@intFromEnum(self.*) != @intFromEnum(to.*)) {
+            return false;
+        }
+
+        // FIXME: actually operate on the tags inner values
+        // like when Array is implemented
+
+        return true;
+    }
 };
 
 pub const Scope = struct {
@@ -36,6 +58,7 @@ pub const Scope = struct {
     parent: ?*Scope,
     allocator: std.mem.Allocator,
     children: std.ArrayListUnmanaged(*Scope),
+    types: std.ArrayListUnmanaged(*Type),
 
     pub fn init(allocator: std.mem.Allocator) Scope {
         return Scope{
@@ -43,6 +66,7 @@ pub const Scope = struct {
             .parent = null,
             .allocator = allocator,
             .children = .empty,
+            .types = .empty,
         };
     }
 
@@ -58,6 +82,7 @@ pub const Scope = struct {
             .parent = self,
             .allocator = self.allocator,
             .children = .empty,
+            .types = .empty,
         };
         errdefer self.allocator.destroy(child);
 
@@ -121,11 +146,15 @@ pub const Scope = struct {
             child.deinit();
             self.allocator.destroy(child);
         }
+
         // cleanup children arraylist
         self.children.deinit(self.allocator);
 
         // clean up symbols
         self.symbols.deinit(self.allocator);
+
+        // clean up types
+        self.types.deinit(self.allocator);
     }
 };
 

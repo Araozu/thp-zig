@@ -9,21 +9,35 @@ Now in Zig!
 - [ ] Rewrite REPL
 - [ ] Type definition generator
 - [ ] Code formatter
-- [!] Language server - first implementation will be done elsewhere, in go
+- [!] Language server - first implementation will be done elsewhere
 - [ ] stdlib
 - [ ] Watch mode compilation
 - [ ] Project mode compilation
 - [ ] Docs generator
+- [ ] Parse function call w arguments
+- [ ] Parse binary ops
+- [ ] Parse unary ops
+- [ ] Parse conditionals
+- [ ] Parse multiple statements
+- [ ] Define & implement ASI - automatic semicolon insertion
+- [ ] Parse function declaration
 
 ## v0.0.2
 
-- [ ] Define how the CLI will operate
-- [ ] Create a proper pipeline for the CLI
-- [ ] Pipeline for reading file from stdin & emitting to stdout
+- [x] Define how the CLI will operate
+- [x] Create a proper pipeline for the CLI
+- [x] Pipeline for reading file from stdin & emitting to stdout
 - [ ] Add tests to semantic analysis/codegen
 - [ ] Implement more semantic phases
-- [ ] Test memory errors
-- [ ] Proper error reporting on semantic analysis
+- [ ] Test memory errors w failing allocator
+- [x] Proper error reporting on semantic analysis
+- [x] Extract expression typechecking
+- [x] Parse variable type hint
+- [x] Parse function call (simple)
+- [ ] Register identifier in symbol table
+- [ ] Typecheck identifier w symbol table
+- [ ] Typecheck function call
+- [ ] Restore REPL interface
 
 ## v0.0.1
 

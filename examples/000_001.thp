@@ -5,7 +5,10 @@ var my_number_3 = 1
 var my_string_1 = "Hello"
 var my_string_2 = "Bye"
 
+var s1 = "a"
+var s2 = s1
+
 val eh = 322
-var _ = "? ?"
+var eh = "??"
 
 

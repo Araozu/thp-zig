@@ -1,7 +1,7 @@
 pipeline {
 	agent {
 		node {
-			label "hetzner-helsinki-01"
+			label "fernando-helsinki-01"
 		}
 	}
 
@@ -39,5 +39,4 @@ pipeline {
 		}
 	}
 }
-
 
