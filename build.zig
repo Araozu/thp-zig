@@ -18,9 +18,8 @@ fn main_executable(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     options_module: *std.Build.Module,
+    no_bin: bool,
 ) void {
-    const no_bin = b.option(bool, "no-bin", "skip emitting binary") orelse false;
-
     //
     // Modules
     //
@@ -122,6 +121,44 @@ fn main_executable(
     test_step.dependOn(&b.addRunArtifact(root_module_tests).step);
 }
 
+fn vm_executable(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    options_module: *std.Build.Module,
+    no_bin: bool,
+) void {
+    const root_module = create_module("src-vm/main.zig", b, target, optimize);
+    root_module.addImport("config", options_module);
+
+    const exe = b.addExecutable(.{
+        .name = "thpvm",
+        .root_module = root_module,
+    });
+
+    // If using -Dno-bin, use the x86-backend for fast builds
+    if (no_bin) {
+        exe.use_llvm = false;
+        b.getInstallStep().dependOn(&exe.step);
+        return;
+    } else {
+        b.installArtifact(exe);
+    }
+
+    // run-vm command
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+
+    // Pass arguments if any
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+
+    // Run step
+    const run_step = b.step("run-vm", "Run the virtual machine");
+    run_step.dependOn(&run_cmd.step);
+}
+
 pub fn build(b: *std.Build) void {
     // Standard target options
     const target = b.standardTargetOptions(.{});
@@ -131,6 +168,7 @@ pub fn build(b: *std.Build) void {
     const executionTracing = b.option(bool, "tracing", "enable execution tracing") orelse false;
     const json_serialization = b.option(bool, "json", "enable JSON serialization of the compiler outputs") orelse false;
 
+    const no_bin = b.option(bool, "no-bin", "skip emitting binary") orelse false;
     const options = b.addOptions();
     options.addOption(bool, "tracing", executionTracing);
     options.addOption(bool, "json", json_serialization);
@@ -138,5 +176,6 @@ pub fn build(b: *std.Build) void {
     // Create the options module that will be shared
     const options_module = options.createModule();
 
-    main_executable(b, target, optimize, options_module);
+    main_executable(b, target, optimize, options_module, no_bin);
+    vm_executable(b, target, optimize, options_module, no_bin);
 }
