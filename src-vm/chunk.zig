@@ -5,6 +5,7 @@ const Value = m_value.Value;
 
 pub const OpCode = enum {
     OP_CONSTANT,
+    OP_ADD,
     OP_NEGATE,
     OP_RETURN,
 };

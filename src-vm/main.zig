@@ -22,7 +22,12 @@ pub fn main() !void {
         try chunk.write_chunk(@intCast(constant_idx), 123);
     }
     {
-        try chunk.write_chunk(@intFromEnum(OpCode.OP_NEGATE), 123);
+        const constant_idx = try chunk.write_constant(4.8);
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 123);
+        try chunk.write_chunk(@intCast(constant_idx), 123);
+    }
+    {
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
     }
 
     try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 123);

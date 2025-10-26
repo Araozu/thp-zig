@@ -31,12 +31,9 @@ pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
         .OP_CONSTANT => |op| {
             return constant_instruction(@tagName(op), chunk, offset);
         },
-        .OP_RETURN => |op| {
-            return simple_instruction(@tagName(op), offset);
-        },
-        .OP_NEGATE => |op| {
-            return simple_instruction(@tagName(op), offset);
-        },
+        .OP_NEGATE => |op| return simple_instruction(@tagName(op), offset),
+        .OP_ADD => |op| return simple_instruction(@tagName(op), offset),
+        .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
     }
 
     return 0;
