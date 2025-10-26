@@ -15,7 +15,7 @@ pub fn dissasemble_chunk(chunk: *Chunk, name: []const u8) void {
     }
 }
 
-fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
+pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
     std.debug.print("{d:0<4} ", .{offset});
 
     // print line number

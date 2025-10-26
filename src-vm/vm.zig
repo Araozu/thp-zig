@@ -1,6 +1,8 @@
 const std = @import("std");
+const config = @import("config");
 const m_chunk = @import("./chunk.zig");
 const m_value = @import("./value.zig");
+const m_debug = @import("./debug.zig");
 
 const Chunk = m_chunk.Chunk;
 const OpCode = m_chunk.OpCode;
@@ -30,6 +32,10 @@ pub const VM = struct {
 
     fn run(self: *Self) InterpretResult {
         while (true) {
+            if (config.tracing) {
+                _ = m_debug.dissasemble_instruction(&self.chunk, self.ip - self.chunk.code.items.ptr);
+            }
+
             const e_instruction: OpCode = @enumFromInt(self.read_byte());
             switch (e_instruction) {
                 .OP_RETURN => {
