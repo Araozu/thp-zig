@@ -1,6 +1,7 @@
 const std = @import("std");
 const m_chunk = @import("./chunk.zig");
 const m_debug = @import("./debug.zig");
+const m_vm = @import("./vm.zig");
 
 const Chunk = m_chunk.Chunk;
 const OpCode = m_chunk.OpCode;
@@ -8,6 +9,9 @@ const OpCode = m_chunk.OpCode;
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}){};
 
+    // ========================================
+    //  Hand build a chunk
+    // ========================================
     var chunk: Chunk = undefined;
     chunk.init(gpa.allocator());
     defer chunk.deinit();
@@ -18,4 +22,14 @@ pub fn main() !void {
     try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 123);
 
     m_debug.dissasemble_chunk(&chunk, "test chunk");
+
+    // ========================================
+    //  Create & run the VM
+    // ========================================
+
+    var vm: m_vm.VM = undefined;
+    vm.init(chunk);
+    defer vm.deinit();
+
+    _ = vm.interpret();
 }
