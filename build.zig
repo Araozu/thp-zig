@@ -13,22 +13,13 @@ fn create_module(
     });
 }
 
-pub fn build(b: *std.Build) void {
-    // Standard target options
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-
-    // Create options module for conditional compilation
-    const executionTracing = b.option(bool, "tracing", "enable execution tracing") orelse false;
-    const json_serialization = b.option(bool, "json", "enable JSON serialization of the compiler outputs") orelse false;
+fn main_executable(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    options_module: *std.Build.Module,
+) void {
     const no_bin = b.option(bool, "no-bin", "skip emitting binary") orelse false;
-
-    const options = b.addOptions();
-    options.addOption(bool, "tracing", executionTracing);
-    options.addOption(bool, "json", json_serialization);
-
-    // Create the options module that will be shared
-    const options_module = options.createModule();
 
     //
     // Modules
@@ -77,9 +68,11 @@ pub fn build(b: *std.Build) void {
     root_module.addImport("semantic", semantic_module);
     root_module.addImport("codegen", codegen_module);
 
+    // ==============================
     //
-    // Main executable
+    //   Main executable
     //
+    // ==============================
     const exe = b.addExecutable(.{
         .name = "thp",
         .root_module = root_module,
@@ -127,4 +120,23 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&b.addRunArtifact(semantic_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(codegen_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(root_module_tests).step);
+}
+
+pub fn build(b: *std.Build) void {
+    // Standard target options
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    // Create options module for conditional compilation
+    const executionTracing = b.option(bool, "tracing", "enable execution tracing") orelse false;
+    const json_serialization = b.option(bool, "json", "enable JSON serialization of the compiler outputs") orelse false;
+
+    const options = b.addOptions();
+    options.addOption(bool, "tracing", executionTracing);
+    options.addOption(bool, "json", json_serialization);
+
+    // Create the options module that will be shared
+    const options_module = options.createModule();
+
+    main_executable(b, target, optimize, options_module);
 }
