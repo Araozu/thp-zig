@@ -6,6 +6,9 @@ const m_debug = @import("./debug.zig");
 
 const Chunk = m_chunk.Chunk;
 const OpCode = m_chunk.OpCode;
+const Value = m_value.Value;
+
+const STACK_MAX = 256;
 
 pub const InterpretResult = enum {
     INTERPRET_OK,
@@ -16,6 +19,8 @@ pub const InterpretResult = enum {
 pub const VM = struct {
     chunk: Chunk,
     ip: [*]u8,
+    stack: [STACK_MAX]Value,
+    stack_top: [*]Value,
 
     const Self = @This();
 
@@ -23,7 +28,10 @@ pub const VM = struct {
         self.* = .{
             .chunk = chunk,
             .ip = chunk.code.items.ptr,
+            .stack = undefined,
+            .stack_top = undefined,
         };
+        self.*.stack_top = &self.*.stack;
     }
 
     pub fn interpret(self: *Self) InterpretResult {
@@ -50,6 +58,16 @@ pub const VM = struct {
                 },
             }
         }
+    }
+
+    fn push(self: *Self, value: Value) void {
+        self.stack_top[0] = value;
+        self.stack_top += 1;
+    }
+
+    fn pop(self: *Self) Value {
+        self.stack_top -= 1;
+        return self.stack_top[0];
     }
 
     // NOTE: crafting interpreters had this as a C macro

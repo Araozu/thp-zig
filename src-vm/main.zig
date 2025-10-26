@@ -16,9 +16,16 @@ pub fn main() !void {
     chunk.init(gpa.allocator());
     defer chunk.deinit();
 
-    const constant_idx = try chunk.write_constant(1.2);
-    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 123);
-    try chunk.write_chunk(@intCast(constant_idx), 123);
+    {
+        const constant_idx = try chunk.write_constant(1.2);
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 123);
+        try chunk.write_chunk(@intCast(constant_idx), 123);
+    }
+    {
+        const constant_idx = try chunk.write_constant(4.8);
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 123);
+        try chunk.write_chunk(@intCast(constant_idx), 123);
+    }
     try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 123);
 
     m_debug.dissasemble_chunk(&chunk, "test chunk");
