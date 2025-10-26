@@ -41,6 +41,16 @@ pub const VM = struct {
     fn run(self: *Self) InterpretResult {
         while (true) {
             if (config.tracing) {
+                std.debug.print("          ", .{});
+                var start_ptr: [*]Value = &self.stack;
+                while (start_ptr != self.stack_top) {
+                    std.debug.print("[ ", .{});
+                    m_value.print_value(start_ptr[0]);
+                    std.debug.print(" ]", .{});
+
+                    start_ptr += 1;
+                }
+                std.debug.print("\n", .{});
                 _ = m_debug.dissasemble_instruction(&self.chunk, self.ip - self.chunk.code.items.ptr);
             }
 
