@@ -34,8 +34,8 @@ Now in Zig!
 - [x] Extract expression typechecking
 - [x] Parse variable type hint
 - [x] Parse function call (simple)
-- [ ] Register identifier in symbol table
-- [ ] Typecheck identifier w symbol table
+- [x] Register identifier in symbol table
+- [x] Typecheck identifier w symbol table
 - [ ] Typecheck function call
 - [ ] Restore REPL interface
 

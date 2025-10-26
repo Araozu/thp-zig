@@ -24,12 +24,12 @@ pub fn visit(self: *TypecheckerVisitor, node: *const CallExpression) VisitorErro
                     // Compute & return return type
                 },
                 else => {
-                    // throw error
                     // FIXME: compute function_id token range
-                    const function_id_tname = t_function_id.to_str();
                     var new_error = try self.err.create_and_append_error("Type mismatch in function call", 0, 1);
+                    // FIXME: show the declaration of the identifier, AND its usage
                     {
-                        const err_msg = try std.fmt.allocPrint(self.err.allocator, "This expression has type `{s}`, but it should be a Function", .{function_id_tname});
+                        const function_id_tname = t_function_id.to_str();
+                        const err_msg = try std.fmt.allocPrint(self.err.allocator, "This expression has type `{s}`, but it is called as a function", .{function_id_tname});
                         const err_msg_label = self.err.create_error_label_alloc(err_msg, 0, 1);
                         try new_error.add_label(err_msg_label);
                     }
