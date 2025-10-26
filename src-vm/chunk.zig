@@ -1,12 +1,17 @@
 const std = @import("std");
+const m_value = @import("./value.zig");
+
+const Value = m_value.Value;
 
 pub const OpCode = enum {
+    OP_CONSTANT,
     OP_RETURN,
 };
 
 pub const Chunk = struct {
     code: std.ArrayListUnmanaged(u8),
     allocator: std.mem.Allocator,
+    constants: std.ArrayListUnmanaged(Value),
 
     const Self = @This();
 
@@ -14,6 +19,7 @@ pub const Chunk = struct {
         self.* = .{
             .code = .empty,
             .allocator = allocator,
+            .constants = .empty,
         };
     }
 
@@ -21,36 +27,13 @@ pub const Chunk = struct {
         try self.code.append(self.allocator, byte);
     }
 
+    pub fn write_constant(self: *Self, constant: Value) !usize {
+        try self.constants.append(self.allocator, constant);
+        return self.constants.items.len - 1;
+    }
+
     pub fn deinit(self: *Self) void {
         self.code.deinit(self.allocator);
+        self.constants.deinit(self.allocator);
     }
 };
-
-pub fn dissasemble_chunk(chunk: *Chunk, name: []const u8) void {
-    std.debug.print("== {s} ==\n", .{name});
-
-    const len = chunk.code.items.len;
-    var pos: usize = 0;
-    while (pos < len) {
-        pos = dissasemble_instruction(chunk, pos);
-    }
-}
-
-fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
-    std.debug.print("{d:0<4} ", .{offset});
-
-    const instruction = chunk.code.items[offset];
-    const e_instruction: OpCode = @enumFromInt(instruction);
-    switch (e_instruction) {
-        .OP_RETURN => |t| {
-            return simple_instruction(@tagName(t), offset);
-        },
-    }
-
-    return 0;
-}
-
-fn simple_instruction(name: []const u8, offset: usize) usize {
-    std.debug.print("{s}\n", .{name});
-    return offset + 1;
-}
