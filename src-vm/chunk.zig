@@ -12,6 +12,7 @@ pub const Chunk = struct {
     code: std.ArrayListUnmanaged(u8),
     allocator: std.mem.Allocator,
     constants: std.ArrayListUnmanaged(Value),
+    lines: std.ArrayListUnmanaged(u32),
 
     const Self = @This();
 
@@ -20,11 +21,13 @@ pub const Chunk = struct {
             .code = .empty,
             .allocator = allocator,
             .constants = .empty,
+            .lines = .empty,
         };
     }
 
-    pub fn write_chunk(self: *Self, byte: u8) !void {
+    pub fn write_chunk(self: *Self, byte: u8, line: u32) !void {
         try self.code.append(self.allocator, byte);
+        try self.lines.append(self.allocator, line);
     }
 
     pub fn write_constant(self: *Self, constant: Value) !usize {
@@ -35,5 +38,6 @@ pub const Chunk = struct {
     pub fn deinit(self: *Self) void {
         self.code.deinit(self.allocator);
         self.constants.deinit(self.allocator);
+        self.lines.deinit(self.allocator);
     }
 };
