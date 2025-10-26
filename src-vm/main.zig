@@ -1,6 +1,8 @@
 const std = @import("std");
+const m_chunk = @import("./chunk.zig");
 
-const Chunk = @import("./chunk.zig").Chunk;
+const Chunk = m_chunk.Chunk;
+const OpCode = m_chunk.OpCode;
 
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}){};
@@ -9,5 +11,6 @@ pub fn main() !void {
     chunk.init(gpa.allocator());
     defer chunk.deinit();
 
-    std.debug.print("hello\n", .{});
+    try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN));
+    m_chunk.dissasemble_chunk(&chunk, "test chunk");
 }
