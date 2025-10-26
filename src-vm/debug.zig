@@ -33,6 +33,7 @@ pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
         },
         .OP_NEGATE => |op| return simple_instruction(@tagName(op), offset),
         .OP_ADD => |op| return simple_instruction(@tagName(op), offset),
+        .OP_PRINT => |op| return simple_instruction(@tagName(op), offset),
         .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
     }
 

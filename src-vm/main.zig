@@ -30,10 +30,11 @@ pub fn main() !void {
         try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
     }
 
+    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 123);
     try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 123);
 
-    m_debug.dissasemble_chunk(&chunk, "test chunk");
-    std.debug.print("== end chunk assembly ==\n\n", .{});
+    // m_debug.dissasemble_chunk(&chunk, "test chunk");
+    // std.debug.print("== end chunk assembly ==\n\n", .{});
 
     // ========================================
     //  Create & run the VM

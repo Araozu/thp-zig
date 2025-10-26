@@ -7,6 +7,7 @@ pub const OpCode = enum {
     OP_CONSTANT,
     OP_ADD,
     OP_NEGATE,
+    OP_PRINT,
     OP_RETURN,
 };
 
