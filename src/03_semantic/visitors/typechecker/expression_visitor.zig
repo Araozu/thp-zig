@@ -19,9 +19,9 @@ pub fn visit(self: *TypecheckerVisitor, node: *const CallExpression) VisitorErro
 
             // Assert its a function type
             switch (t_function_id) {
-                .Function => {
-                    // TODO: assert args are correct
-                    // Compute & return return type
+                .Function => |t_function| {
+                    // TODO: assert args are correct when the function calls other things
+                    return t_function.return_t.*;
                 },
                 else => {
                     // FIXME: compute function_id token range
