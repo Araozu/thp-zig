@@ -18,6 +18,7 @@ fn main_executable(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     options_module: *std.Build.Module,
+    vm_module: *std.Build.Module,
     no_bin: bool,
 ) void {
     //
@@ -59,6 +60,7 @@ fn main_executable(
     codegen_module.addImport("lexic", lexic_module);
     codegen_module.addImport("syntax", syntax_module);
     codegen_module.addImport("semantic", semantic_module);
+    codegen_module.addImport("vm", vm_module);
     //
     root_module.addImport("config", options_module);
     root_module.addImport("context", error_module);
@@ -127,7 +129,7 @@ fn vm_executable(
     optimize: std.builtin.OptimizeMode,
     options_module: *std.Build.Module,
     no_bin: bool,
-) void {
+) *std.Build.Module {
     const root_module = create_module("src-vm/main.zig", b, target, optimize);
     root_module.addImport("config", options_module);
 
@@ -140,7 +142,7 @@ fn vm_executable(
     if (no_bin) {
         exe.use_llvm = false;
         b.getInstallStep().dependOn(&exe.step);
-        return;
+        return root_module;
     } else {
         b.installArtifact(exe);
     }
@@ -157,6 +159,8 @@ fn vm_executable(
     // Run step
     const run_step = b.step("run-vm", "Run the virtual machine");
     run_step.dependOn(&run_cmd.step);
+
+    return root_module;
 }
 
 pub fn build(b: *std.Build) void {
@@ -176,6 +180,6 @@ pub fn build(b: *std.Build) void {
     // Create the options module that will be shared
     const options_module = options.createModule();
 
-    main_executable(b, target, optimize, options_module, no_bin);
-    vm_executable(b, target, optimize, options_module, no_bin);
+    const vm_module = vm_executable(b, target, optimize, options_module, no_bin);
+    main_executable(b, target, optimize, options_module, vm_module, no_bin);
 }

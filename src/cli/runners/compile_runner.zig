@@ -143,13 +143,13 @@ pub fn run(self: *const CompileOptions) !void {
     //   Emit
     // ==========================================
 
-    codegen.gen_php(arena.allocator(), &ast) catch |e| switch (e) {
-        error.OutOfMemory => {
-            try stdout.print("System ran out of memory!\n", .{});
-            return;
-        },
-        else => {},
-    };
+    // codegen.gen_php(arena.allocator(), &ast) catch |e| switch (e) {
+    //     error.OutOfMemory => {
+    //         try stdout.print("System ran out of memory!\n", .{});
+    //         return;
+    //     },
+    //     else => {},
+    // };
 
     // ==========================================
     //   Out
