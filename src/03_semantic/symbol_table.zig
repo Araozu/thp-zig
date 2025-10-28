@@ -28,11 +28,14 @@ pub const SymbolTable = struct {
         const type_ref = try allocator.create(Type);
         type_ref.* = Type.Unit;
 
-        try self.builtin_types.put(self.allocator, "print", Type{
-            .Function = .{
-                .params = &.{},
-                .return_t = type_ref,
+        try self.scope.symbols.put(self.allocator, "print", .{
+            .t = Type{
+                .Function = .{
+                    .params = &.{},
+                    .return_t = type_ref,
+                },
             },
+            .location = .{ .start = 0, .end = 1 },
         });
     }
 

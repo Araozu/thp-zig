@@ -64,7 +64,6 @@ pub fn visit_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryE
             }
 
             // get the type from the symbol table
-
             const t_id = self.scope.get(token.value) orelse {
                 var new_error = try self.err.create_and_append_error(
                     "Undeclared identifier",
