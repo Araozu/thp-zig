@@ -4,11 +4,11 @@ const m_value = @import("./value.zig");
 const Value = m_value.Value;
 
 pub const OpCode = enum(u8) {
-    OP_CONSTANT = 0x00,
-    OP_ADD = 0x01,
-    OP_NEGATE = 0x02,
-    OP_PRINT = 0x03,
-    OP_RETURN = 0x04,
+    OP_RETURN = 0x00,
+    OP_PRINT = 0x01,
+    OP_CONSTANT = 0x02,
+    OP_ADD = 0x03,
+    OP_NEGATE = 0x04,
 };
 
 pub const Chunk = struct {

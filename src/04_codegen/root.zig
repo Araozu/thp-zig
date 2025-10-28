@@ -19,19 +19,28 @@ pub const ByteCodeGenerator = struct {
         };
     }
 
-    pub fn emit(self: *Self) []u8 {
+    /// Caller must call `deinit` on the returned chunk
+    pub fn emit(self: *Self) !Chunk {
         var chunk: Chunk = undefined;
         chunk.init(self.allocator);
-        defer chunk.deinit();
+        errdefer chunk.deinit();
 
         // write bytes
-        chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 0);
-
-        // write bytes
-        for (chunk.code.items) |byte| {
-            std.debug.print("0x{X}", .{byte});
+        {
+            const constant_idx = try chunk.write_constant(1.2);
+            try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 123);
+            try chunk.write_chunk(@intCast(constant_idx), 123);
         }
-        std.debug.print("\n", .{});
+        {
+            const constant_idx = try chunk.write_constant(4.8);
+            try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 123);
+            try chunk.write_chunk(@intCast(constant_idx), 123);
+        }
+
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 123);
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 0);
+
+        return chunk;
     }
 
     pub fn deinit() void {

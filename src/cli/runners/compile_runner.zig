@@ -143,19 +143,24 @@ pub fn run(self: *const CompileOptions) !void {
     //   Emit
     // ==========================================
 
-    // codegen.gen_php(arena.allocator(), &ast) catch |e| switch (e) {
-    //     error.OutOfMemory => {
-    //         try stdout.print("System ran out of memory!\n", .{});
-    //         return;
-    //     },
-    //     else => {},
-    // };
+    var generator: codegen.ByteCodeGenerator = undefined;
+    generator.init(&ast, arena.allocator());
+
+    var chunk = try generator.emit();
+    defer chunk.deinit();
 
     // ==========================================
     //   Out
     // ==========================================
 
-    // FIXME: ugh
+    for (chunk.code.items) |byte| {
+        std.debug.print("{X:0>2} ", .{byte});
+    }
+    std.debug.print("\n", .{});
+    for (chunk.constants.items) |value| {
+        std.debug.print("{d} ", .{value});
+    }
+    std.debug.print("\n", .{});
 }
 
 inline fn trace_header() void {
