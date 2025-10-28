@@ -68,6 +68,7 @@ fn main_executable(
     root_module.addImport("syntax", syntax_module);
     root_module.addImport("semantic", semantic_module);
     root_module.addImport("codegen", codegen_module);
+    root_module.addImport("vm", vm_module);
 
     // ==============================
     //

@@ -14,8 +14,11 @@ const CompileOptions = @import("../compile_command.zig").CompileOptions;
 
 /// Runs the compile command.
 pub fn run(self: *const CompileOptions) !void {
-    // Read file
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
 
+    // Read file
     var filebuffer: [4096]u8 = undefined;
     const absolute_path = try std.fs.realpath(self.filename, &filebuffer);
 
@@ -25,8 +28,10 @@ pub fn run(self: *const CompileOptions) !void {
     });
 
     // 20MB max buffer
-    var file_buffer: [1024 * 1024 * 20]u8 = undefined;
-    const read_bytes = try source_file.read(&file_buffer);
+    var file_buffer = try allocator.alloc(u8, 1024 * 1024 * 20);
+    defer allocator.free(file_buffer);
+
+    const read_bytes = try source_file.read(file_buffer);
     const file_bytes = file_buffer[0..read_bytes];
 
     // ==========================================
@@ -42,19 +47,15 @@ pub fn run(self: *const CompileOptions) !void {
         try stdout.flush();
     }
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const alloc = arena.allocator();
-
     // Setup compiler context
-    var ctx = err_ctx.ErrorContext.init(alloc);
+    var ctx = err_ctx.ErrorContext.init(allocator);
     defer ctx.deinit();
 
     // ==========================================
     //   Lex
     // ==========================================
 
-    var tokens = lexic.tokenize(file_bytes, alloc, &ctx) catch |e| switch (e) {
+    var tokens = lexic.tokenize(file_bytes, allocator, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {
             try stdout.print("FATAL ERROR: System Out of Memory!", .{});
             try stdout.flush();
@@ -62,7 +63,7 @@ pub fn run(self: *const CompileOptions) !void {
         },
         else => return e,
     };
-    defer tokens.deinit(alloc);
+    defer tokens.deinit(allocator);
 
     // Trace tokens
     if (tracing) {
@@ -78,10 +79,10 @@ pub fn run(self: *const CompileOptions) !void {
     // Display errors
     if (ctx.errors.items.len > 0) {
         for (ctx.errors.items) |*err| {
-            const err_str = try err.get_error_str(file_bytes, "<file>", alloc);
+            const err_str = try err.get_error_str(file_bytes, "<file>", allocator);
             try stdout.print("\n{s}\n", .{err_str});
             try stdout.flush();
-            alloc.free(err_str);
+            allocator.free(err_str);
         }
 
         // FIXME: return with error
@@ -103,10 +104,10 @@ pub fn run(self: *const CompileOptions) !void {
         error.Error => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
-                const err_str = try err_item.get_error_str(file_bytes, "<file>", alloc);
+                const err_str = try err_item.get_error_str(file_bytes, "<file>", allocator);
                 try stdout.print("\n{s}\n", .{err_str});
                 try stdout.flush();
-                alloc.free(err_str);
+                allocator.free(err_str);
             }
             return;
         },
@@ -122,7 +123,7 @@ pub fn run(self: *const CompileOptions) !void {
     try symbol_table.init(arena.allocator());
     defer symbol_table.deinit();
 
-    semantic.semantic_analysis_unmanaged(&symbol_table, alloc, &ast, &ctx) catch |e| switch (e) {
+    semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {
             try stdout.print("System ran out of memory!\n", .{});
             return;
@@ -130,10 +131,10 @@ pub fn run(self: *const CompileOptions) !void {
         else => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
-                const err_str = try err_item.get_error_str(file_bytes, "<file>", alloc);
+                const err_str = try err_item.get_error_str(file_bytes, "<file>", allocator);
                 try stdout.print("\n{s}\n", .{err_str});
                 try stdout.flush();
-                alloc.free(err_str);
+                allocator.free(err_str);
             }
             return;
         },
