@@ -14,11 +14,15 @@ pub const SymbolInfo = struct {
 
 pub const Type = union(enum) {
     Untyped,
+    Unit,
     Int,
     Float,
     String,
     Bool,
+    /// Caller is responsible for allocating/deallocating
+    /// the Function's `return_t`
     Function: struct {
+        params: []const Type,
         return_t: *Type,
     },
     // TODO: generic types, container types
@@ -26,6 +30,7 @@ pub const Type = union(enum) {
     pub fn to_str(self: *const Type) []const u8 {
         return switch (self.*) {
             .Untyped => "<untyped>",
+            .Unit => "<unit>",
             .Int => "Int",
             .Float => "Float",
             .String => "String",

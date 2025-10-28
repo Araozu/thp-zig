@@ -25,6 +25,8 @@ pub const ByteCodeGenerator = struct {
         chunk.init(self.allocator);
         errdefer chunk.deinit();
 
+        // walk the AST, generate bytecode?
+
         // write bytes
         {
             const constant_idx = try chunk.write_constant(1.2);

@@ -22,6 +22,18 @@ pub const SymbolTable = struct {
         try self.builtin_types.put(self.allocator, "Float", Type.Float);
         try self.builtin_types.put(self.allocator, "String", Type.String);
         try self.builtin_types.put(self.allocator, "Bool", Type.Bool);
+
+        // Builtin functions
+
+        const type_ref = try allocator.create(Type);
+        type_ref.* = Type.Unit;
+
+        try self.builtin_types.put(self.allocator, "print", Type{
+            .Function = .{
+                .params = &.{},
+                .return_t = type_ref,
+            },
+        });
     }
 
     pub fn lookup_type(self: *const SymbolTable, type_name: []const u8) ?Type {
@@ -32,6 +44,8 @@ pub const SymbolTable = struct {
         var scope_ref = &self.scope;
         self.builtin_types.deinit(self.allocator);
         scope_ref.deinit();
+
+        // FIXME: release the type's Function's `return_t`
     }
 };
 
