@@ -28,6 +28,12 @@ pub const Chunk = struct {
         };
     }
 
+    // HACK: input raw bytes without support for line numbers
+    pub fn write_raw_bytecode_bytes(self: *Self, bytes: []u8, line: u32) !void {
+        try self.code.appendSlice(self.allocator, bytes);
+        try self.lines.appendNTimes(self.allocator, line, bytes.len);
+    }
+
     pub fn write_chunk(self: *Self, byte: u8, line: u32) !void {
         try self.code.append(self.allocator, byte);
         try self.lines.append(self.allocator, line);

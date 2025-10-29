@@ -6,4 +6,12 @@ Heavily based on Crafting Interpreters lox vm.
 
 1-byte wide instructions.
 
+## Bytecode format
+
+- First 4 bytes: "0x54 0x48 0x50 0x21" (THP!)
+
+- Next byte: len of the constants section, in bytes (n)
+- Next n bytes: constants section
+- Next bytes: bytecode
+
 
