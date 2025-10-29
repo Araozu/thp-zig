@@ -66,7 +66,7 @@ pub const VM = struct {
                     // break;
                 },
                 .OP_PRINT => {
-                    std.debug.print("{d}", .{self.pop()});
+                    std.debug.print("{d}\n", .{self.pop()});
                 },
                 .OP_NEGATE => self.push(-self.pop()),
                 .OP_ADD => {

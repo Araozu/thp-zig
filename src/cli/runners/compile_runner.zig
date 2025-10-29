@@ -178,15 +178,6 @@ pub fn run(self: *const CompileOptions) !void {
     // don't forget to flush
     try out_writer.flush();
 
-    // for (chunk.code.items) |byte| {
-    //     std.debug.print("{X:0>2} ", .{byte});
-    // }
-    // std.debug.print("\n", .{});
-    // for (chunk.constants.items) |value| {
-    //     std.debug.print("{d} ", .{value});
-    // }
-    // std.debug.print("\n", .{});
-
     // ==========================================
     //   Execution?
     // ==========================================
