@@ -1,2 +1,2 @@
-val _ = print(322.123)
+val _ = print(0.54)
 

@@ -3,6 +3,7 @@ const m_chunk = @import("./chunk.zig");
 const m_debug = @import("./debug.zig");
 const m_vm = @import("./vm.zig");
 
+pub const VM = m_vm.VM;
 pub const Chunk = m_chunk.Chunk;
 pub const OpCode = m_chunk.OpCode;
 

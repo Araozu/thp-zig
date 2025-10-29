@@ -1,4 +1,5 @@
 const std = @import("std");
+const m_vm = @import("vm");
 
 const lexic = @import("lexic");
 const syntax = @import("syntax");
@@ -151,17 +152,27 @@ pub fn run(self: *const CompileOptions) !void {
     defer chunk.deinit();
 
     // ==========================================
-    //   Out
+    //   Out to stdout
     // ==========================================
 
-    for (chunk.code.items) |byte| {
-        std.debug.print("{X:0>2} ", .{byte});
-    }
-    std.debug.print("\n", .{});
-    for (chunk.constants.items) |value| {
-        std.debug.print("{d} ", .{value});
-    }
-    std.debug.print("\n", .{});
+    // for (chunk.code.items) |byte| {
+    //     std.debug.print("{X:0>2} ", .{byte});
+    // }
+    // std.debug.print("\n", .{});
+    // for (chunk.constants.items) |value| {
+    //     std.debug.print("{d} ", .{value});
+    // }
+    // std.debug.print("\n", .{});
+
+    // ==========================================
+    //   Execution
+    // ==========================================
+
+    var vm: m_vm.VM = undefined;
+    vm.init(chunk);
+    defer vm.deinit();
+
+    _ = vm.interpret();
 }
 
 inline fn trace_header() void {
