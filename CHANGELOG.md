@@ -3,29 +3,65 @@
 The latest & greatest rewrite of the THP programming language.
 Now in Zig!
 
+This is a rough, non-commital roadmap of sorts.
+
 ## TODO
 
 - [ ] Rewrite CLI interface
 - [ ] Rewrite REPL
 - [ ] Type definition generator
 - [ ] Code formatter
-- [!] Language server - first implementation will be done elsewhere, in go
+- [!] Language server - first implementation will be done elsewhere
 - [ ] stdlib
 - [ ] Watch mode compilation
 - [ ] Project mode compilation
 - [ ] Docs generator
-
-## v0.0.2
-
-- [ ] Define how the CLI will operate
-- [ ] Create a proper pipeline for the CLI
-- [ ] Pipeline for reading file from stdin & emitting to stdout
+- [ ] Parse function call w arguments
+- [ ] Parse binary ops
+- [ ] Parse unary ops
+- [ ] Parse conditionals
+- [ ] Parse multiple statements
+- [ ] Define & implement ASI - automatic semicolon insertion
+- [ ] Parse function declaration
+- [ ] Restore REPL interface
 - [ ] Add tests to semantic analysis/codegen
 - [ ] Implement more semantic phases
-- [ ] Test memory errors
-- [ ] Proper error reporting on semantic analysis
+- [ ] Test memory errors w failing allocator
+- [ ] Typecheck function call
+- [ ] vm: support more datatypes
+- [ ] vm: variables
 
-## v0.0.1
+## v0.0.4: technically turing complete
+
+- [ ] parse conditionals
+- [ ] vm: conditionals
+
+## v0.0.3: cleaning house
+
+- [ ] restructure parsing out structures
+- [ ] parse binary operators
+- [ ] vm: binary operators
+
+## v0.0.2: bare minimum
+
+- [x] Define how the CLI will operate
+- [x] Create a proper pipeline for the CLI
+- [x] Pipeline for reading file from stdin & emitting to stdout
+- [x] Proper error reporting on semantic analysis
+- [x] Extract expression typechecking
+- [x] Parse variable type hint
+- [x] Parse function call (simple)
+- [x] Register identifier in symbol table
+- [x] Typecheck identifier w symbol table
+- [x] Small VM
+- [x] vm: Emit simple bytecode
+- [x] Parse function call with argument
+- [x] vm: `print` compiler builtin
+- [x] vm: Read, parse & interpret bytecode
+- [x] emit bytecode for minimal print
+
+
+## v0.0.1: hopes & dreams
 
 - [x] Lex numbers
 - [x] Lex identifier
@@ -46,4 +82,3 @@ Now in Zig!
 - [x] Rewrite semantic analyzer
 - [x] Rewrite type checker
 - [x] Rewrite code generator
-

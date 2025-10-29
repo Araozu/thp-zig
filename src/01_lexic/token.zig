@@ -20,7 +20,7 @@ pub const TokenType = enum {
     K_Var,
     K_Val,
 
-    pub fn to_string(self: *TokenType) []const u8 {
+    pub fn to_string(self: *const TokenType) []const u8 {
         return switch (self.*) {
             TokenType.Int => "Int",
             TokenType.Float => "Float",
@@ -54,6 +54,10 @@ pub const Token = struct {
             .token_type = token_type,
             .start_pos = start,
         };
+    }
+
+    pub fn end_pos(self: *const Token) usize {
+        return self.start_pos + self.value.len;
     }
 };
 

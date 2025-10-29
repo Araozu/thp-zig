@@ -7,6 +7,8 @@ const err_ctx = @import("context");
 const parser_ctx = syntax.context;
 
 const cli = @import("./cli/root.zig");
+const cli_interface = @import("./cli/interface.zig");
+const cli_compile_command = @import("./cli/compile_command.zig");
 
 const config = @import("config");
 const tracing = config.tracing;
@@ -16,7 +18,33 @@ const Io = std.Io;
 const thp_version: []const u8 = "0.0.1";
 
 pub fn main() !void {
-    try repl();
+    // just run the CLI
+
+    var args = std.process.args();
+    defer args.deinit();
+
+    const cli_args = cli_interface.CliArgs.parse(&args) catch |err| switch (err) {
+        error.CompileMissingFilename => {
+            std.debug.print("{s}\n\n", .{cli_interface.compile_command.CompileOptions.usage()});
+            std.debug.print("Error: Missing <file> for compile command.\n", .{});
+            return;
+        },
+        else => {
+            return;
+        },
+    };
+
+    switch (cli_args) {
+        .Compile => |opts| {
+            _ = try cli_interface.compile_runner.run(&opts);
+        },
+        else => {
+            std.debug.print("CLI command not implemented.\n", .{});
+            return;
+        },
+    }
+
+    // try repl();
 }
 
 fn repl() !void {
@@ -161,7 +189,6 @@ fn repl() !void {
             else => {
                 // Print all the errors
                 for (ctx.errors.items) |*err_item| {
-                    std.debug.print("ehhh???\n", .{});
                     const err_str = try err_item.get_error_str(line, "repl", alloc);
                     try stdout.print("\n{s}\n", .{err_str});
                     try stdout.flush();

@@ -1,6 +1,5 @@
 const std = @import("std");
 const lexic = @import("lexic");
-const expression = @import("expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const variable = @import("./variable.zig");

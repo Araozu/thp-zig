@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const symbol_table = @import("./symbol_table.zig");
+
 const StringHashMap = std.StringHashMapUnmanaged;
 
 pub const SymbolInfo = struct {
@@ -8,27 +10,68 @@ pub const SymbolInfo = struct {
         start: usize,
         end: usize,
     },
+
+    pub fn deinit(self: *SymbolInfo, allocator: std.mem.Allocator) void {
+        self.t.deinit(allocator);
+    }
 };
 
-pub const Type = enum {
+pub const Type = union(enum) {
     Untyped,
+    Unit,
     Int,
     Float,
     String,
-    // TODO: function types, generic types, container types
+    Bool,
+    /// Type assumes ownership of `return_t`.
+    /// It **must** be `create`d with the same allocator passed to this `deinit`
+    Function: struct {
+        params: []const Type,
+        return_t: *Type,
+    },
+    // TODO: generic types, container types
 
     pub fn to_str(self: *const Type) []const u8 {
         return switch (self.*) {
             .Untyped => "<untyped>",
+            .Unit => "<unit>",
             .Int => "Int",
             .Float => "Float",
             .String => "String",
+            .Bool => "Bool",
+            .Function => "Function",
         };
     }
-};
 
-pub const SymbolTable = struct {
-    scope: *Scope,
+    pub fn is_untyped(self: *const Type) bool {
+        return switch (self.*) {
+            .Untyped => true,
+            else => false,
+        };
+    }
+
+    pub fn eql(self: *const Type, to: *const Type) bool {
+        if (@intFromEnum(self.*) != @intFromEnum(to.*)) {
+            return false;
+        }
+
+        // FIXME: actually operate on the tags inner values
+        // like when Array is implemented
+
+        return true;
+    }
+
+    /// This method **destroys** owned data if neccesary.
+    /// That data **must** be `create`d with the same `allocator`
+    /// passed to this method
+    pub fn deinit(self: *Type, allocator: std.mem.Allocator) void {
+        switch (self.*) {
+            .Function => |f| {
+                allocator.destroy(f.return_t);
+            },
+            else => {},
+        }
+    }
 };
 
 pub const Scope = struct {
@@ -36,6 +79,7 @@ pub const Scope = struct {
     parent: ?*Scope,
     allocator: std.mem.Allocator,
     children: std.ArrayListUnmanaged(*Scope),
+    types: std.ArrayListUnmanaged(*Type),
 
     pub fn init(allocator: std.mem.Allocator) Scope {
         return Scope{
@@ -43,6 +87,7 @@ pub const Scope = struct {
             .parent = null,
             .allocator = allocator,
             .children = .empty,
+            .types = .empty,
         };
     }
 
@@ -58,6 +103,7 @@ pub const Scope = struct {
             .parent = self,
             .allocator = self.allocator,
             .children = .empty,
+            .types = .empty,
         };
         errdefer self.allocator.destroy(child);
 
@@ -116,16 +162,26 @@ pub const Scope = struct {
     }
 
     pub fn deinit(self: *Scope) void {
+        // deinit all scope types
+        var iter = self.symbols.iterator();
+        while (iter.next()) |symbol| {
+            symbol.value_ptr.deinit(self.allocator);
+        }
+
         // cleanup children scopes
         for (self.children.items) |child| {
             child.deinit();
             self.allocator.destroy(child);
         }
+
         // cleanup children arraylist
         self.children.deinit(self.allocator);
 
         // clean up symbols
         self.symbols.deinit(self.allocator);
+
+        // clean up types
+        self.types.deinit(self.allocator);
     }
 };
 

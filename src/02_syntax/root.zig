@@ -3,7 +3,8 @@ const lexic = @import("lexic");
 pub const context = @import("./context.zig");
 const error_context = @import("context");
 
-const expression = @import("./expression.zig");
+const call_expression = @import("./expression/call_expression.zig");
+const primary_expression = @import("./expression/primary_expression.zig");
 const variable = @import("./variable.zig");
 const types = @import("./types.zig");
 const statement = @import("./statement.zig");
@@ -11,6 +12,9 @@ const statement = @import("./statement.zig");
 // export AST nodes to other modules
 pub const Statement = statement.Statement;
 pub const VariableBinding = variable.VariableBinding;
+pub const Expression = primary_expression.PrimaryExpression;
+pub const CallExpression = call_expression.CallExpression;
+pub const PrimaryExpression = call_expression.PrimaryExpression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -59,7 +63,20 @@ pub const Module = struct {
             }
 
             // nothing matched, but there are tokens. this in an error
-            _ = try ctx.err.create_and_append_error("No statement matched", current_pos, current_pos + 1);
+            {
+                // get current token at current pos & print error
+                // there MUST be a valid token in here, otherwise this loop shouldnt even be running
+                const c_token = ctx.tokens.items[current_pos];
+                var err = try ctx.err.create_and_append_error("No statement matched", c_token.start_pos, c_token.end_pos());
+
+                const token_name = c_token.token_type.to_string();
+                const error_name = try std.fmt.allocPrint(ctx.err.allocator, "This token `{s}` didnt match any construct", .{token_name});
+                try err.add_label(ctx.err.create_error_label_alloc(
+                    error_name,
+                    c_token.start_pos,
+                    c_token.end_pos(),
+                ));
+            }
             return error.Error;
         }
 

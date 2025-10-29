@@ -17,6 +17,9 @@ install: release
 	sudo cp zig-out/bin/thp /usr/bin/thp
 	@echo "Installed to /usr/bin/thp"
 
+test:
+	zig build test
+
 # Clean build artifacts
 clean:
 	rm -rf zig-out
