@@ -153,30 +153,19 @@ pub fn run(self: *const CompileOptions) !void {
     defer chunk.deinit();
 
     // ==========================================
-    //   Out to file
+    //   Out to stdout
     // ==========================================
 
-    // Read file
-    const out_file: std.fs.File = try std.fs.cwd().openFile("./out.thpb", .{
-        .mode = .read_write,
-    });
-    defer out_file.close();
-
-    // out writer
-    var out_writer_buf: [4096]u8 = undefined;
-    var out_writer_i = out_file.writer(&out_writer_buf);
-    var out_writer = &out_writer_i.interface;
-
     // write
-    _ = try out_writer.write("THP!");
-    _ = try out_writer.writeInt(u32, @intCast(chunk.constants.items.len), .big);
+    _ = try stdout.write("THP!");
+    _ = try stdout.writeInt(u32, @intCast(chunk.constants.items.len), .big);
     for (chunk.constants.items) |float| {
-        _ = try out_writer.writeInt(u64, @bitCast(float), .big);
+        _ = try stdout.writeInt(u64, @bitCast(float), .big);
     }
-    _ = try out_writer.write(std.mem.sliceAsBytes(chunk.code.items));
+    _ = try stdout.write(std.mem.sliceAsBytes(chunk.code.items));
 
     // don't forget to flush
-    try out_writer.flush();
+    try stdout.flush();
 
     // ==========================================
     //   Execution?
