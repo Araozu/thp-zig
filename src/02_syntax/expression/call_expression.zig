@@ -16,7 +16,7 @@ const error_context = @import("context");
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
 const ParseError = types.ParseError;
-const PrimaryExpression = @import("./primary_expression.zig").PrimaryExpression;
+pub const PrimaryExpression = @import("./primary_expression.zig").PrimaryExpression;
 
 pub const CallExpression = union(enum) {
     function: struct {
