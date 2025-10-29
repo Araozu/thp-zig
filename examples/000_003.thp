@@ -1,2 +1,3 @@
-var number = rnd()
+var rnd = 322
+var number = 644
 

@@ -14,6 +14,7 @@ pub const Statement = statement.Statement;
 pub const VariableBinding = variable.VariableBinding;
 pub const Expression = primary_expression.PrimaryExpression;
 pub const CallExpression = call_expression.CallExpression;
+pub const PrimaryExpression = call_expression.PrimaryExpression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;

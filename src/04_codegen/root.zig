@@ -1,72 +1,95 @@
 const std = @import("std");
-const syntax = @import("syntax");
-const semantic = @import("semantic");
+const m_syntax = @import("syntax");
+const m_vm = @import("vm");
 
-const Statement = syntax.Statement;
-const VariableBinding = syntax.VariableBinding;
-const ASTModule = syntax.Module;
+const Chunk = m_vm.Chunk;
+const OpCode = m_vm.OpCode;
+const ASTModule = m_syntax.Module;
 
-const Visitor = semantic.Visitor;
-const VisitorError = semantic.VisitorError;
+pub const ByteCodeGenerator = struct {
+    ast: *const ASTModule,
+    allocator: std.mem.Allocator,
 
-pub const PHPGeneratorVisitor = struct {
-    alloc: std.mem.Allocator,
-    bytes: std.ArrayListUnmanaged(u8),
+    const Self = @This();
 
-    pub fn init(alloc: std.mem.Allocator) PHPGeneratorVisitor {
-        return PHPGeneratorVisitor{
-            .alloc = alloc,
-            .bytes = .empty,
+    pub fn init(self: *Self, ast: *const ASTModule, alloc: std.mem.Allocator) void {
+        self.* = .{
+            .ast = ast,
+            .allocator = alloc,
         };
     }
 
-    pub fn visitStatement(ptr: *anyopaque, node: *const Statement) VisitorError!void {
-        const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
+    /// Caller must call `deinit` on the returned chunk
+    pub fn emit(self: *Self) !Chunk {
+        var chunk: Chunk = undefined;
+        chunk.init(self.allocator);
+        errdefer chunk.deinit();
 
-        switch (node.value) {
-            .variableBinding => |b| {
-                try b.accept(&self.visitor());
+        // walk the AST, generate bytecode?
+
+        for (self.ast.statements.items) |*statement| {
+            switch (statement.value) {
+                .variableBinding => |b| {
+                    // ignore the binding itself, focus on the expresion
+
+                    try emit_call_expression(&chunk, &b.expression);
+                },
+            }
+        }
+
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 0);
+
+        return chunk;
+    }
+
+    /// What does this do? it computes the bytecode for an expression,
+    /// and has the top of the stack ready to use that computed value
+    fn emit_call_expression(chunk: *Chunk, exp: *m_syntax.CallExpression) !void {
+        switch (exp.*) {
+            .function => |*f| {
+                // TODO
+
+                // Emit bytecode for the args
+                for (f.arguments.items) |*argument| {
+                    try emit_call_expression(chunk, argument);
+                }
+
+                // call the function, if `print`
+                switch (f.primary) {
+                    .identifier => |id| {
+                        if (!std.mem.eql(u8, id.value, "print")) {
+                            std.debug.panic("Not implemented: function call other than print\n", .{});
+                        }
+
+                        try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                    },
+                    else => std.debug.panic("Not implemented: function call other than print\n", .{}),
+                }
+            },
+            .primary => |*p| try emit_primary_expresion(chunk, p),
+        }
+    }
+
+    fn emit_primary_expresion(chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
+        switch (exp.*) {
+            .float => |t_float| {
+                // put the float at the top of the stack
+                const float_value = try std.fmt.parseFloat(f64, t_float.value);
+
+                // Add to the constants section
+                const constant_idx = try chunk.write_constant(float_value);
+                // Push to stack
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                try chunk.write_chunk(@intCast(constant_idx), 123);
+            },
+            else => {
+                // TODO
+                std.debug.panic("Not implemented: bytecode from function call\n", .{});
             },
         }
     }
 
-    pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!void {
-        const self: *PHPGeneratorVisitor = @ptrCast(@alignCast(ptr));
-
-        // FIXME: generate PHP code for an expression
-        const out = std.fmt.allocPrint(self.alloc, "${s} = ??;\n", .{node.identifier.value}) catch {
-            return VisitorError.OutOfMemory;
-        };
-        defer self.alloc.free(out);
-
-        self.bytes.appendSlice(self.alloc, out) catch {
-            return VisitorError.OutOfMemory;
-        };
-    }
-
-    pub fn visitor(self: *PHPGeneratorVisitor) Visitor {
-        return Visitor{
-            .ptr = self,
-            .visitStatementFn = visitStatement,
-            .visitVariableBindingFn = visitVariableBinding,
-        };
+    pub fn deinit() void {
+        //
     }
 };
-
-pub fn gen_php(alloc: std.mem.Allocator, ast: *const ASTModule) VisitorError!void {
-    var codegen_visitor = PHPGeneratorVisitor.init(alloc);
-    const v = codegen_visitor.visitor();
-
-    // walk
-    for (ast.statements.items) |*statement| {
-        try statement.accept(&v);
-    }
-
-    // FIXME: should return bytes rather than printing
-    // print
-    std.debug.print("{s}", .{codegen_visitor.bytes.items});
-}
-
-test {
-    std.testing.refAllDecls(@This());
-}

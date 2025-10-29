@@ -3,8 +3,8 @@
 //! or a plain value.
 //!
 //! ```ebnf
-//! CallExpression = Primary "(" Arguments_list? ")"
-//!                | Primary "[" Array_expression "]"
+//! CallExpression = Primary "(" ParamsList? ")"
+//!                | Primary "[" ArrayExpression "]"
 //!                | Primary
 //! ```
 const std = @import("std");
@@ -16,14 +16,16 @@ const error_context = @import("context");
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
 const ParseError = types.ParseError;
-const PrimaryExpression = @import("./primary_expression.zig").PrimaryExpression;
+pub const PrimaryExpression = @import("./primary_expression.zig").PrimaryExpression;
 
 pub const CallExpression = union(enum) {
     function: struct {
         primary: PrimaryExpression,
+        arguments: std.ArrayListUnmanaged(CallExpression),
     },
     primary: PrimaryExpression,
 
+    // FIXME: test correct return offsets
     pub fn init(self: *CallExpression, pos: usize, ctx: *const context.ParserContext) ParseError!?usize {
         std.debug.assert(pos < ctx.tokens.items.len);
         var current_pos = pos;
@@ -42,8 +44,15 @@ pub const CallExpression = union(enum) {
         const l_paren_t = &ctx.tokens.items[current_pos];
 
         if (l_paren_t.token_type == TokenType.LeftParen) {
-            const pos_after_fun = try parse_arguments_list(current_pos, ctx);
-            self.* = .{ .function = .{ .primary = primary_expr } };
+            var args: std.ArrayListUnmanaged(CallExpression) = .empty;
+            const pos_after_fun = try parse_arguments_list(current_pos, ctx, &args);
+
+            self.* = .{
+                .function = .{
+                    .primary = primary_expr,
+                    .arguments = args,
+                },
+            };
             return pos_after_fun;
         }
         // TODO: check if array expression
@@ -53,15 +62,30 @@ pub const CallExpression = union(enum) {
         return current_pos;
     }
 
-    fn parse_arguments_list(pos: usize, ctx: *const context.ParserContext) !usize {
+    fn parse_arguments_list(pos: usize, ctx: *const context.ParserContext, arguments_arr: *std.ArrayListUnmanaged(CallExpression)) !usize {
         var current_pos = pos;
 
         const lparen_t = &ctx.tokens.items[current_pos];
 
-        // TODO: actually parse argumenst
+        // consume left paren
+        current_pos += 1;
+
+        // TODO: actually parse more than 1 arguments
+
+        // Attempt to parse 1 argument
+
+        // TODO: should be its own reusable function
+        {
+            var arg_expr: CallExpression = undefined;
+            const next_pos = try arg_expr.init(current_pos, ctx);
+            if (next_pos) |n| {
+                current_pos = n;
+
+                try arguments_arr.append(ctx.allocator, arg_expr);
+            }
+        }
 
         // assert r paren
-        current_pos += 1;
         if (ctx.oob(current_pos)) {
             // throw error, unmatched paren
             var err = try ctx.err.create_and_append_error("Unmatched paren", lparen_t.start_pos, lparen_t.end_pos());
@@ -94,14 +118,15 @@ pub const CallExpression = union(enum) {
             .primary => |*p| p.deinit(ctx),
             .function => |*f| {
                 f.primary.deinit(ctx);
+                f.arguments.deinit(ctx.allocator);
             },
         }
     }
 };
 
 // ```ebnf
-// CallExpression = Primary "(" Arguments_list? ")"
-//                | Primary "[" Array_expression "]"
+// CallExpression = Primary "(" ParamsList? ")"
+//                | Primary "[" ArrayExpression "]"
 //                | Primary
 // ```
 

@@ -10,15 +10,23 @@ pub const SymbolInfo = struct {
         start: usize,
         end: usize,
     },
+
+    pub fn deinit(self: *SymbolInfo, allocator: std.mem.Allocator) void {
+        self.t.deinit(allocator);
+    }
 };
 
 pub const Type = union(enum) {
     Untyped,
+    Unit,
     Int,
     Float,
     String,
     Bool,
+    /// Type assumes ownership of `return_t`.
+    /// It **must** be `create`d with the same allocator passed to this `deinit`
     Function: struct {
+        params: []const Type,
         return_t: *Type,
     },
     // TODO: generic types, container types
@@ -26,6 +34,7 @@ pub const Type = union(enum) {
     pub fn to_str(self: *const Type) []const u8 {
         return switch (self.*) {
             .Untyped => "<untyped>",
+            .Unit => "<unit>",
             .Int => "Int",
             .Float => "Float",
             .String => "String",
@@ -50,6 +59,18 @@ pub const Type = union(enum) {
         // like when Array is implemented
 
         return true;
+    }
+
+    /// This method **destroys** owned data if neccesary.
+    /// That data **must** be `create`d with the same `allocator`
+    /// passed to this method
+    pub fn deinit(self: *Type, allocator: std.mem.Allocator) void {
+        switch (self.*) {
+            .Function => |f| {
+                allocator.destroy(f.return_t);
+            },
+            else => {},
+        }
     }
 };
 
@@ -141,6 +162,12 @@ pub const Scope = struct {
     }
 
     pub fn deinit(self: *Scope) void {
+        // deinit all scope types
+        var iter = self.symbols.iterator();
+        while (iter.next()) |symbol| {
+            symbol.value_ptr.deinit(self.allocator);
+        }
+
         // cleanup children scopes
         for (self.children.items) |child| {
             child.deinit();
