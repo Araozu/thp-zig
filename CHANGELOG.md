@@ -58,7 +58,7 @@ This is a rough, non-commital roadmap of sorts.
 - [x] Parse function call with argument
 - [x] vm: `print` compiler builtin
 - [ ] vm: Read, parse & interpret bytecode
-- [ ] emit bytecode for minimal print
+- [x] emit bytecode for minimal print
 
 
 ## v0.0.1: hopes & dreams

@@ -27,6 +27,7 @@ pub fn run(self: *const CompileOptions) !void {
         .read = true,
         .truncate = false,
     });
+    defer source_file.close();
 
     // 20MB max buffer
     var file_buffer = try allocator.alloc(u8, 1024 * 1024 * 20);
@@ -152,17 +153,37 @@ pub fn run(self: *const CompileOptions) !void {
     defer chunk.deinit();
 
     // ==========================================
-    //   Out to stdout
+    //   Out to file
     // ==========================================
 
-    // for (chunk.code.items) |byte| {
-    //     std.debug.print("{X:0>2} ", .{byte});
-    // }
-    // std.debug.print("\n", .{});
-    // for (chunk.constants.items) |value| {
-    //     std.debug.print("{d} ", .{value});
-    // }
-    // std.debug.print("\n", .{});
+    // Read file
+    const out_file: std.fs.File = try std.fs.cwd().openFile("./out.thpb", .{
+        .mode = .read_write,
+    });
+    defer out_file.close();
+
+    // out writer
+    var out_writer_buf: [4096]u8 = undefined;
+    var out_writer_i = out_file.writer(&out_writer_buf);
+    var out_writer = &out_writer_i.interface;
+
+    // write
+    _ = try out_writer.write("THP!");
+    _ = try out_writer.writeByte(@intCast(chunk.constants.items.len));
+    _ = try out_writer.write(std.mem.sliceAsBytes(chunk.constants.items));
+    _ = try out_writer.write(std.mem.sliceAsBytes(chunk.code.items));
+
+    // don't forget to flush
+    try out_writer.flush();
+
+    for (chunk.code.items) |byte| {
+        std.debug.print("{X:0>2} ", .{byte});
+    }
+    std.debug.print("\n", .{});
+    for (chunk.constants.items) |value| {
+        std.debug.print("{d} ", .{value});
+    }
+    std.debug.print("\n", .{});
 
     // ==========================================
     //   Execution
