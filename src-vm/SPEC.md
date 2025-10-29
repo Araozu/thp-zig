@@ -10,7 +10,7 @@ Heavily based on Crafting Interpreters lox vm.
 
 - First 4 bytes: "0x54 0x48 0x50 0x21" (THP!)
 
-- Next byte: len of the constants section, in bytes (n)
+- Next 4 bytes: len of the constants section, in bytes (n)
 - Next n bytes: constants section
 - Next bytes: bytecode
 

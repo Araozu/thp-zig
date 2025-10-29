@@ -22,25 +22,26 @@ pub fn read_bytecode(allocator: std.mem.Allocator, bytes: []u8) !m_chunk.Chunk {
     errdefer chunk.deinit();
 
     // Read next byte for size
-    const contants_bytes_len = bytes[4];
+    const contants_bytes_len = std.mem.readInt(u32, bytes[4..8], .big);
 
     // Read constant bytes
     if (contants_bytes_len > 0) {
         // Ensure enough bytes
         try chunk.constants.ensureTotalCapacity(chunk.allocator, contants_bytes_len);
 
-        // Read bytes
-        const constants_slice = bytes[5..(5 + contants_bytes_len)];
+        // Read & insert bytes
+        for (0..contants_bytes_len) |i| {
+            const bytes_start = 8 + (i * 8);
+            const bytes_end = 8 + ((i + 1) * 8);
+            const f64_value: f64 = @bitCast(std.mem.readInt(u64, bytes[bytes_start..bytes_end][0..8], .big));
 
-        const f64_ptr: [*]f64 = @ptrCast(@alignCast(constants_slice.ptr));
-        const f64_count = bytes.len / @sizeOf(f64);
-        const constants_bytes = f64_ptr[0..f64_count];
-
-        try chunk.constants.appendSlice(chunk.allocator, constants_bytes);
+            try chunk.constants.append(chunk.allocator, f64_value);
+        }
     }
 
     // Remaining bytes are bytecode
-    const bytecode_bytes = bytes[5 + contants_bytes_len ..];
+    const bytecode_start_idx = 8 + (contants_bytes_len * 8);
+    const bytecode_bytes = bytes[bytecode_start_idx..];
 
     // Write bytecode bytes
     try chunk.write_raw_bytecode_bytes(bytecode_bytes, 1);

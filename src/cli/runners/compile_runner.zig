@@ -169,31 +169,33 @@ pub fn run(self: *const CompileOptions) !void {
 
     // write
     _ = try out_writer.write("THP!");
-    _ = try out_writer.writeByte(@intCast(chunk.constants.items.len));
-    _ = try out_writer.write(std.mem.sliceAsBytes(chunk.constants.items));
+    _ = try out_writer.writeInt(u32, @intCast(chunk.constants.items.len), .big);
+    for (chunk.constants.items) |float| {
+        _ = try out_writer.writeInt(u64, @bitCast(float), .big);
+    }
     _ = try out_writer.write(std.mem.sliceAsBytes(chunk.code.items));
 
     // don't forget to flush
     try out_writer.flush();
 
-    for (chunk.code.items) |byte| {
-        std.debug.print("{X:0>2} ", .{byte});
-    }
-    std.debug.print("\n", .{});
-    for (chunk.constants.items) |value| {
-        std.debug.print("{d} ", .{value});
-    }
-    std.debug.print("\n", .{});
+    // for (chunk.code.items) |byte| {
+    //     std.debug.print("{X:0>2} ", .{byte});
+    // }
+    // std.debug.print("\n", .{});
+    // for (chunk.constants.items) |value| {
+    //     std.debug.print("{d} ", .{value});
+    // }
+    // std.debug.print("\n", .{});
 
     // ==========================================
-    //   Execution
+    //   Execution?
     // ==========================================
 
-    var vm: m_vm.VM = undefined;
-    vm.init(chunk);
-    defer vm.deinit();
-
-    _ = vm.interpret();
+    // var vm: m_vm.VM = undefined;
+    // vm.init(chunk);
+    // defer vm.deinit();
+    //
+    // _ = vm.interpret();
 }
 
 inline fn trace_header() void {
