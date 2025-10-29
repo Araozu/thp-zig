@@ -28,7 +28,7 @@ pub const SymbolTable = struct {
         const type_ref = try allocator.create(Type);
         type_ref.* = Type.Unit;
 
-        try self.scope.symbols.put(self.allocator, "print", .{
+        try self.scope.symbols.put(allocator, "print", .{
             .t = Type{
                 .Function = .{
                     .params = &.{},
@@ -47,8 +47,6 @@ pub const SymbolTable = struct {
         var scope_ref = &self.scope;
         self.builtin_types.deinit(self.allocator);
         scope_ref.deinit();
-
-        // FIXME: release the type's Function's `return_t`
     }
 };
 
