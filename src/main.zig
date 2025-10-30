@@ -8,7 +8,6 @@ const parser_ctx = syntax.context;
 
 const cli = @import("./cli/root.zig");
 const cli_interface = @import("./cli/interface.zig");
-const cli_compile_command = @import("./cli/compile_command.zig");
 
 const config = @import("config");
 const tracing = config.tracing;
@@ -19,7 +18,6 @@ const thp_version: []const u8 = "0.0.1";
 
 pub fn main() !void {
     // just run the CLI
-
     var args = std.process.args();
     defer args.deinit();
 
@@ -37,6 +35,9 @@ pub fn main() !void {
     switch (cli_args) {
         .Compile => |opts| {
             _ = try cli_interface.compile_runner.run(&opts);
+        },
+        .Lex => {
+            _ = try cli_interface.lex_runner.run();
         },
         else => {
             std.debug.print("CLI command not implemented.\n", .{});

@@ -19,8 +19,11 @@
 //!       <file> -p          - compiles a single file in place. the output file is the input file with .php extension
 
 const std = @import("std");
+const config = @import("config");
+
 pub const compile_command = @import("./compile_command.zig");
 pub const compile_runner = @import("./runners/compile_runner.zig");
+pub const lex_runner = @import("./runners/lex_runner.zig");
 
 /// Represents the possible command line arguments.
 pub const CliArgs = union(enum) {
@@ -44,6 +47,8 @@ pub const CliArgs = union(enum) {
             if (std.mem.eql(u8, arg, "compile") or std.mem.eql(u8, arg, "c")) {
                 const compile_opts = try compile_command.CompileOptions.parse(args);
                 return CliArgs{ .Compile = compile_opts };
+            } else if (std.mem.eql(u8, arg, "lex")) {
+                return .Lex;
             }
 
             // Other cases
