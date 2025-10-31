@@ -11,7 +11,6 @@ const cli_interface = @import("./cli/interface.zig");
 const config = @import("config");
 const tracing = config.tracing;
 const json = config.json;
-const Io = std.Io;
 
 const thp_version: []const u8 = "0.0.1";
 

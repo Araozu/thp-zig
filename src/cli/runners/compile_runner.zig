@@ -13,6 +13,10 @@ const tracing = config.tracing;
 
 const CompileOptions = @import("../compile_command.zig").CompileOptions;
 
+var stderr_buffer: [128]u8 = undefined;
+var stderr_writer = std.fs.File.stderr().writer(&stderr_buffer);
+var stderr = &stderr_writer.interface;
+
 /// Runs the compile command.
 pub fn run(self: *const CompileOptions) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -20,8 +24,15 @@ pub fn run(self: *const CompileOptions) !void {
     const allocator = arena.allocator();
 
     // Read file
-    var filebuffer: [4096]u8 = undefined;
-    const absolute_path = try std.fs.realpath(self.filename, &filebuffer);
+    var file_path_buffer: [4096]u8 = undefined;
+    const absolute_path = std.fs.realpath(self.filename, &file_path_buffer) catch |e| switch (e) {
+        error.FileNotFound => {
+            try stderr.print("File `{s}` not found.\n", .{self.filename});
+            try stderr.flush();
+            std.process.exit(1);
+        },
+        else => return e,
+    };
 
     const source_file = try std.fs.createFileAbsolute(absolute_path, std.fs.File.CreateFlags{
         .read = true,
@@ -29,8 +40,8 @@ pub fn run(self: *const CompileOptions) !void {
     });
     defer source_file.close();
 
-    // 20MB max buffer
-    var file_buffer = try allocator.alloc(u8, 1024 * 1024 * 20);
+    // Source files must be 1MB max
+    var file_buffer = try allocator.alloc(u8, 1024 * 1024);
     defer allocator.free(file_buffer);
 
     const read_bytes = try source_file.read(file_buffer);
@@ -40,13 +51,15 @@ pub fn run(self: *const CompileOptions) !void {
     //   Setup
     // ==========================================
     // FIXME: handle writing to disk
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout_buffer = try allocator.alloc(u8, 1024);
+    defer allocator.free(stdout_buffer);
+
+    var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
     const stdout = &stdout_writer.interface;
 
     if (tracing) {
-        try stdout.print("\n|\n| DEBUG MODE\n|\n\n", .{});
-        try stdout.flush();
+        try stderr.print("\n|\n| DEBUG MODE\n|\n\n", .{});
+        try stderr.flush();
     }
 
     // Setup compiler context
@@ -59,8 +72,8 @@ pub fn run(self: *const CompileOptions) !void {
 
     var tokens = lexic.tokenize(file_bytes, allocator, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {
-            try stdout.print("FATAL ERROR: System Out of Memory!", .{});
-            try stdout.flush();
+            try stderr.print("FATAL ERROR: System Out of Memory!", .{});
+            try stderr.flush();
             return e;
         },
         else => return e,
@@ -82,8 +95,8 @@ pub fn run(self: *const CompileOptions) !void {
     if (ctx.errors.items.len > 0) {
         for (ctx.errors.items) |*err| {
             const err_str = try err.get_error_str(file_bytes, "<file>", allocator);
-            try stdout.print("\n{s}\n", .{err_str});
-            try stdout.flush();
+            try stderr.print("\n{s}\n", .{err_str});
+            try stderr.flush();
             allocator.free(err_str);
         }
 
@@ -107,8 +120,8 @@ pub fn run(self: *const CompileOptions) !void {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
                 const err_str = try err_item.get_error_str(file_bytes, "<file>", allocator);
-                try stdout.print("\n{s}\n", .{err_str});
-                try stdout.flush();
+                try stderr.print("\n{s}\n", .{err_str});
+                try stderr.flush();
                 allocator.free(err_str);
             }
             return;
@@ -127,15 +140,16 @@ pub fn run(self: *const CompileOptions) !void {
 
     semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {
-            try stdout.print("System ran out of memory!\n", .{});
+            try stderr.print("System ran out of memory!\n", .{});
+            try stderr.flush();
             return;
         },
         else => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
                 const err_str = try err_item.get_error_str(file_bytes, "<file>", allocator);
-                try stdout.print("\n{s}\n", .{err_str});
-                try stdout.flush();
+                try stderr.print("\n{s}\n", .{err_str});
+                try stderr.flush();
                 allocator.free(err_str);
             }
             return;
