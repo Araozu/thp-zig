@@ -141,9 +141,10 @@ test "should parse a primary expression" {
     var expr: CallExpression = undefined;
     defer expr.deinit(&parser_context);
 
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("322", expr.primary.int.value);
         try std.testing.expectEqualDeep(TokenType.Int, expr.primary.int.token_type);
+        try std.testing.expectEqual(1, next_pos);
         return;
     } else try std.testing.expect(false);
 }
@@ -157,10 +158,11 @@ test "should parse a function call expression" {
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: CallExpression = undefined;
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         defer expr.deinit(&parser_context);
 
         try std.testing.expectEqualDeep(expr.function.primary.identifier.value, "print");
+        try std.testing.expectEqual(3, next_pos);
         return;
     } else try std.testing.expect(false);
 }
@@ -176,10 +178,11 @@ test "should parse a expresion used as function call" {
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: CallExpression = undefined;
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         defer expr.deinit(&parser_context);
 
         try std.testing.expectEqualDeep(expr.function.primary.paren.exp.primary.int.value, "322");
+        try std.testing.expectEqual(5, next_pos);
         return;
     } else try std.testing.expect(false);
 }

@@ -74,14 +74,19 @@ test "should parse a variable declaration statement" {
         .err = &err_ctx,
     };
     var statement: Statement = undefined;
-    _ = try statement.init(0, &parser_context);
-    defer statement.deinit(&parser_context);
 
-    switch (statement.value) {
-        .variableBinding => |v| {
-            try std.testing.expectEqual(true, v.is_mutable);
-            try std.testing.expectEqualDeep("my_variable", v.identifier.value);
-        },
+    if (try statement.init(0, &parser_context)) |next_pos| {
+        defer statement.deinit(&parser_context);
+
+        switch (statement.value) {
+            .variableBinding => |v| {
+                try std.testing.expectEqual(true, v.is_mutable);
+                try std.testing.expectEqualDeep("my_variable", v.identifier.value);
+                try std.testing.expectEqual(4, next_pos);
+            },
+        }
+    } else {
+        try std.testing.expect(false);
     }
 }
 

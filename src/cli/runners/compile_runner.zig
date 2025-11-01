@@ -50,12 +50,6 @@ pub fn run(self: *const CompileOptions) !void {
     // ==========================================
     //   Setup
     // ==========================================
-    // FIXME: handle writing to disk
-    const stdout_buffer = try allocator.alloc(u8, 1024);
-    defer allocator.free(stdout_buffer);
-
-    var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
-    const stdout = &stdout_writer.interface;
 
     if (tracing) {
         try stderr.print("\n|\n| DEBUG MODE\n|\n\n", .{});
@@ -169,6 +163,12 @@ pub fn run(self: *const CompileOptions) !void {
     // ==========================================
     //   Out to stdout
     // ==========================================
+    // FIXME: handle writing to disk
+    const stdout_buffer = try allocator.alloc(u8, 1024);
+    defer allocator.free(stdout_buffer);
+
+    var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
+    const stdout = &stdout_writer.interface;
 
     // write
     _ = try stdout.write("THP!");

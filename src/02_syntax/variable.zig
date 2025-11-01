@@ -215,10 +215,12 @@ test "should parse a minimal var" {
         .err = &err_ctx,
     };
     var binding: VariableBinding = undefined;
-    _ = try binding.init(0, &parser_context);
+    const next_pos = try binding.init(0, &parser_context) orelse @panic("Fail");
     defer binding.deinit(&parser_context);
 
+    try std.testing.expectEqual(next_pos, 4);
     try std.testing.expect(binding.is_mutable);
+    try std.testing.expect(binding.datatype == null);
     try std.testing.expect(binding.datatype == null);
     try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
@@ -244,9 +246,10 @@ test "should parse a variable with a function call" {
 
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var binding: VariableBinding = undefined;
-    _ = try binding.init(0, &parser_context);
+    const next_pos = try binding.init(0, &parser_context) orelse @panic("Fail");
     defer binding.deinit(&parser_context);
 
+    try std.testing.expectEqual(next_pos, 6);
     try std.testing.expect(!binding.is_mutable);
     try std.testing.expect(binding.datatype == null);
     try std.testing.expectEqualStrings("my_number", binding.identifier.value);

@@ -159,9 +159,10 @@ test "should parse int expression" {
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("322", expr.int.value);
         try std.testing.expectEqualDeep(TokenType.Int, expr.int.token_type);
+        try std.testing.expectEqualDeep(1, next_pos);
         return;
     }
     try std.testing.expect(false);
@@ -177,9 +178,10 @@ test "should parse float expression" {
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("322.644", expr.float.value);
         try std.testing.expectEqualDeep(TokenType.Float, expr.float.token_type);
+        try std.testing.expectEqualDeep(1, next_pos);
         return;
     }
     try std.testing.expect(false);
@@ -195,9 +197,10 @@ test "should parse string expression" {
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("\"hello\"", expr.string.value);
         try std.testing.expectEqualDeep(TokenType.String, expr.string.token_type);
+        try std.testing.expectEqualDeep(1, next_pos);
         return;
     }
     try std.testing.expect(false);
@@ -214,11 +217,12 @@ test "should parse expression within parens" {
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
 
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         switch (expr) {
             .paren => |inner_exp| {
                 try std.testing.expectEqualDeep("322", inner_exp.exp.*.primary.int.value);
                 try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.*.primary.int.token_type);
+                try std.testing.expectEqualDeep(3, next_pos);
             },
             else => try std.testing.expect(false),
         }
