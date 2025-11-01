@@ -40,7 +40,8 @@ pub const SymbolCollectorVisitor = struct {
             .variableBinding => |b| {
                 try b.accept(&self.visitor());
             },
-            else => @panic("Not implemented: collect symbols on expression as statement"),
+            // A dangling expression does not declare any symbol
+            .expression => {},
         }
     }
 

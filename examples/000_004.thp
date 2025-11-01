@@ -1,3 +1,2 @@
-val _ = print(125.322)
-val __ = print(644.0)
+print(125.322)
 

@@ -28,11 +28,13 @@ pub const ByteCodeGenerator = struct {
         // walk the AST, generate bytecode?
 
         for (self.ast.statements.items) |*statement| {
-            switch (statement.value) {
+            switch (statement.*) {
                 .variableBinding => |b| {
                     // ignore the binding itself, focus on the expresion
-
                     try emit_call_expression(&chunk, &b.expression);
+                },
+                .expression => |*e| {
+                    try emit_call_expression(&chunk, e);
                 },
             }
         }

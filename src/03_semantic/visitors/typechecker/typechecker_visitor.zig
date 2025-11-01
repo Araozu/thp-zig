@@ -48,7 +48,9 @@ pub const TypecheckerVisitor = struct {
             .variableBinding => |b| {
                 try b.accept(&self.visitor());
             },
-            else => @panic("Not implemented: typechecking expression as statement"),
+            .expression => |*e| {
+                _ = try ExpressionVisitor.visit(self, e);
+            },
         }
     }
 
