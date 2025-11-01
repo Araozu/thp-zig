@@ -38,7 +38,7 @@ pub const Module = struct {
     ) ParseError!void {
         var arrl = std.ArrayListUnmanaged(statement.Statement).empty;
         errdefer arrl.deinit(ctx.allocator);
-        errdefer for (arrl.items) |i| {
+        errdefer for (arrl.items) |*i| {
             i.deinit(ctx);
         };
 
@@ -86,7 +86,7 @@ pub const Module = struct {
     }
 
     pub fn deinit(self: *@This(), ctx: *const context.ParserContext) void {
-        for (self.statements.items) |stmt| {
+        for (self.statements.items) |*stmt| {
             stmt.deinit(ctx);
         }
         self.statements.deinit(ctx.allocator);

@@ -44,10 +44,11 @@ pub const TypecheckerVisitor = struct {
     pub fn visitStatement(ptr: *anyopaque, node: *const Statement) VisitorError!void {
         const self: *TypecheckerVisitor = @ptrCast(@alignCast(ptr));
 
-        switch (node.value) {
+        switch (node.*) {
             .variableBinding => |b| {
                 try b.accept(&self.visitor());
             },
+            else => @panic("Not implemented: typechecking expression as statement"),
         }
     }
 

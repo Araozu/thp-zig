@@ -36,10 +36,11 @@ pub const SymbolCollectorVisitor = struct {
     pub fn visitStatement(ptr: *anyopaque, node: *const Statement) VisitorError!void {
         const self: *SymbolCollectorVisitor = @ptrCast(@alignCast(ptr));
 
-        switch (node.value) {
+        switch (node.*) {
             .variableBinding => |b| {
                 try b.accept(&self.visitor());
             },
+            else => @panic("Not implemented: collect symbols on expression as statement"),
         }
     }
 
