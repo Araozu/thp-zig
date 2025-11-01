@@ -115,6 +115,6 @@ test "should parse a expression as a statement" {
     const next_pos = try statement.init(0, &parser_context) orelse @panic("Expected a statement");
     defer statement.deinit(&parser_context);
 
-    try std.testing.expectEqual(next_pos, 5);
-    try std.testing.expectEqualDeep("print", statement.expression.primary.identifier.value);
+    try std.testing.expectEqual(next_pos, 4);
+    try std.testing.expectEqualDeep("print", statement.expression.function.primary.identifier.value);
 }
