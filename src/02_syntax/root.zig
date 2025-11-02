@@ -21,6 +21,9 @@ const TokenType = lexic.TokenType;
 const ParseError = types.ParseError;
 const TokenStream = types.TokenStream;
 
+// FIXME: remove this, temp import to force testing
+pub const test_import = @import("./expression/pratt_expression.zig");
+
 /// A module in the AST.
 pub const Module = struct {
     statements: std.ArrayListUnmanaged(statement.Statement),
