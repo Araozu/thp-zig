@@ -3,7 +3,7 @@ const lexic = @import("lexic");
 const context = @import("../context.zig");
 const error_context = @import("context");
 const types = @import("../types.zig");
-const CallExpression = @import("./call_expression.zig").CallExpression;
+const PrattExpression = @import("./pratt_expression.zig").PrattExpression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -24,7 +24,7 @@ pub const PrimaryExpression = union(enum) {
     string: *const Token,
     identifier: *const Token,
     paren: struct {
-        exp: *CallExpression,
+        exp: *PrattExpression,
         lparen: *const Token,
         rparen: *const Token,
     },
@@ -37,7 +37,7 @@ pub const PrimaryExpression = union(enum) {
         self: *PrimaryExpression,
         pos: usize,
         ctx: *const context.ParserContext,
-    ) !?usize {
+    ) ParseError!?usize {
         std.debug.assert(pos < ctx.tokens.items.len);
 
         // Check if parsing simple tokens
@@ -70,7 +70,7 @@ pub const PrimaryExpression = union(enum) {
                 return ParseError.Error;
             }
 
-            var inner_exp = try ctx.allocator.create(CallExpression);
+            var inner_exp = try ctx.allocator.create(PrattExpression);
             errdefer ctx.allocator.destroy(inner_exp);
 
             const next_pos_maybe = try inner_exp.init(pos + 1, ctx);
@@ -220,6 +220,8 @@ test "should parse expression within parens" {
     if (try expr.init(0, &parser_context)) |next_pos| {
         switch (expr) {
             .paren => |inner_exp| {
+                // The inner expression should be a PrattExpression wrapping a primary
+                try std.testing.expect(inner_exp.exp.* == .primary);
                 try std.testing.expectEqualDeep("322", inner_exp.exp.*.primary.int.value);
                 try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.*.primary.int.token_type);
                 try std.testing.expectEqualDeep(3, next_pos);
