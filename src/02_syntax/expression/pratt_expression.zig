@@ -24,6 +24,14 @@ const Precedence = enum(u8) {
     pub fn compare(self: Precedence, other: Precedence) std.math.Order {
         return std.math.order(@intFromEnum(self), @intFromEnum(other));
     }
+
+    pub fn plus_one(self: Precedence) Precedence {
+        const next = @intFromEnum(self) + 1;
+        if (next > @intFromEnum(Precedence.PREC_PRIMARY)) {
+            return Precedence.PREC_PRIMARY;
+        }
+        return @enumFromInt(next);
+    }
 };
 
 pub const PrattExpression = union(enum) {
@@ -70,18 +78,20 @@ pub const PrattExpression = union(enum) {
             const op_prec = get_infix_precedence(token);
 
             // Stop if the operator has lower precedence than minimum
-            if (op_prec.compare(min_precedence) != .gt) {
+            if (op_prec.compare(min_precedence) == .lt) {
                 break;
             }
 
             const operator_token = token;
             next_pos += 1; // consume operator
 
-            // Parse the right side with higher precedence
+            // Parse the right side with higher precedence for left-associativity
             var right_expr = try ctx.allocator.create(Self);
             errdefer ctx.allocator.destroy(right_expr);
 
-            next_pos = try parse_with_precedence(right_expr, next_pos, ctx, op_prec) orelse {
+            // Use op_prec + 1 for left-associativity, op_prec for right-associativity
+            const next_min_prec = op_prec.plus_one();
+            next_pos = try parse_with_precedence(right_expr, next_pos, ctx, next_min_prec) orelse {
                 _ = try ctx.err.create_and_append_error(
                     "Expected expression after operator",
                     operator_token.start_pos,
@@ -233,4 +243,38 @@ test "should fail on incomplete binary expression" {
 
     // Should have created an error message
     try expect(err_ctx.errors.items.len > 0);
+}
+
+test "should parse multiple binary operations with + and -" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "1 + 2 - 3 + 4";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var expr: PrattExpression = undefined;
+    const next_pos = try expr.init(0, &parser_context) orelse {
+        try expect(false);
+        return;
+    };
+    defer expr.deinit(&parser_context);
+
+    // Should consume all 7 tokens: "1", "+", "2", "-", "3", "+", "4"
+    try expectEqual(7, next_pos);
+
+    // Should be a binary expression
+    try expect(expr == .binary);
+
+    // Top level should be the last operation: + 4
+    // This verifies left-associativity: ((1 + 2) - 3) + 4
+    try expect(std.mem.eql(u8, expr.binary.operator.value, "+"));
+
+    // Left side should also be binary: (1 + 2) - 3
+    try expect(expr.binary.left.* == .binary);
+    try expect(std.mem.eql(u8, expr.binary.left.binary.operator.value, "-"));
+
+    // Left-left side should be: 1 + 2
+    try expect(expr.binary.left.binary.left.* == .binary);
+    try expect(std.mem.eql(u8, expr.binary.left.binary.left.binary.operator.value, "+"));
 }
