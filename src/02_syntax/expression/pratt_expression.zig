@@ -41,6 +41,10 @@ pub const PrattExpression = union(enum) {
         operator: *const lexic.Token,
         right: *PrattExpression,
     },
+    function: struct {
+        primary: *PrimaryExpression,
+        arguments: std.ArrayListUnmanaged(*PrimaryExpression),
+    },
 
     const Self = @This();
 
@@ -148,6 +152,9 @@ pub const PrattExpression = union(enum) {
 
     /// Get the precedence of an infix operator at the current token
     fn get_infix_precedence(token: *const Token) Precedence {
+        if (token.token_type == .LeftParen) {
+            return .PREC_CALL;
+        }
         if (token.token_type != .Operator) {
             return .PREC_NONE;
         }
