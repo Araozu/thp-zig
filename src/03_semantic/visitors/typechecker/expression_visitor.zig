@@ -17,6 +17,7 @@ pub fn visit(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorErr
             _ = b;
             std.debug.panic("Not implemented: Typecheck binary expression", .{});
         },
+        .function => std.debug.panic("Not implemented: typechecking function calls", .{}),
         // .function => |f| {
         //     // Check that the function_id resolves to a function type
         //     const t_function_id = try visit_primary_expression(self, &f.primary);

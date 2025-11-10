@@ -5,6 +5,7 @@ const types = @import("../types.zig");
 
 const m_primary_expression = @import("primary_expression.zig");
 const PrimaryExpression = m_primary_expression.PrimaryExpression;
+const m_function_call = @import("function_call.zig");
 const Token = lexic.Token;
 const ParseError = types.ParseError;
 
@@ -42,7 +43,7 @@ pub const PrattExpression = union(enum) {
         right: *PrattExpression,
     },
     function: struct {
-        primary: *PrimaryExpression,
+        callee: *PrattExpression,
         arguments: std.ArrayListUnmanaged(*PrimaryExpression),
     },
 
@@ -88,6 +89,29 @@ pub const PrattExpression = union(enum) {
 
             const operator_token = token;
             next_pos += 1; // consume operator
+
+            // Parse function call
+            if (operator_token.token_type == .LeftParen) {
+                // Parse the function call (arguments parsing delegated to function_call module)
+                next_pos = try m_function_call.parse_function_call(next_pos, ctx, operator_token) orelse {
+                    temp_expr.deinit(ctx);
+                    ctx.allocator.destroy(temp_expr);
+                    return ParseError.Error;
+                };
+
+                // Create function call expression
+                // temp_expr can be any expression (for first-class functions)
+                const new_function = try ctx.allocator.create(Self);
+                errdefer ctx.allocator.destroy(new_function);
+
+                new_function.* = .{ .function = .{
+                    .callee = temp_expr,
+                    .arguments = .{},
+                } };
+
+                temp_expr = new_function;
+                continue;
+            }
 
             // Parse the right side with higher precedence for left-associativity
             var right_expr = try ctx.allocator.create(Self);
@@ -177,6 +201,14 @@ pub const PrattExpression = union(enum) {
             .primary => |p| {
                 p.deinit(ctx);
                 ctx.allocator.destroy(p);
+            },
+            .function => |*f| {
+                f.callee.deinit(ctx);
+                ctx.allocator.destroy(f.callee);
+                for (f.arguments.items) |arg| {
+                    arg.deinit(ctx);
+                    ctx.allocator.destroy(arg);
+                }
             },
             .binary => |b| {
                 b.left.deinit(ctx);
@@ -284,4 +316,57 @@ test "should parse multiple binary operations with + and -" {
     // Left-left side should be: 1 + 2
     try expect(expr.binary.left.binary.left.* == .binary);
     try expect(std.mem.eql(u8, expr.binary.left.binary.left.binary.operator.value, "+"));
+}
+
+test "should parse function call with no arguments" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "foo()";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var expr: PrattExpression = undefined;
+    const next_pos = try expr.init(0, &parser_context) orelse {
+        try expect(false);
+        return;
+    };
+    defer expr.deinit(&parser_context);
+
+    // Should consume all 3 tokens: "foo", "(", ")"
+    try expectEqual(3, next_pos);
+
+    // Should be a function expression
+    try expect(expr == .function);
+    try expectEqual(0, expr.function.arguments.items.len);
+}
+
+test "should parse chained function calls (first-class functions)" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "foo()()";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var expr: PrattExpression = undefined;
+    const next_pos = try expr.init(0, &parser_context) orelse {
+        try expect(false);
+        return;
+    };
+    defer expr.deinit(&parser_context);
+
+    // Should consume all 5 tokens: "foo", "(", ")", "(", ")"
+    try expectEqual(5, next_pos);
+
+    // Should be a function expression
+    try expect(expr == .function);
+    try expectEqual(0, expr.function.arguments.items.len);
+
+    // The callee should also be a function expression
+    try expect(expr.function.callee.* == .function);
+    try expectEqual(0, expr.function.callee.function.arguments.items.len);
+
+    // The inner callee should be a primary expression (foo)
+    try expect(expr.function.callee.function.callee.* == .primary);
 }
