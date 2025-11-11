@@ -96,21 +96,27 @@ pub const PrattExpression = union(enum) {
 
             // Parse function call
             if (operator_token.token_type == .LeftParen) {
+                var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+
                 // Parse the function call (arguments parsing delegated to function_call module)
-                next_pos = try m_function_call.parse_function_call(next_pos, ctx, operator_token) orelse {
+                next_pos = try m_function_call.parse_function_call(next_pos, ctx, operator_token, &arguments) orelse {
                     temp_expr.deinit(ctx);
                     ctx.allocator.destroy(temp_expr);
+                    for (arguments.items) |arg| {
+                        arg.deinit(ctx);
+                        ctx.allocator.destroy(arg);
+                    }
+                    arguments.deinit(ctx.allocator);
                     return ParseError.Error;
                 };
 
                 // Create function call expression
-                // temp_expr can be any expression (for first-class functions)
                 const new_function = try ctx.allocator.create(Self);
                 errdefer ctx.allocator.destroy(new_function);
 
                 new_function.* = .{ .function = .{
                     .callee = temp_expr,
-                    .arguments = .{},
+                    .arguments = arguments,
                 } };
 
                 temp_expr = new_function;

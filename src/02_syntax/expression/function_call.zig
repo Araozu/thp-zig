@@ -19,6 +19,7 @@ pub fn parse_function_call(
     pos: usize,
     ctx: *const context.ParserContext,
     open_paren_token: *const Token,
+    arguments: *std.ArrayListUnmanaged(*PrattExpression),
 ) ParseError!?usize {
     var next_pos = pos;
 
@@ -41,9 +42,7 @@ pub fn parse_function_call(
             next_pos += 1;
         }
 
-        // FIXME: return the parsed arguments & delete this destroy
-        expr.deinit(ctx);
-        ctx.allocator.destroy(expr);
+        try arguments.append(ctx.allocator, expr);
     }
 
     // Expect closing paren
@@ -82,12 +81,21 @@ test "should parse empty parentheses" {
     defer tokens.deinit(std.testing.allocator);
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
 
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
     // Get the opening paren token
     const open_paren = &tokens.items[0];
     try expectEqual(.LeftParen, open_paren.token_type);
 
     // Parse starting after the opening paren (pos 1)
-    const next_pos = try parse_function_call(1, &parser_context, open_paren) orelse {
+    const next_pos = try parse_function_call(1, &parser_context, open_paren, &arguments) orelse {
         try expect(false);
         return;
     };
@@ -105,11 +113,20 @@ test "should fail on missing closing paren at EOF" {
     defer tokens.deinit(std.testing.allocator);
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
 
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
     // Get the opening paren token
     const open_paren = &tokens.items[0];
 
     // Parse starting after the opening paren (pos 1, which is EOF)
-    const result = parse_function_call(1, &parser_context, open_paren);
+    const result = parse_function_call(1, &parser_context, open_paren, &arguments);
 
     // Should return an error
     try std.testing.expectError(ParseError.Error, result);
@@ -126,11 +143,20 @@ test "should fail on missing closing paren with other tokens" {
     defer tokens.deinit(std.testing.allocator);
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
 
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
     // Get the opening paren token
     const open_paren = &tokens.items[0];
 
     // Parse starting after the opening paren (pos 1, which is '+')
-    const result = parse_function_call(1, &parser_context, open_paren);
+    const result = parse_function_call(1, &parser_context, open_paren, &arguments);
 
     // Should return an error
     try std.testing.expectError(ParseError.Error, result);
@@ -147,12 +173,21 @@ test "should parse empty parens in a longer token stream" {
     defer tokens.deinit(std.testing.allocator);
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
 
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
     // Tokens: "foo"(0), "("(1), ")"(2), "bar"(3)
     const open_paren = &tokens.items[1];
     try expectEqual(.LeftParen, open_paren.token_type);
 
     // Parse starting after the opening paren (pos 2)
-    const next_pos = try parse_function_call(2, &parser_context, open_paren) orelse {
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
         try expect(false);
         return;
     };
@@ -170,11 +205,20 @@ test "should parse a single param" {
     defer tokens.deinit(std.testing.allocator);
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
 
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
     const open_paren = &tokens.items[1];
     try expectEqual(.LeftParen, open_paren.token_type);
 
     // Parse starting after the opening paren (pos 2)
-    const next_pos = try parse_function_call(2, &parser_context, open_paren) orelse {
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
         try expect(false);
         return;
     };
@@ -189,11 +233,20 @@ test "should parse a single param with trailing comma" {
     defer tokens.deinit(std.testing.allocator);
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
 
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
     const open_paren = &tokens.items[1];
     try expectEqual(.LeftParen, open_paren.token_type);
 
     // Parse starting after the opening paren (pos 2)
-    const next_pos = try parse_function_call(2, &parser_context, open_paren) orelse {
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
         try expect(false);
         return;
     };
