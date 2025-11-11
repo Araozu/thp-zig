@@ -31,10 +31,10 @@ pub const ByteCodeGenerator = struct {
             switch (statement.*) {
                 .variableBinding => |b| {
                     // ignore the binding itself, focus on the expresion
-                    try emit_call_expression(&chunk, &b.expression);
+                    try emit_pratt_expression(&chunk, &b.expression);
                 },
                 .expression => |e| {
-                    try emit_call_expression(&chunk, e);
+                    try emit_pratt_expression(&chunk, e);
                 },
             }
         }
@@ -46,14 +46,14 @@ pub const ByteCodeGenerator = struct {
 
     /// What does this do? it computes the bytecode for an expression,
     /// and has the top of the stack ready to use that computed value
-    fn emit_call_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
+    fn emit_pratt_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
             .function => |*f| {
                 // TODO
 
                 // Emit bytecode for the args
                 for (f.arguments.items) |argument| {
-                    try emit_call_expression(chunk, argument);
+                    try emit_pratt_expression(chunk, argument);
                 }
 
                 // call the function, if `print`
@@ -75,7 +75,20 @@ pub const ByteCodeGenerator = struct {
                 }
             },
             .primary => |p| try emit_primary_expresion(chunk, p),
-            .binary => std.debug.panic("Not implemented: bytecode from binary expression\n", .{}),
+            .binary => |*binary| {
+                // HACK: only `+` supported on the VM, hardcoded for that, and operands assumed to be floats
+
+                if (!std.mem.eql(u8, binary.operator.value, "+")) {
+                    std.debug.panic("Not implemented: only + operator supported\n", .{});
+                }
+
+                // emit for left and right
+                try emit_pratt_expression(chunk, binary.left);
+                try emit_pratt_expression(chunk, binary.right);
+
+                // emit add opcode
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
+            },
         }
     }
 

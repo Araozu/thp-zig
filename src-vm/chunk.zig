@@ -7,6 +7,9 @@ pub const OpCode = enum(u8) {
     OP_RETURN = 0x00,
     OP_PRINT = 0x01,
     OP_CONSTANT = 0x02,
+    /// Binary addition
+    ///
+    /// Pops two values from the stack, adds them, and pushes the result.
     OP_ADD = 0x03,
     OP_NEGATE = 0x04,
 };
@@ -34,6 +37,7 @@ pub const Chunk = struct {
         try self.lines.appendNTimes(self.allocator, line, bytes.len);
     }
 
+    /// Write a single byte to the chunk's code array, along with its line number
     pub fn write_chunk(self: *Self, byte: u8, line: u32) !void {
         try self.code.append(self.allocator, byte);
         try self.lines.append(self.allocator, line);
