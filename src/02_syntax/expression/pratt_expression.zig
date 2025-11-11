@@ -219,10 +219,12 @@ pub const PrattExpression = union(enum) {
             .function => |*f| {
                 f.callee.deinit(ctx);
                 ctx.allocator.destroy(f.callee);
+
                 for (f.arguments.items) |arg| {
                     arg.deinit(ctx);
                     ctx.allocator.destroy(arg);
                 }
+                f.arguments.deinit(ctx.allocator);
             },
             .binary => |b| {
                 b.left.deinit(ctx);
@@ -383,4 +385,26 @@ test "should parse chained function calls (first-class functions)" {
 
     // The inner callee should be a primary expression (foo)
     try expect(expr.function.callee.function.callee.* == .primary);
+}
+
+test "should parse a function call with arguments" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "print(322)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var expr: PrattExpression = undefined;
+    const next_pos = try expr.init(0, &parser_context) orelse {
+        try expect(false);
+        return;
+    };
+    defer expr.deinit(&parser_context);
+
+    try expectEqual(4, next_pos);
+
+    // Should be a function expression
+    try expect(expr == .function);
+    try expectEqual(1, expr.function.arguments.items.len);
 }
