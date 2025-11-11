@@ -9,6 +9,8 @@
 //! thp init    - creates a new config file
 //! thp compile - compiles a single file, outputs to stdout
 //!     c
+//! thp run     - compiles and executes a single file in the VM
+//!     r
 //!
 //! thp lex     - lexes a single file, outputs tokens to stdout as json
 //!
@@ -17,12 +19,18 @@
 //! thp c <file>             - compiles a single file, outputs to stdout
 //!       <file> -o <output> - compiles a single file, outputs to <output>
 //!       <file> -p          - compiles a single file in place. the output file is the input file with .php extension
+//!
+//! <run> options
+//!
+//! thp r <file>             - compiles and executes a single file in the VM
 
 const std = @import("std");
 const config = @import("config");
 
 pub const compile_command = @import("./compile_command.zig");
 pub const compile_runner = @import("./runners/compile_runner.zig");
+pub const run_command = @import("./run_command.zig");
+pub const run_runner = @import("./runners/run_runner.zig");
 pub const lex_runner = @import("./runners/lex_runner.zig");
 
 /// Represents the possible command line arguments.
@@ -32,6 +40,7 @@ pub const CliArgs = union(enum) {
     Build,
     Init,
     Compile: compile_command.CompileOptions,
+    Run: run_command.RunOptions,
     Lex,
 
     /// Parses the command line arguments and returns the corresponding `CliArgs` variant.
@@ -47,6 +56,9 @@ pub const CliArgs = union(enum) {
             if (std.mem.eql(u8, arg, "compile") or std.mem.eql(u8, arg, "c")) {
                 const compile_opts = try compile_command.CompileOptions.parse(args);
                 return CliArgs{ .Compile = compile_opts };
+            } else if (std.mem.eql(u8, arg, "run") or std.mem.eql(u8, arg, "r")) {
+                const run_opts = try run_command.RunOptions.parse(args);
+                return CliArgs{ .Run = run_opts };
             } else if (std.mem.eql(u8, arg, "lex")) {
                 return .Lex;
             }
@@ -69,6 +81,8 @@ pub const CliArgs = union(enum) {
         \\thp init    - creates a new config file
         \\thp compile - compiles a single file, outputs to stdout
         \\    c
+        \\thp run     - compiles and executes a single file in the VM
+        \\    r
         \\
         \\thp lex     - lexes a single file, outputs tokens to stdout as json
         \\
@@ -77,6 +91,10 @@ pub const CliArgs = union(enum) {
         \\thp c <file>             - compiles a single file, outputs to stdout
         \\      <file> -o <output> - compiles a single file, outputs to <output>
         \\      <file> -p          - compiles a single file in place. the output file is the input file with .php extension
+        \\
+        \\<run> options
+        \\
+        \\thp r <file>             - compiles and executes a single file in the VM
         ;
     }
 };

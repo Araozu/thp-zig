@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const command_help =
-    \\THP compile
+    \\THP compile: Compiles a single file into bytecode
     \\
     \\ thp compile <file> [options]
     \\     c       <file> [options]
