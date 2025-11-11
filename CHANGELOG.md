@@ -38,8 +38,8 @@ This is a rough, non-commital roadmap of sorts.
 
 ## v0.0.3: cleaning house
 
-- [ ] restructure parsing out structures
-- [ ] parse binary operators
+- [x] parse binary operators
+- [x] regression: reenable function call parsing
 - [ ] vm: binary operators
 
 ## v0.0.2: bare minimum

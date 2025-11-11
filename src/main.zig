@@ -11,7 +11,6 @@ const cli_interface = @import("./cli/interface.zig");
 const config = @import("config");
 const tracing = config.tracing;
 const json = config.json;
-const Io = std.Io;
 
 const thp_version: []const u8 = "0.0.1";
 
@@ -26,6 +25,11 @@ pub fn main() !void {
             std.debug.print("Error: Missing <file> for compile command.\n", .{});
             return;
         },
+        error.RunMissingFilename => {
+            std.debug.print("{s}\n\n", .{cli_interface.run_command.RunOptions.usage()});
+            std.debug.print("Error: Missing <file> for run command.\n", .{});
+            return;
+        },
         else => {
             return;
         },
@@ -34,6 +38,9 @@ pub fn main() !void {
     switch (cli_args) {
         .Compile => |opts| {
             _ = try cli_interface.compile_runner.run(&opts);
+        },
+        .Run => |opts| {
+            _ = try cli_interface.run_runner.run(&opts);
         },
         .Lex => {
             _ = try cli_interface.lex_runner.run();

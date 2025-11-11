@@ -5,22 +5,37 @@ const type_visitor = @import("./typechecker_visitor.zig");
 const visitor = @import("../../visitor.zig");
 const types = @import("../../types.zig");
 
-const CallExpression = syntax.CallExpression;
+const PrattExpression = syntax.PrattExpression;
 const PrimaryExpression = syntax.Expression;
 const TypecheckerVisitor = type_visitor.TypecheckerVisitor;
 const VisitorError = visitor.VisitorError;
 const Type = types.Type;
 
-pub fn visit(self: *TypecheckerVisitor, node: *const CallExpression) VisitorError!Type {
+pub fn visit(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorError!Type {
     switch (node.*) {
-        .function => |f| {
+        .binary => return visit_binary_expression(self, node),
+        // .function => std.debug.panic("Not implemented: typechecking function calls", .{}),
+        .function => |*funcall| {
             // Check that the function_id resolves to a function type
-            const t_function_id = try visit_primary_expression(self, &f.primary);
+            const t_function_id = try visit(self, funcall.callee);
 
             // Assert its a function type
             switch (t_function_id) {
                 .Function => |t_function| {
                     // TODO: assert args are correct when the function calls other things
+
+                    // get type of the function
+
+                    // check arity
+
+                    // get types of params
+                    for (funcall.arguments.items) |arg| {
+                        const v = self.visitor();
+                        _ = try arg.accept(Type, &v);
+                    }
+
+                    // check types of params
+
                     return t_function.return_t.*;
                 },
                 else => {
@@ -41,13 +56,51 @@ pub fn visit(self: *TypecheckerVisitor, node: *const CallExpression) VisitorErro
             std.debug.print("TODO: get expression of function call\n", .{});
             return Type.Untyped;
         },
-        .primary => |expr| return try visit_primary_expression(self, &expr),
+        .primary => |expr| return try visit_primary_expression(self, expr),
     }
 
     // FIXME:
     // Process other expression types
 
     return Type.Untyped;
+}
+
+pub fn visit_binary_expression(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorError!Type {
+    const binary_expr = &node.binary;
+    const expr_visitor = self.visitor();
+
+    const left_type = try binary_expr.left.accept(Type, &expr_visitor);
+    const right_type = try binary_expr.right.accept(Type, &expr_visitor);
+
+    const left_start, const left_end = binary_expr.left.get_range();
+    const right_start, const right_end = binary_expr.right.get_range();
+
+    // FIXME: typecheck based on the actual operator, not on whether types are equal
+    if (!left_type.eql(&right_type)) {
+        var new_error = try self.err.create_and_append_error("Mismatched types", left_start, right_end);
+        {
+            const err_msg = try std.fmt.allocPrint(self.err.allocator, "This has type {s}", .{left_type.to_str()});
+            const err_msg_label = self.err.create_error_label_alloc(
+                err_msg,
+                left_start,
+                left_end,
+            );
+            try new_error.add_label(err_msg_label);
+        }
+        {
+            const err_msg = try std.fmt.allocPrint(self.err.allocator, "This has type {s}", .{right_type.to_str()});
+            const err_msg_label = self.err.create_error_label_alloc(
+                err_msg,
+                right_start,
+                right_end,
+            );
+            try new_error.add_label(err_msg_label);
+        }
+        return VisitorError.SemanticError;
+    }
+
+    // FIXME: return a proper type, based on the operator return type
+    return left_type;
 }
 
 pub fn visit_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryExpression) VisitorError!Type {

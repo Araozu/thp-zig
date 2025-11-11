@@ -28,11 +28,13 @@ pub const ByteCodeGenerator = struct {
         // walk the AST, generate bytecode?
 
         for (self.ast.statements.items) |*statement| {
-            switch (statement.value) {
+            switch (statement.*) {
                 .variableBinding => |b| {
                     // ignore the binding itself, focus on the expresion
-
-                    try emit_call_expression(&chunk, &b.expression);
+                    try emit_pratt_expression(&chunk, &b.expression);
+                },
+                .expression => |e| {
+                    try emit_pratt_expression(&chunk, e);
                 },
             }
         }
@@ -44,29 +46,49 @@ pub const ByteCodeGenerator = struct {
 
     /// What does this do? it computes the bytecode for an expression,
     /// and has the top of the stack ready to use that computed value
-    fn emit_call_expression(chunk: *Chunk, exp: *m_syntax.CallExpression) !void {
+    fn emit_pratt_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
             .function => |*f| {
                 // TODO
 
                 // Emit bytecode for the args
-                for (f.arguments.items) |*argument| {
-                    try emit_call_expression(chunk, argument);
+                for (f.arguments.items) |argument| {
+                    try emit_pratt_expression(chunk, argument);
                 }
 
                 // call the function, if `print`
-                switch (f.primary) {
-                    .identifier => |id| {
-                        if (!std.mem.eql(u8, id.value, "print")) {
-                            std.debug.panic("Not implemented: function call other than print\n", .{});
-                        }
+                switch (f.callee.*) {
+                    .primary => |primary| {
+                        switch (primary.*) {
+                            .identifier => |id| {
+                                if (!std.mem.eql(u8, id.value, "print")) {
+                                    std.debug.panic("Not implemented: function call other than print\n", .{});
+                                }
 
-                        try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                            },
+                            else => std.debug.panic("Not implemented: not identifier function call\n", .{}),
+                        }
+                        return;
                     },
-                    else => std.debug.panic("Not implemented: function call other than print\n", .{}),
+                    else => std.debug.panic("Not implemented: function call\n", .{}),
                 }
             },
-            .primary => |*p| try emit_primary_expresion(chunk, p),
+            .primary => |p| try emit_primary_expresion(chunk, p),
+            .binary => |*binary| {
+                // HACK: only `+` supported on the VM, hardcoded for that, and operands assumed to be floats
+
+                if (!std.mem.eql(u8, binary.operator.value, "+")) {
+                    std.debug.panic("Not implemented: only + operator supported\n", .{});
+                }
+
+                // emit for left and right
+                try emit_pratt_expression(chunk, binary.left);
+                try emit_pratt_expression(chunk, binary.right);
+
+                // emit add opcode
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
+            },
         }
     }
 
