@@ -41,7 +41,8 @@ pub const Statement = union(enum) {
         // Try to parse a expression
         exp: {
             const expression = try ctx.allocator.create(PrattExpression);
-            errdefer expression.deinit(ctx);
+            errdefer ctx.allocator.destroy(expression);
+
             const next_pos = try expression.init(pos, ctx) orelse {
                 ctx.allocator.destroy(expression);
                 break :exp;
@@ -54,8 +55,8 @@ pub const Statement = union(enum) {
     }
 
     /// Method for accepting a visitor
-    pub fn accept(self: *const Statement, v: *const Visitor) VisitorError!void {
-        try v.visitStatement(self);
+    pub fn accept(self: *const Statement, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
+        return try v.visitStatement(self);
     }
 
     pub fn deinit(

@@ -42,7 +42,7 @@ pub fn semantic_analysis_unmanaged(
     var symbol_visitor = SymbolVisitor.init(alloc, &symbol_table.scope, err);
     const v = symbol_visitor.visitor();
     for (ast.statements.items) |*statement| {
-        try statement.accept(&v);
+        try statement.accept(void, &v);
     }
 
     // Name resolution
@@ -50,7 +50,7 @@ pub fn semantic_analysis_unmanaged(
     var typechecker_visitor = TypecheckerVisitor.init(alloc, symbol_table, &symbol_table.scope, err);
     const type_visitor = typechecker_visitor.visitor();
     for (ast.statements.items) |*statement| {
-        try statement.accept(&type_visitor);
+        _ = try statement.accept(Type, &type_visitor);
     }
 
     // Control flow analysis

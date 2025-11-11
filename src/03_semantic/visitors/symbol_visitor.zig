@@ -38,7 +38,7 @@ pub const SymbolCollectorVisitor = struct {
 
         switch (node.*) {
             .variableBinding => |b| {
-                try b.accept(&self.visitor());
+                return try b.accept(void, &self.visitor());
             },
             // A dangling expression does not declare any symbol
             .expression => {},
@@ -76,11 +76,18 @@ pub const SymbolCollectorVisitor = struct {
         };
     }
 
-    pub fn visitor(self: *SymbolCollectorVisitor) Visitor {
-        return Visitor{
+    pub fn visitExpression(ptr: *anyopaque, node: *const syntax.PrattExpression) VisitorError!void {
+        _ = ptr;
+        _ = node;
+        std.debug.panic("unimplemented", .{});
+    }
+
+    pub fn visitor(self: *SymbolCollectorVisitor) Visitor(void) {
+        return .{
             .ptr = self,
             .visitStatementFn = visitStatement,
             .visitVariableBindingFn = visitVariableBinding,
+            .visitExpressionFn = visitExpression,
         };
     }
 };

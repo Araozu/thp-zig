@@ -33,7 +33,7 @@ pub const ByteCodeGenerator = struct {
                     // ignore the binding itself, focus on the expresion
                     try emit_call_expression(&chunk, &b.expression);
                 },
-                .expression => |*e| {
+                .expression => |e| {
                     try emit_call_expression(&chunk, e);
                 },
             }
@@ -46,29 +46,30 @@ pub const ByteCodeGenerator = struct {
 
     /// What does this do? it computes the bytecode for an expression,
     /// and has the top of the stack ready to use that computed value
-    fn emit_call_expression(chunk: *Chunk, exp: *m_syntax.CallExpression) !void {
+    fn emit_call_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
             .function => |*f| {
                 // TODO
 
                 // Emit bytecode for the args
-                for (f.arguments.items) |*argument| {
+                for (f.arguments.items) |argument| {
                     try emit_call_expression(chunk, argument);
                 }
 
                 // call the function, if `print`
-                switch (f.primary) {
-                    .identifier => |id| {
-                        if (!std.mem.eql(u8, id.value, "print")) {
-                            std.debug.panic("Not implemented: function call other than print\n", .{});
-                        }
-
-                        try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
-                    },
-                    else => std.debug.panic("Not implemented: function call other than print\n", .{}),
+                switch (f.callee) {
+                    // .identifier => |id| {
+                    //     if (!std.mem.eql(u8, id.value, "print")) {
+                    //         std.debug.panic("Not implemented: function call other than print\n", .{});
+                    //     }
+                    //
+                    //     try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                    // },
+                    else => std.debug.panic("Not implemented: function call\n", .{}),
                 }
             },
-            .primary => |*p| try emit_primary_expresion(chunk, p),
+            .primary => |p| try emit_primary_expresion(chunk, p),
+            .binary => std.debug.panic("Not implemented: bytecode from binary expression\n", .{}),
         }
     }
 

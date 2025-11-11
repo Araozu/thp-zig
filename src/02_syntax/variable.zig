@@ -191,8 +191,8 @@ pub const VariableBinding = struct {
         return next_pos;
     }
 
-    pub fn accept(self: *const VariableBinding, v: *const Visitor) VisitorError!void {
-        try v.visitVariableBinding(self);
+    pub fn accept(self: *const VariableBinding, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
+        return try v.visitVariableBinding(self);
     }
 
     pub fn deinit(

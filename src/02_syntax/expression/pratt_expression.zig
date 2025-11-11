@@ -1,5 +1,7 @@
 const std = @import("std");
 const lexic = @import("lexic");
+const semantic = @import("semantic");
+
 const context = @import("../context.zig");
 const types = @import("../types.zig");
 
@@ -8,6 +10,8 @@ const PrimaryExpression = m_primary_expression.PrimaryExpression;
 const m_function_call = @import("function_call.zig");
 const Token = lexic.Token;
 const ParseError = types.ParseError;
+const Visitor = semantic.Visitor;
+const VisitorError = semantic.VisitorError;
 
 const Precedence = enum(u8) {
     PREC_NONE = 0,
@@ -44,7 +48,7 @@ pub const PrattExpression = union(enum) {
     },
     function: struct {
         callee: *PrattExpression,
-        arguments: std.ArrayListUnmanaged(*PrimaryExpression),
+        arguments: std.ArrayListUnmanaged(*PrattExpression),
     },
 
     const Self = @This();
@@ -191,6 +195,10 @@ pub const PrattExpression = union(enum) {
         }
 
         return .PREC_NONE;
+    }
+
+    pub fn accept(self: *const Self, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
+        return try v.visitExpression(self);
     }
 
     pub fn deinit(
