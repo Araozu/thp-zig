@@ -252,3 +252,34 @@ test "should parse a single param with trailing comma" {
     };
     try expectEqual(5, next_pos);
 }
+
+test "should parse a function called with an expression" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "print(1 + 2)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    try expectEqual(.LeftParen, open_paren.token_type);
+
+    // Parse starting after the opening paren (pos 2)
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Should consume the closing paren and return position 6
+    try expectEqual(6, next_pos);
+    try expectEqual(0, err_ctx.errors.items.len);
+}

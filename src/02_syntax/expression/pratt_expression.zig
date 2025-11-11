@@ -207,6 +207,13 @@ pub const PrattExpression = union(enum) {
         return try v.visitExpression(self);
     }
 
+    pub fn get_range(self: *const Self) struct { usize, usize } {
+        return switch (self.*) {
+            .primary => |p| p.get_range(),
+            else => std.debug.panic("Not implemented: get range\n", .{}),
+        };
+    }
+
     pub fn deinit(
         self: *Self,
         ctx: *const context.ParserContext,
