@@ -57,14 +57,20 @@ pub const ByteCodeGenerator = struct {
                 }
 
                 // call the function, if `print`
-                switch (f.callee) {
-                    // .identifier => |id| {
-                    //     if (!std.mem.eql(u8, id.value, "print")) {
-                    //         std.debug.panic("Not implemented: function call other than print\n", .{});
-                    //     }
-                    //
-                    //     try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
-                    // },
+                switch (f.callee.*) {
+                    .primary => |primary| {
+                        switch (primary.*) {
+                            .identifier => |id| {
+                                if (!std.mem.eql(u8, id.value, "print")) {
+                                    std.debug.panic("Not implemented: function call other than print\n", .{});
+                                }
+
+                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                            },
+                            else => std.debug.panic("Not implemented: not identifier function call\n", .{}),
+                        }
+                        return;
+                    },
                     else => std.debug.panic("Not implemented: function call\n", .{}),
                 }
             },

@@ -39,7 +39,7 @@ This is a rough, non-commital roadmap of sorts.
 ## v0.0.3: cleaning house
 
 - [x] parse binary operators
-- [ ] regression: reenable function call parsing
+- [x] regression: reenable function call parsing
 - [ ] vm: binary operators
 
 ## v0.0.2: bare minimum
