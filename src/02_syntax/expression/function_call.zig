@@ -2,22 +2,50 @@ const std = @import("std");
 const lexic = @import("lexic");
 const context = @import("../context.zig");
 const types = @import("../types.zig");
+const m_pratt_expression = @import("./pratt_expression.zig");
 
 const Token = lexic.Token;
 const ParseError = types.ParseError;
+const PrattExpression = m_pratt_expression.PrattExpression;
 
 /// Parse a function call starting from the opening parenthesis
 /// Returns the position after the closing parenthesis, or null if parsing fails
 ///
-/// Grammar: `( )`  (empty arguments for now)
+/// ```ebnf
+/// FunctionCall = "(" ArgumentList? ")"
+/// ArgumentList = Expression (comma Expression)* comma?
+/// ```
 pub fn parse_function_call(
     pos: usize,
     ctx: *const context.ParserContext,
     open_paren_token: *const Token,
-) !?usize {
+) ParseError!?usize {
     var next_pos = pos;
 
-    // For now, just parse empty argument list
+    // Attempt to parse argument list
+    args: {
+        // Parse expression
+        var expr = try ctx.allocator.create(PrattExpression);
+        errdefer ctx.allocator.destroy(expr);
+
+        next_pos = try expr.init(next_pos, ctx) orelse {
+            // No args, continue to closing paren
+            ctx.allocator.destroy(expr);
+            break :args;
+        };
+
+        // Parse many: comma, expression
+
+        // Consume trailing comma if exists
+        if (ctx.tokens.items[next_pos].token_type == .Comma) {
+            next_pos += 1;
+        }
+
+        // FIXME: return the parsed arguments & delete this destroy
+        expr.deinit(ctx);
+        ctx.allocator.destroy(expr);
+    }
+
     // Expect closing paren
     if (ctx.oob(next_pos)) {
         _ = try ctx.err.create_and_append_error(
@@ -132,4 +160,42 @@ test "should parse empty parens in a longer token stream" {
     // Should consume the closing paren and return position 3 (pointing to "bar")
     try expectEqual(3, next_pos);
     try expectEqual(0, err_ctx.errors.items.len);
+}
+
+test "should parse a single param" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "print(42)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    const open_paren = &tokens.items[1];
+    try expectEqual(.LeftParen, open_paren.token_type);
+
+    // Parse starting after the opening paren (pos 2)
+    const next_pos = try parse_function_call(2, &parser_context, open_paren) orelse {
+        try expect(false);
+        return;
+    };
+    try expectEqual(4, next_pos);
+}
+
+test "should parse a single param with trailing comma" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "print(42,)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    const open_paren = &tokens.items[1];
+    try expectEqual(.LeftParen, open_paren.token_type);
+
+    // Parse starting after the opening paren (pos 2)
+    const next_pos = try parse_function_call(2, &parser_context, open_paren) orelse {
+        try expect(false);
+        return;
+    };
+    try expectEqual(5, next_pos);
 }
