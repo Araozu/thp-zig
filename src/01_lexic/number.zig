@@ -633,3 +633,659 @@ test "should lex floating scientific number" {
         try std.testing.expect(false);
     }
 }
+
+// ============================================================================
+// EDGE CASE TESTS - INTEGER
+// ============================================================================
+
+test "int: should lex very large integer" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "99999999999999999999";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("99999999999999999999", r.value);
+        try std.testing.expect(r.token_type == TokenType.Int);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "int: should lex integer at EOF" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "12345";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("12345", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(input.len, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "int: should lex single digit integers" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const digits = [_][]const u8{ "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+
+    for (digits) |digit| {
+        const result = try lex(digit, digit.len, 0, &ctx);
+        if (result) |tuple| {
+            const r = tuple[0];
+            try std.testing.expectEqualStrings(digit, r.value);
+            try std.testing.expect(r.token_type == TokenType.Int);
+        } else {
+            try std.testing.expect(false);
+        }
+    }
+}
+
+test "int: should lex integer followed by operator" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "123+456";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("123", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(3, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "int: should lex integer followed by punctuation" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "42;";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("42", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(2, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+// ============================================================================
+// EDGE CASE TESTS - HEXADECIMAL
+// ============================================================================
+
+test "hex: should lex hex with all valid digits" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0x0123456789abcdefABCDEF";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0x0123456789abcdefABCDEF", r.value);
+        try std.testing.expect(r.token_type == TokenType.Int);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "hex: should lex hex with uppercase X" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0XABCD";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0XABCD", r.value);
+        try std.testing.expect(r.token_type == TokenType.Int);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "hex: should lex single hex digit" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0xF";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0xF", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "hex: should lex long hex number" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0xFFFFFFFFFFFFFFFF";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0xFFFFFFFFFFFFFFFF", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "hex: should stop at invalid hex character" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0xABCG";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0xABC", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(5, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "hex: should fail on empty hex after 0x" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0x+";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+// ============================================================================
+// EDGE CASE TESTS - OCTAL
+// ============================================================================
+
+test "octal: should lex all valid octal digits" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0o01234567";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0o01234567", r.value);
+        try std.testing.expect(r.token_type == TokenType.Int);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "octal: should lex octal with uppercase O" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0O777";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0O777", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "octal: should lex single octal digit" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0o7";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0o7", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "octal: should stop at digit 8" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0o1238";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0o123", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(5, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "octal: should stop at digit 9" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0o7779";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0o777", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(5, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "octal: should fail on empty octal after 0o" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0o";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+// ============================================================================
+// EDGE CASE TESTS - BINARY
+// ============================================================================
+
+test "binary: should lex all zeros" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b0000";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0b0000", r.value);
+        try std.testing.expect(r.token_type == TokenType.Int);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should lex all ones" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b1111";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0b1111", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should lex long binary number" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b11111111000000001111111100000000";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0b11111111000000001111111100000000", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should lex single binary digit 0" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b0";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0b0", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should lex single binary digit 1" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b1";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0b1", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should lex binary with uppercase B" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0B101010";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0B101010", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should stop at invalid character" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b1012";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0b101", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(5, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "binary: should fail on empty binary after 0b" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0b";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.Incomplete);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+// ============================================================================
+// EDGE CASE TESTS - FLOATING POINT
+// ============================================================================
+
+test "float: should lex float with many decimal places" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "3.141592653589793238";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("3.141592653589793238", r.value);
+        try std.testing.expect(r.token_type == TokenType.Float);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "float: should lex very small decimal" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0.0001";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0.0001", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "float: should lex float with single decimal digit" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "9.5";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("9.5", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "float: should lex float at EOF" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "123.456";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("123.456", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(input.len, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "float: should lex float followed by operator" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "1.5+2.5";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("1.5", r.value);
+        const pos = tuple[1];
+        try std.testing.expectEqual(3, pos);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "float: should lex zero point decimal" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "0.0";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("0.0", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "float: should fail on trailing decimal point at EOF" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "99.";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+test "float: should fail on decimal point followed by non-digit" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "42.x";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteFloatingNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+// ============================================================================
+// EDGE CASE TESTS - SCIENTIFIC NOTATION
+// ============================================================================
+
+test "scientific: should lex with negative exponent" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "5e-10";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("5e-10", r.value);
+        try std.testing.expect(r.token_type == TokenType.Float);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "scientific: should lex with large positive exponent" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "1e+308";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("1e+308", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "scientific: should lex with single digit exponent" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "7e+2";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("7e+2", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "scientific: should lex with multi-digit exponent" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "2e+123";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("2e+123", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "scientific: should lex float with scientific notation" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "3.14e+2";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("3.14e+2", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "scientific: should lex with negative exponent and decimal" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "6.022e-23";
+    const result = try lex(input, input.len, 0, &ctx);
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        try std.testing.expectEqualStrings("6.022e-23", r.value);
+    } else {
+        try std.testing.expect(false);
+    }
+}
+
+test "scientific: should fail with missing sign" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "5e3";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+test "scientific: should fail on e at EOF" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "5e";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
+
+test "scientific: should fail on invalid character after e" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+    const input = "5ex";
+    const result = lex(input, input.len, 0, &ctx) catch |err| {
+        try std.testing.expect(err == token.LexError.IncompleteScientificNumber);
+        return;
+    };
+
+    if (result) |tuple| {
+        const r = tuple[0];
+        std.debug.print("{s}\n", .{r.value});
+    }
+    try std.testing.expect(false);
+}
