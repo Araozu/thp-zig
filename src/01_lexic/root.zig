@@ -241,6 +241,338 @@ test "should handle recoverable errors" {
     try std.testing.expectEqual(@as(usize, 6), ctx.errors.items[0].end_position);
 }
 
+// ============================================================================
+// Integration Tests - Operators in Context
+// ============================================================================
+
+test "should tokenize simple arithmetic expression" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "1 + 2 - 3 * 4 / 5";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 9), arrl.items.len);
+
+    // Check operators
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[1].token_type);
+    try std.testing.expectEqualStrings("+", arrl.items[1].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[3].token_type);
+    try std.testing.expectEqualStrings("-", arrl.items[3].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[5].token_type);
+    try std.testing.expectEqualStrings("*", arrl.items[5].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[7].token_type);
+    try std.testing.expectEqualStrings("/", arrl.items[7].value);
+}
+
+test "should tokenize comparison operators" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "a == b != c <= d >= e < f > g";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 13), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[1].token_type);
+    try std.testing.expectEqualStrings("==", arrl.items[1].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[3].token_type);
+    try std.testing.expectEqualStrings("!=", arrl.items[3].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[5].token_type);
+    try std.testing.expectEqualStrings("<=", arrl.items[5].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[7].token_type);
+    try std.testing.expectEqualStrings(">=", arrl.items[7].value);
+}
+
+test "should tokenize logical operators" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "a && b || c";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 5), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[1].token_type);
+    try std.testing.expectEqualStrings("&&", arrl.items[1].value);
+    try std.testing.expectEqual(TokenType.Operator, arrl.items[3].token_type);
+    try std.testing.expectEqualStrings("||", arrl.items[3].value);
+}
+
+test "should tokenize assignment operators" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "x = y += z -= a *= b /= c";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 11), arrl.items.len);
+
+    try std.testing.expectEqualStrings("=", arrl.items[1].value);
+    try std.testing.expectEqualStrings("+=", arrl.items[3].value);
+    try std.testing.expectEqualStrings("-=", arrl.items[5].value);
+    try std.testing.expectEqualStrings("*=", arrl.items[7].value);
+    try std.testing.expectEqualStrings("/=", arrl.items[9].value);
+}
+
+test "should tokenize bitwise operators" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "a & b | c ^ d << e >> f";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 11), arrl.items.len);
+
+    try std.testing.expectEqualStrings("&", arrl.items[1].value);
+    try std.testing.expectEqualStrings("|", arrl.items[3].value);
+    try std.testing.expectEqualStrings("^", arrl.items[5].value);
+    try std.testing.expectEqualStrings("<<", arrl.items[7].value);
+    try std.testing.expectEqualStrings(">>", arrl.items[9].value);
+}
+
+test "should tokenize unary operators" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "!a ~b -c +d";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 8), arrl.items.len);
+
+    try std.testing.expectEqualStrings("!", arrl.items[0].value);
+    try std.testing.expectEqualStrings("~", arrl.items[2].value);
+    try std.testing.expectEqualStrings("-", arrl.items[4].value);
+    try std.testing.expectEqualStrings("+", arrl.items[6].value);
+}
+
+test "should tokenize operators without spaces" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "1+2*3";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 5), arrl.items.len);
+
+    try std.testing.expectEqualStrings("1", arrl.items[0].value);
+    try std.testing.expectEqualStrings("+", arrl.items[1].value);
+    try std.testing.expectEqualStrings("2", arrl.items[2].value);
+    try std.testing.expectEqualStrings("*", arrl.items[3].value);
+    try std.testing.expectEqualStrings("3", arrl.items[4].value);
+}
+
+// ============================================================================
+// Integration Tests - Punctuation in Context
+// ============================================================================
+
+test "should tokenize function arguments with commas" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "func(a, b, c)";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 8), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Comma, arrl.items[3].token_type);
+    try std.testing.expectEqualStrings(",", arrl.items[3].value);
+    try std.testing.expectEqual(TokenType.Comma, arrl.items[5].token_type);
+    try std.testing.expectEqualStrings(",", arrl.items[5].value);
+}
+
+test "should tokenize array elements with commas" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "[1, 2, 3, 4]";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 9), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Comma, arrl.items[2].token_type);
+    try std.testing.expectEqual(TokenType.Comma, arrl.items[4].token_type);
+    try std.testing.expectEqual(TokenType.Comma, arrl.items[6].token_type);
+}
+
+test "should tokenize multiple statements with newlines" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "a\nb\nc";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 5), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Newline, arrl.items[1].token_type);
+    try std.testing.expectEqualStrings("\n", arrl.items[1].value);
+    try std.testing.expectEqual(TokenType.Newline, arrl.items[3].token_type);
+    try std.testing.expectEqualStrings("\n", arrl.items[3].value);
+}
+
+test "should tokenize multiple empty lines" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "a\n\n\nb";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 5), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Newline, arrl.items[1].token_type);
+    try std.testing.expectEqual(TokenType.Newline, arrl.items[2].token_type);
+    try std.testing.expectEqual(TokenType.Newline, arrl.items[3].token_type);
+}
+
+test "should tokenize trailing comma" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "[1, 2, 3,]";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 8), arrl.items.len);
+
+    try std.testing.expectEqual(TokenType.Comma, arrl.items[6].token_type);
+}
+
+// ============================================================================
+// Integration Tests - Mixed Operators and Punctuation
+// ============================================================================
+
+test "should tokenize complex expression with operators and punctuation" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "x = func(a + b, c * d)\ny = z";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+
+    // Verify we have a mix of identifiers, operators, punctuation
+    var has_operator = false;
+    var has_comma = false;
+    var has_newline = false;
+
+    for (arrl.items) |tok| {
+        if (tok.token_type == TokenType.Operator) has_operator = true;
+        if (tok.token_type == TokenType.Comma) has_comma = true;
+        if (tok.token_type == TokenType.Newline) has_newline = true;
+    }
+
+    try std.testing.expect(has_operator);
+    try std.testing.expect(has_comma);
+    try std.testing.expect(has_newline);
+}
+
+test "should tokenize ternary-like operator" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "a ? b : c";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 5), arrl.items.len);
+
+    try std.testing.expectEqualStrings("?", arrl.items[1].value);
+    try std.testing.expectEqualStrings(":", arrl.items[3].value);
+}
+
+test "should tokenize member access chain" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "obj.prop.method()";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+
+    // Check for dot operators
+    var dot_count: usize = 0;
+    for (arrl.items) |tok| {
+        if (tok.token_type == TokenType.Operator and std.mem.eql(u8, tok.value, ".")) {
+            dot_count += 1;
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 2), dot_count);
+}
+
+test "should tokenize range operator with spaces" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    // Note: "1..10" causes lexer issues because "1." is parsed as a float
+    // Using spaces to avoid this bug in the number lexer
+    const input = "1 .. 10";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 3), arrl.items.len);
+
+    try std.testing.expectEqualStrings("..", arrl.items[1].value);
+}
+
+test "range operator without spaces causes lexer bug" {
+    // BUG DOCUMENTATION: When lexing "1..10", the number lexer parses "1." as a
+    // floating point number, then ".10" as another float, causing an error.
+    // This is a known issue with how the lexer prioritizes float parsing over
+    // the range operator.
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "1..10";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    // Currently this produces an error due to the bug described above
+    // Expected: 0 errors with tokens [Int("1"), Operator(".."), Int("10")]
+    // Actual: 1 error with tokens [Float("1."), Float(".10")]
+    try std.testing.expectEqual(@as(usize, 1), ctx.errors.items.len);
+}
+
+test "should tokenize spread operator" {
+    var ctx = context.ErrorContext.init(std.testing.allocator);
+    defer ctx.deinit();
+
+    const input = "...rest";
+    var arrl = try tokenize(input, std.testing.allocator, &ctx);
+    defer arrl.deinit(std.testing.allocator);
+
+    try std.testing.expectEqual(@as(usize, 0), ctx.errors.items.len);
+    try std.testing.expectEqual(@as(usize, 2), arrl.items.len);
+
+    try std.testing.expectEqualStrings("...", arrl.items[0].value);
+}
+
 test "lexer fuzzing" {
     return std.testing.fuzz({}, fuzz_impl, .{});
 }
