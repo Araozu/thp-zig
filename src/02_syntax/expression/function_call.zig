@@ -36,13 +36,12 @@ pub fn parse_function_call(
         };
 
         // Parse many: comma, expression
+        try arguments.append(ctx.allocator, expr);
 
         // Consume trailing comma if exists
-        if (ctx.tokens.items[next_pos].token_type == .Comma) {
+        if (!ctx.oob(next_pos) and ctx.tokens.items[next_pos].token_type == .Comma) {
             next_pos += 1;
         }
-
-        try arguments.append(ctx.allocator, expr);
     }
 
     // Expect closing paren
@@ -674,6 +673,31 @@ test "should error when argument followed by identifier instead of comma or pare
 
     try std.testing.expectError(ParseError.Error, result);
     try expect(err_ctx.errors.items.len > 0);
+}
+
+test "error message should be correct for EOF after argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const result = parse_function_call(2, &parser_context, open_paren, &arguments);
+
+    try std.testing.expectError(ParseError.Error, result);
+    try expect(err_ctx.errors.items.len > 0);
+    try std.testing.expectEqualStrings("Expected ')' after function call", err_ctx.errors.items[0].reason);
 }
 
 test "error message should be correct for EOF after trailing comma" {
