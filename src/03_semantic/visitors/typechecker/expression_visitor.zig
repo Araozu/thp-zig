@@ -4,6 +4,7 @@ const syntax = @import("syntax");
 const type_visitor = @import("./typechecker_visitor.zig");
 const visitor = @import("../../visitor.zig");
 const types = @import("../../types.zig");
+const m_operators = @import("../../operators.zig");
 
 const PrattExpression = syntax.PrattExpression;
 const PrimaryExpression = syntax.Expression;
@@ -73,11 +74,14 @@ pub fn typecheck_binary_expression(self: *TypecheckerVisitor, node: *const Pratt
     const right_type = try binary_expr.right.accept(Type, &expr_visitor);
 
     // FIXME: this is getting called always, unneccessarily, even when a error is not hit
-    const left_start, const left_end = binary_expr.left.get_range();
-    const right_start, const right_end = binary_expr.right.get_range();
+    // const left_start, const left_end = binary_expr.left.get_range();
+    // const right_start, const right_end = binary_expr.right.get_range();
 
-    // Typecheck with defined operator types
-    const t_operator = self.scope.get(operator_token.value) orelse {
+    const operator_signature = m_operators.resolve_binary_operator(
+        operator_token.value,
+        left_type,
+        right_type,
+    ) orelse {
         var new_error = try self.err.create_and_append_error(
             "Invalid operator",
             operator_token.start_pos,
@@ -94,108 +98,8 @@ pub fn typecheck_binary_expression(self: *TypecheckerVisitor, node: *const Pratt
         }
         return VisitorError.SemanticError;
     };
-    const t_op = switch (t_operator.t) {
-        .Function => |*t_op| t_op,
-        else => {
-            var new_error = try self.err.create_and_append_error(
-                "Mismatched type",
-                operator_token.start_pos,
-                operator_token.end_pos(),
-            );
-            {
-                const err_msg = try std.fmt.allocPrint(self.err.allocator, "Operator `{s}` is not a function", .{operator_token.value});
-                const err_msg_label = self.err.create_error_label_alloc(
-                    err_msg,
-                    operator_token.start_pos,
-                    operator_token.end_pos(),
-                );
-                try new_error.add_label(err_msg_label);
-            }
-            return VisitorError.SemanticError;
-        },
-    };
 
-    if (t_op.params.len != 2) {
-        var new_error = try self.err.create_and_append_error(
-            "Mismatched type",
-            operator_token.start_pos,
-            operator_token.end_pos(),
-        );
-        {
-            const err_msg = try std.fmt.allocPrint(self.err.allocator, "Operator `{s}` is not a binary function", .{operator_token.value});
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                operator_token.start_pos,
-                operator_token.end_pos(),
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        return VisitorError.SemanticError;
-    }
-
-    if (!t_op.params[0].eql(&left_type)) {
-        const t_op_left = t_op.params[0];
-        var new_error = try self.err.create_and_append_error(
-            "Mismatched type",
-            operator_token.start_pos,
-            operator_token.end_pos(),
-        );
-        {
-            const err_msg = try std.fmt.allocPrint(self.err.allocator, "Operator `{s}` received wrong left type", .{operator_token.value});
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                operator_token.start_pos,
-                operator_token.end_pos(),
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        {
-            const err_msg = try std.fmt.allocPrint(
-                self.err.allocator,
-                "This expression was expected to have type `{s}`, but type `{s}` was found",
-                .{ t_op_left.to_str(), left_type.to_str() },
-            );
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                left_start,
-                left_end,
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        return VisitorError.SemanticError;
-    }
-    if (!t_op.params[1].eql(&right_type)) {
-        const t_op_right = t_op.params[1];
-        var new_error = try self.err.create_and_append_error(
-            "Mismatched type",
-            operator_token.start_pos,
-            operator_token.end_pos(),
-        );
-        {
-            const err_msg = try std.fmt.allocPrint(self.err.allocator, "Operator `{s}` received wrong right type", .{operator_token.value});
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                operator_token.start_pos,
-                operator_token.end_pos(),
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        {
-            const err_msg = try std.fmt.allocPrint(
-                self.err.allocator,
-                "This expression was expected to have type `{s}`, but type `{s}` was found",
-                .{ t_op_right.to_str(), right_type.to_str() },
-            );
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                right_start,
-                right_end,
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        return VisitorError.SemanticError;
-    }
-    return t_op.return_t.*;
+    return operator_signature.result;
 }
 
 pub fn typecheck_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryExpression) VisitorError!Type {

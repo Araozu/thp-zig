@@ -76,6 +76,7 @@ pub const ByteCodeGenerator = struct {
                 // HACK: hardcoded binary operators
 
                 // emit for left and right
+                // TODO: how to know when to promote?
                 try emit_pratt_expression(chunk, binary.left);
                 try emit_pratt_expression(chunk, binary.right);
 
@@ -93,6 +94,7 @@ pub const ByteCodeGenerator = struct {
 
     fn emit_primary_expresion(chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
         switch (exp.*) {
+            // HACK: assumed to be f64
             .float => |t_float| {
                 // put the float at the top of the stack
                 const float_value = try std.fmt.parseFloat(f64, t_float.value);
@@ -101,6 +103,17 @@ pub const ByteCodeGenerator = struct {
                 const constant_idx = try chunk.write_constant(@bitCast(float_value));
                 // Push to stack
                 try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_F64), 1);
+                try chunk.write_chunk(@intCast(constant_idx), 123);
+            },
+            // HACK: assumed to be u64
+            .int => |t_int| {
+                const int_value = try std.fmt.parseInt(u64, t_int.value, 10);
+
+                // Add to the constants section
+                const constant_idx = try chunk.write_constant(int_value);
+
+                // Push to stack
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_U64), 1);
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             else => {

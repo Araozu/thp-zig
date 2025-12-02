@@ -76,6 +76,10 @@ pub const VM = struct {
                     const a = self.pop_f64();
                     self.push_f64(a - b);
                 },
+                .OP_CONSTANT_U64 => {
+                    const constant = self.read_constant_u64();
+                    self.push_u64(constant);
+                },
             }
         }
     }
@@ -100,6 +104,14 @@ pub const VM = struct {
     // NOTE: crafting interpreters had this as a C macro
     fn read_constant_f64(self: *Self) f64 {
         return @bitCast(self.chunk.constants.items[self.read_byte()]);
+    }
+
+    fn push_u64(self: *Self, value: u64) void {
+        self.stack_top[0] = value;
+        self.stack_top += 1;
+    }
+    fn read_constant_u64(self: *Self) u64 {
+        return self.chunk.constants.items[self.read_byte()];
     }
 
     pub fn deinit(self: *Self) void {

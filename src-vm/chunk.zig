@@ -11,6 +11,11 @@ pub const OpCode = enum(u8) {
     OP_NEGATE_F64 = 0x04,
     /// Pops two values from the stack, substracts them, and pushes the result.
     OP_SUB_F64 = 0x05,
+
+    //
+    //  u64 opcodes
+    //
+    OP_CONSTANT_U64 = 0x06,
 };
 
 pub const Chunk = struct {

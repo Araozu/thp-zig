@@ -23,37 +23,6 @@ pub const SymbolTable = struct {
         try self.builtin_types.put(allocator, "String", Type.String);
         try self.builtin_types.put(allocator, "bool", Type.Bool);
 
-        // Builtin operators
-        // TODO: when support for multiple number types is added, should also
-        // support some form of typeclasses
-
-        {
-            const t_f64 = try allocator.create(Type);
-            t_f64.* = Type.F64;
-            try self.scope.symbols.put(allocator, "+", .{
-                .t = Type{
-                    .Function = .{
-                        .params = &.{ Type.F64, Type.F64 },
-                        .return_t = t_f64,
-                    },
-                },
-                .location = .{ .start = 0, .end = 1 },
-            });
-        }
-        {
-            const t_f64 = try allocator.create(Type);
-            t_f64.* = Type.F64;
-            try self.scope.symbols.put(allocator, "-", .{
-                .t = Type{
-                    .Function = .{
-                        .params = &.{ Type.F64, Type.F64 },
-                        .return_t = t_f64,
-                    },
-                },
-                .location = .{ .start = 0, .end = 1 },
-            });
-        }
-
         // Builtin functions
         {
             const type_ref = try allocator.create(Type);
