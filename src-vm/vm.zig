@@ -74,6 +74,11 @@ pub const VM = struct {
                     const a = self.pop();
                     self.push(a + b);
                 },
+                .OP_SUB => {
+                    const b = self.pop();
+                    const a = self.pop();
+                    self.push(a - b);
+                },
             }
         }
     }

@@ -12,6 +12,8 @@ pub const OpCode = enum(u8) {
     /// Pops two values from the stack, adds them, and pushes the result.
     OP_ADD = 0x03,
     OP_NEGATE = 0x04,
+    /// Pops two values from the stack, substracts them, and pushes the result.
+    OP_SUB = 0x05,
 };
 
 pub const Chunk = struct {

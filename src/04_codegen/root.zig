@@ -76,18 +76,20 @@ pub const ByteCodeGenerator = struct {
             },
             .primary => |p| try emit_primary_expresion(chunk, p),
             .binary => |*binary| {
-                // HACK: only `+` supported on the VM, hardcoded for that, and operands assumed to be floats
-
-                if (!std.mem.eql(u8, binary.operator.value, "+")) {
-                    std.debug.panic("Not implemented: only + operator supported\n", .{});
-                }
+                // HACK: hardcoded binary operators
 
                 // emit for left and right
                 try emit_pratt_expression(chunk, binary.left);
                 try emit_pratt_expression(chunk, binary.right);
 
                 // emit add opcode
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
+                if (std.mem.eql(u8, binary.operator.value, "+")) {
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
+                } else if (std.mem.eql(u8, binary.operator.value, "-")) {
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB), 123);
+                } else {
+                    std.debug.panic("Not implemented: operator `{s}`\n", .{binary.operator.value});
+                }
             },
         }
     }
