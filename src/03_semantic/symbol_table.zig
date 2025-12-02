@@ -18,25 +18,56 @@ pub const SymbolTable = struct {
         };
 
         // Insert builtin types
-        try self.builtin_types.put(self.allocator, "Int", Type.Int);
-        try self.builtin_types.put(self.allocator, "Float", Type.Float);
-        try self.builtin_types.put(self.allocator, "String", Type.String);
-        try self.builtin_types.put(self.allocator, "Bool", Type.Bool);
+        try self.builtin_types.put(allocator, "Int", Type.Int);
+        try self.builtin_types.put(allocator, "Float", Type.Float);
+        try self.builtin_types.put(allocator, "String", Type.String);
+        try self.builtin_types.put(allocator, "Bool", Type.Bool);
+
+        // Builtin operators
+        // TODO: when support for multiple number types is added, should also
+        // support some form of typeclasses
+
+        {
+            const t_f64 = try allocator.create(Type);
+            t_f64.* = Type.Float;
+            try self.scope.symbols.put(allocator, "+", .{
+                .t = Type{
+                    .Function = .{
+                        .params = &.{ Type.Float, Type.Float },
+                        .return_t = t_f64,
+                    },
+                },
+                .location = .{ .start = 0, .end = 1 },
+            });
+        }
+        {
+            const t_f64 = try allocator.create(Type);
+            t_f64.* = Type.Float;
+            try self.scope.symbols.put(allocator, "-", .{
+                .t = Type{
+                    .Function = .{
+                        .params = &.{ Type.Float, Type.Float },
+                        .return_t = t_f64,
+                    },
+                },
+                .location = .{ .start = 0, .end = 1 },
+            });
+        }
 
         // Builtin functions
-
-        const type_ref = try allocator.create(Type);
-        type_ref.* = Type.Unit;
-
-        try self.scope.symbols.put(allocator, "print", .{
-            .t = Type{
-                .Function = .{
-                    .params = &.{},
-                    .return_t = type_ref,
+        {
+            const type_ref = try allocator.create(Type);
+            type_ref.* = Type.Unit;
+            try self.scope.symbols.put(allocator, "print", .{
+                .t = Type{
+                    .Function = .{
+                        .params = &.{},
+                        .return_t = type_ref,
+                    },
                 },
-            },
-            .location = .{ .start = 0, .end = 1 },
-        });
+                .location = .{ .start = 0, .end = 1 },
+            });
+        }
     }
 
     pub fn lookup_type(self: *const SymbolTable, type_name: []const u8) ?Type {

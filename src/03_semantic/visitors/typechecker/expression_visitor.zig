@@ -13,8 +13,7 @@ const Type = types.Type;
 
 pub fn visit(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorError!Type {
     switch (node.*) {
-        .binary => return visit_binary_expression(self, node),
-        // .function => std.debug.panic("Not implemented: typechecking function calls", .{}),
+        .binary => return typecheck_binary_expression(self, node),
         .function => |*funcall| {
             // Check that the function_id resolves to a function type
             const t_function_id = try visit(self, funcall.callee);
@@ -56,7 +55,7 @@ pub fn visit(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorErr
             std.debug.print("TODO: get expression of function call\n", .{});
             return Type.Untyped;
         },
-        .primary => |expr| return try visit_primary_expression(self, expr),
+        .primary => |expr| return try typecheck_primary_expression(self, expr),
     }
 
     // FIXME:
@@ -65,45 +64,46 @@ pub fn visit(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorErr
     return Type.Untyped;
 }
 
-pub fn visit_binary_expression(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorError!Type {
+pub fn typecheck_binary_expression(self: *TypecheckerVisitor, node: *const PrattExpression) VisitorError!Type {
     const binary_expr = &node.binary;
     const expr_visitor = self.visitor();
 
     const left_type = try binary_expr.left.accept(Type, &expr_visitor);
     const right_type = try binary_expr.right.accept(Type, &expr_visitor);
 
-    const left_start, const left_end = binary_expr.left.get_range();
-    const right_start, const right_end = binary_expr.right.get_range();
+    // const left_start, const left_end = binary_expr.left.get_range();
+    // const right_start, const right_end = binary_expr.right.get_range();
 
-    // FIXME: typecheck based on the actual operator, not on whether types are equal
-    if (!left_type.eql(&right_type)) {
-        var new_error = try self.err.create_and_append_error("Mismatched types", left_start, right_end);
-        {
-            const err_msg = try std.fmt.allocPrint(self.err.allocator, "This has type {s}", .{left_type.to_str()});
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                left_start,
-                left_end,
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        {
-            const err_msg = try std.fmt.allocPrint(self.err.allocator, "This has type {s}", .{right_type.to_str()});
-            const err_msg_label = self.err.create_error_label_alloc(
-                err_msg,
-                right_start,
-                right_end,
-            );
-            try new_error.add_label(err_msg_label);
-        }
-        return VisitorError.SemanticError;
+    // Typecheck with defined operator types
+    const t_operator = self.scope.get(binary_expr.operator.value) orelse {
+        // FIXME: error handling
+        std.debug.panic("Operator not found in symbol table during typechecking...", .{});
+    };
+    const t_op = switch (t_operator.t) {
+        .Function => |*t_op| t_op,
+        else => {
+            // FIXME: error handling
+            std.debug.panic("Operator is not a function type during typechecking...", .{});
+        },
+    };
+
+    if (t_op.params.len != 2) {
+        // FIXME: error handling
+        std.debug.panic("Operator is not binded to a 2ary fun", .{});
     }
 
-    // FIXME: return a proper type, based on the operator return type
-    return left_type;
+    if (!t_op.params[0].eql(&left_type)) {
+        // FIXME: error handling
+        std.debug.panic("Operator left type no match", .{});
+    }
+    if (!t_op.params[1].eql(&right_type)) {
+        // FIXME: error handling
+        std.debug.panic("Operator right type no match", .{});
+    }
+    return t_op.return_t.*;
 }
 
-pub fn visit_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryExpression) VisitorError!Type {
+pub fn typecheck_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryExpression) VisitorError!Type {
     switch (node.*) {
         .float => return Type.Float,
         .int => return Type.Int,
