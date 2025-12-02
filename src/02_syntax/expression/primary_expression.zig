@@ -4,6 +4,7 @@ const context = @import("../context.zig");
 const error_context = @import("context");
 const types = @import("../types.zig");
 const PrattExpression = @import("./pratt_expression.zig").PrattExpression;
+const m_ids = @import("../ids.zig");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -27,6 +28,7 @@ pub const PrimaryExpression = union(enum) {
         exp: *PrattExpression,
         lparen: *const Token,
         rparen: *const Token,
+        id: u64,
     },
 
     /// Attempts to parse an expression from a token stream.
@@ -118,6 +120,7 @@ pub const PrimaryExpression = union(enum) {
                     .exp = inner_exp,
                     .lparen = lparen_t,
                     .rparen = rparen_t,
+                    .id = m_ids.generate_id(),
                 },
             };
 
