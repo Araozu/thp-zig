@@ -25,8 +25,7 @@ pub const ByteCodeGenerator = struct {
         chunk.init(self.allocator);
         errdefer chunk.deinit();
 
-        // walk the AST, generate bytecode?
-
+        // walk the AST, generate bytecode
         for (self.ast.statements.items) |*statement| {
             switch (statement.*) {
                 .variableBinding => |b| {
@@ -49,8 +48,6 @@ pub const ByteCodeGenerator = struct {
     fn emit_pratt_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
             .function => |*f| {
-                // TODO
-
                 // Emit bytecode for the args
                 for (f.arguments.items) |argument| {
                     try emit_pratt_expression(chunk, argument);
@@ -65,7 +62,7 @@ pub const ByteCodeGenerator = struct {
                                     std.debug.panic("Not implemented: function call other than print\n", .{});
                                 }
 
-                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_F64), 1);
                             },
                             else => std.debug.panic("Not implemented: not identifier function call\n", .{}),
                         }
@@ -76,32 +73,47 @@ pub const ByteCodeGenerator = struct {
             },
             .primary => |p| try emit_primary_expresion(chunk, p),
             .binary => |*binary| {
-                // HACK: only `+` supported on the VM, hardcoded for that, and operands assumed to be floats
-
-                if (!std.mem.eql(u8, binary.operator.value, "+")) {
-                    std.debug.panic("Not implemented: only + operator supported\n", .{});
-                }
+                // HACK: hardcoded binary operators
 
                 // emit for left and right
+                // TODO: how to know when to promote?
                 try emit_pratt_expression(chunk, binary.left);
                 try emit_pratt_expression(chunk, binary.right);
 
                 // emit add opcode
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
+                if (std.mem.eql(u8, binary.operator.value, "+")) {
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD_F64), 123);
+                } else if (std.mem.eql(u8, binary.operator.value, "-")) {
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB_F64), 123);
+                } else {
+                    std.debug.panic("Not implemented: operator `{s}`\n", .{binary.operator.value});
+                }
             },
         }
     }
 
     fn emit_primary_expresion(chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
         switch (exp.*) {
+            // HACK: assumed to be f64
             .float => |t_float| {
                 // put the float at the top of the stack
                 const float_value = try std.fmt.parseFloat(f64, t_float.value);
 
                 // Add to the constants section
-                const constant_idx = try chunk.write_constant(float_value);
+                const constant_idx = try chunk.write_constant(@bitCast(float_value));
                 // Push to stack
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_F64), 1);
+                try chunk.write_chunk(@intCast(constant_idx), 123);
+            },
+            // HACK: assumed to be u64
+            .int => |t_int| {
+                const int_value = try std.fmt.parseInt(u64, t_int.value, 10);
+
+                // Add to the constants section
+                const constant_idx = try chunk.write_constant(int_value);
+
+                // Push to stack
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_U64), 1);
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             else => {

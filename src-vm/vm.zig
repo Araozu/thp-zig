@@ -6,7 +6,6 @@ const m_debug = @import("./debug.zig");
 
 const Chunk = m_chunk.Chunk;
 const OpCode = m_chunk.OpCode;
-const Value = m_value.Value;
 
 const STACK_MAX = 256;
 
@@ -19,8 +18,8 @@ pub const InterpretResult = enum {
 pub const VM = struct {
     chunk: Chunk,
     ip: [*]u8,
-    stack: [STACK_MAX]Value,
-    stack_top: [*]Value,
+    stack: [STACK_MAX]u64,
+    stack_top: [*]u64,
 
     const Self = @This();
 
@@ -42,7 +41,7 @@ pub const VM = struct {
         while (true) {
             if (config.tracing) {
                 std.debug.print("          ", .{});
-                var start_ptr: [*]Value = &self.stack;
+                var start_ptr: [*]u64 = &self.stack;
                 while (start_ptr != self.stack_top) {
                     std.debug.print("[ ", .{});
                     m_value.print_value(start_ptr[0]);
@@ -57,35 +56,42 @@ pub const VM = struct {
             const e_instruction: OpCode = @enumFromInt(self.read_byte());
             switch (e_instruction) {
                 .OP_RETURN => {
-                    // m_value.print_value(self.pop());
                     return .INTERPRET_OK;
                 },
-                .OP_CONSTANT => {
-                    const constant = self.read_constant();
-                    self.push(constant);
-                    // break;
+                .OP_CONSTANT_F64 => {
+                    const constant = self.read_constant_f64();
+                    self.push_f64(constant);
                 },
-                .OP_PRINT => {
-                    std.debug.print("{d}\n", .{self.pop()});
+                .OP_PRINT_F64 => {
+                    std.debug.print("{d}\n", .{self.pop_f64()});
                 },
-                .OP_NEGATE => self.push(-self.pop()),
-                .OP_ADD => {
-                    const b = self.pop();
-                    const a = self.pop();
-                    self.push(a + b);
+                .OP_NEGATE_F64 => self.push_f64(-self.pop_f64()),
+                .OP_ADD_F64 => {
+                    const b = self.pop_f64();
+                    const a = self.pop_f64();
+                    self.push_f64(a + b);
+                },
+                .OP_SUB_F64 => {
+                    const b = self.pop_f64();
+                    const a = self.pop_f64();
+                    self.push_f64(a - b);
+                },
+                .OP_CONSTANT_U64 => {
+                    const constant = self.read_constant_u64();
+                    self.push_u64(constant);
                 },
             }
         }
     }
 
-    fn push(self: *Self, value: Value) void {
-        self.stack_top[0] = value;
+    fn push_f64(self: *Self, value: f64) void {
+        self.stack_top[0] = @bitCast(value);
         self.stack_top += 1;
     }
 
-    fn pop(self: *Self) Value {
+    fn pop_f64(self: *Self) f64 {
         self.stack_top -= 1;
-        return self.stack_top[0];
+        return @bitCast(self.stack_top[0]);
     }
 
     // NOTE: crafting interpreters had this as a C macro
@@ -96,7 +102,15 @@ pub const VM = struct {
     }
 
     // NOTE: crafting interpreters had this as a C macro
-    fn read_constant(self: *Self) m_value.Value {
+    fn read_constant_f64(self: *Self) f64 {
+        return @bitCast(self.chunk.constants.items[self.read_byte()]);
+    }
+
+    fn push_u64(self: *Self, value: u64) void {
+        self.stack_top[0] = value;
+        self.stack_top += 1;
+    }
+    fn read_constant_u64(self: *Self) u64 {
         return self.chunk.constants.items[self.read_byte()];
     }
 

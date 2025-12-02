@@ -17,3 +17,14 @@ Always uses BIG endian.
 
 Bytecode **MUST** always end with 0x00 (OP_RETURN).
 
+
+## Constant pool format
+
+The constant pool is an array of `u64` entries.
+The bytecode instructions load a single constant
+and interpret it. The VM trusts the bytecode to
+ensure that the correct type is loaded, and matches
+the semantics of the language.
+
+
+

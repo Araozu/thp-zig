@@ -19,8 +19,8 @@ pub const SymbolInfo = struct {
 pub const Type = union(enum) {
     Untyped,
     Unit,
-    Int,
-    Float,
+    I64,
+    F64,
     String,
     Bool,
     /// Type assumes ownership of `return_t`.
@@ -35,10 +35,10 @@ pub const Type = union(enum) {
         return switch (self.*) {
             .Untyped => "<untyped>",
             .Unit => "<unit>",
-            .Int => "Int",
-            .Float => "Float",
+            .I64 => "i64",
+            .F64 => "f64",
             .String => "String",
-            .Bool => "Bool",
+            .Bool => "bool",
             .Function => "Function",
         };
     }
@@ -189,14 +189,14 @@ test "should insert a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
+    try scope.insert("foo", .{ .t = Type.I64, .location = .{ .start = 0, .end = 0 } });
 }
 
 test "should test if a scope has a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
+    try scope.insert("foo", .{ .t = Type.I64, .location = .{ .start = 0, .end = 0 } });
     try std.testing.expectEqual(true, scope.has("foo"));
 }
 
@@ -204,7 +204,7 @@ test "should test if a scope has a symbol 2" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
+    try scope.insert("foo", .{ .t = Type.I64, .location = .{ .start = 0, .end = 0 } });
     try std.testing.expectEqual(false, scope.has("bar"));
 }
 
@@ -212,9 +212,9 @@ test "should retrieve a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
+    try scope.insert("foo", .{ .t = Type.I64, .location = .{ .start = 0, .end = 0 } });
     const out = scope.get("foo") orelse std.debug.panic("foo is null", .{});
-    try std.testing.expectEqual(Type.Int, out.t);
+    try std.testing.expectEqual(Type.I64, out.t);
 }
 
 test "should create a child scope" {
@@ -222,7 +222,7 @@ test "should create a child scope" {
     defer scope.deinit();
 
     var child_scope = try scope.from_parent();
-    try child_scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
+    try child_scope.insert("foo", .{ .t = Type.I64, .location = .{ .start = 0, .end = 0 } });
 }
 
 test "should create a child scope 2" {
@@ -230,26 +230,26 @@ test "should create a child scope 2" {
     defer scope.deinit();
 
     var child_scope = try scope.from_parent();
-    try child_scope.insert("foo", .{ .t = Type.Int, .location = .{ .start = 0, .end = 0 } });
+    try child_scope.insert("foo", .{ .t = Type.I64, .location = .{ .start = 0, .end = 0 } });
 
     var child_child_scope = try child_scope.from_parent();
-    try child_child_scope.insert("bar", .{ .t = Type.Float, .location = .{ .start = 0, .end = 0 } });
+    try child_child_scope.insert("bar", .{ .t = Type.F64, .location = .{ .start = 0, .end = 0 } });
 }
 
 test "should test if a scope or parent scope has a symbol" {
     var scope = Scope.init(std.testing.allocator);
     defer scope.deinit();
 
-    try scope.insert("foo", .{ .t = Type.Float, .location = .{ .start = 0, .end = 0 } });
+    try scope.insert("foo", .{ .t = Type.F64, .location = .{ .start = 0, .end = 0 } });
 
     var child_scope = try scope.from_parent();
-    try child_scope.insert("bar", .{ .t = Type.Float, .location = .{ .start = 0, .end = 0 } });
+    try child_scope.insert("bar", .{ .t = Type.F64, .location = .{ .start = 0, .end = 0 } });
 
     var child_child_scope = try child_scope.from_parent();
 
     const bar = child_child_scope.get("bar") orelse std.debug.panic("bar is null", .{});
-    try std.testing.expectEqual(Type.Float, bar.t);
+    try std.testing.expectEqual(Type.F64, bar.t);
 
     const foo = child_child_scope.get("foo") orelse std.debug.panic("foo is null", .{});
-    try std.testing.expectEqual(Type.Float, foo.t);
+    try std.testing.expectEqual(Type.F64, foo.t);
 }
