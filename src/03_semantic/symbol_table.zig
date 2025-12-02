@@ -18,10 +18,10 @@ pub const SymbolTable = struct {
         };
 
         // Insert builtin types
-        try self.builtin_types.put(allocator, "Int", Type.Int);
-        try self.builtin_types.put(allocator, "Float", Type.Float);
+        try self.builtin_types.put(allocator, "i64", Type.I64);
+        try self.builtin_types.put(allocator, "f64", Type.F64);
         try self.builtin_types.put(allocator, "String", Type.String);
-        try self.builtin_types.put(allocator, "Bool", Type.Bool);
+        try self.builtin_types.put(allocator, "bool", Type.Bool);
 
         // Builtin operators
         // TODO: when support for multiple number types is added, should also
@@ -29,11 +29,11 @@ pub const SymbolTable = struct {
 
         {
             const t_f64 = try allocator.create(Type);
-            t_f64.* = Type.Float;
+            t_f64.* = Type.F64;
             try self.scope.symbols.put(allocator, "+", .{
                 .t = Type{
                     .Function = .{
-                        .params = &.{ Type.Float, Type.Float },
+                        .params = &.{ Type.F64, Type.F64 },
                         .return_t = t_f64,
                     },
                 },
@@ -42,11 +42,11 @@ pub const SymbolTable = struct {
         }
         {
             const t_f64 = try allocator.create(Type);
-            t_f64.* = Type.Float;
+            t_f64.* = Type.F64;
             try self.scope.symbols.put(allocator, "-", .{
                 .t = Type{
                     .Function = .{
-                        .params = &.{ Type.Float, Type.Float },
+                        .params = &.{ Type.F64, Type.F64 },
                         .return_t = t_f64,
                     },
                 },

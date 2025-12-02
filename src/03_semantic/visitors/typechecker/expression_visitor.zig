@@ -200,8 +200,8 @@ pub fn typecheck_binary_expression(self: *TypecheckerVisitor, node: *const Pratt
 
 pub fn typecheck_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryExpression) VisitorError!Type {
     switch (node.*) {
-        .float => return Type.Float,
-        .int => return Type.Int,
+        .float => return Type.F64,
+        .int => return Type.I64,
         .string => return Type.String,
         .identifier => |token| {
             // NOTE: should the lexer emit those as their own tokens?
