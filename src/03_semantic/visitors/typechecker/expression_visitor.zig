@@ -72,6 +72,7 @@ pub fn typecheck_binary_expression(self: *TypecheckerVisitor, node: *const Pratt
     const left_type = try binary_expr.left.accept(Type, &expr_visitor);
     const right_type = try binary_expr.right.accept(Type, &expr_visitor);
 
+    // FIXME: this is getting called always, unneccessarily, even when a error is not hit
     const left_start, const left_end = binary_expr.left.get_range();
     const right_start, const right_end = binary_expr.right.get_range();
 

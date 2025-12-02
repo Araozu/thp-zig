@@ -210,6 +210,11 @@ pub const PrattExpression = union(enum) {
     pub fn get_range(self: *const Self) struct { usize, usize } {
         return switch (self.*) {
             .primary => |p| p.get_range(),
+            .binary => |b| {
+                const left_range = b.left.get_range();
+                const right_range = b.right.get_range();
+                return .{ left_range.@"0", right_range.@"1" };
+            },
             else => std.debug.panic("Not implemented: get range\n", .{}),
         };
     }

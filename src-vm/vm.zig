@@ -57,13 +57,11 @@ pub const VM = struct {
             const e_instruction: OpCode = @enumFromInt(self.read_byte());
             switch (e_instruction) {
                 .OP_RETURN => {
-                    // m_value.print_value(self.pop());
                     return .INTERPRET_OK;
                 },
                 .OP_CONSTANT => {
                     const constant = self.read_constant();
                     self.push(constant);
-                    // break;
                 },
                 .OP_PRINT => {
                     std.debug.print("{d}\n", .{self.pop()});
