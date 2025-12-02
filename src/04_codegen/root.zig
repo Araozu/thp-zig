@@ -25,8 +25,7 @@ pub const ByteCodeGenerator = struct {
         chunk.init(self.allocator);
         errdefer chunk.deinit();
 
-        // walk the AST, generate bytecode?
-
+        // walk the AST, generate bytecode
         for (self.ast.statements.items) |*statement| {
             switch (statement.*) {
                 .variableBinding => |b| {
@@ -49,8 +48,6 @@ pub const ByteCodeGenerator = struct {
     fn emit_pratt_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
             .function => |*f| {
-                // TODO
-
                 // Emit bytecode for the args
                 for (f.arguments.items) |argument| {
                     try emit_pratt_expression(chunk, argument);
@@ -65,7 +62,7 @@ pub const ByteCodeGenerator = struct {
                                     std.debug.panic("Not implemented: function call other than print\n", .{});
                                 }
 
-                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
+                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_F64), 1);
                             },
                             else => std.debug.panic("Not implemented: not identifier function call\n", .{}),
                         }
@@ -84,9 +81,9 @@ pub const ByteCodeGenerator = struct {
 
                 // emit add opcode
                 if (std.mem.eql(u8, binary.operator.value, "+")) {
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD), 123);
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD_F64), 123);
                 } else if (std.mem.eql(u8, binary.operator.value, "-")) {
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB), 123);
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB_F64), 123);
                 } else {
                     std.debug.panic("Not implemented: operator `{s}`\n", .{binary.operator.value});
                 }
@@ -101,9 +98,9 @@ pub const ByteCodeGenerator = struct {
                 const float_value = try std.fmt.parseFloat(f64, t_float.value);
 
                 // Add to the constants section
-                const constant_idx = try chunk.write_constant(float_value);
+                const constant_idx = try chunk.write_constant(@bitCast(float_value));
                 // Push to stack
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_F64), 1);
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             else => {

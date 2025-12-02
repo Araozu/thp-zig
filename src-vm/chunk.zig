@@ -1,25 +1,22 @@
 const std = @import("std");
-const m_value = @import("./value.zig");
-
-const Value = m_value.Value;
 
 pub const OpCode = enum(u8) {
     OP_RETURN = 0x00,
-    OP_PRINT = 0x01,
-    OP_CONSTANT = 0x02,
+    OP_PRINT_F64 = 0x01,
+    OP_CONSTANT_F64 = 0x02,
     /// Binary addition
     ///
     /// Pops two values from the stack, adds them, and pushes the result.
-    OP_ADD = 0x03,
-    OP_NEGATE = 0x04,
+    OP_ADD_F64 = 0x03,
+    OP_NEGATE_F64 = 0x04,
     /// Pops two values from the stack, substracts them, and pushes the result.
-    OP_SUB = 0x05,
+    OP_SUB_F64 = 0x05,
 };
 
 pub const Chunk = struct {
     code: std.ArrayListUnmanaged(u8),
     allocator: std.mem.Allocator,
-    constants: std.ArrayListUnmanaged(Value),
+    constants: std.ArrayListUnmanaged(u64),
     lines: std.ArrayListUnmanaged(u32),
 
     const Self = @This();
@@ -45,7 +42,7 @@ pub const Chunk = struct {
         try self.lines.append(self.allocator, line);
     }
 
-    pub fn write_constant(self: *Self, constant: Value) !usize {
+    pub fn write_constant(self: *Self, constant: u64) !usize {
         try self.constants.append(self.allocator, constant);
         return self.constants.items.len - 1;
     }
