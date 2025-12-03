@@ -3,7 +3,10 @@ const std = @import("std");
 pub const OpCode = enum(u8) {
     OP_RETURN = 0x00,
     OP_PRINT_F64 = 0x01,
-    OP_CONSTANT_F64 = 0x02,
+
+    /// Push a constant onto the stack. Its always a u64.
+    OP_CONSTANT = 0x02,
+
     /// Binary addition
     ///
     /// Pops two values from the stack, adds them, and pushes the result.
@@ -15,7 +18,8 @@ pub const OpCode = enum(u8) {
     //
     //  u64 opcodes
     //
-    OP_CONSTANT_U64 = 0x06,
+    OP_ADD_U64 = 0x07,
+    OP_SUB_U64 = 0x08,
 };
 
 pub const Chunk = struct {

@@ -58,40 +58,49 @@ pub const VM = struct {
                 .OP_RETURN => {
                     return .INTERPRET_OK;
                 },
-                .OP_CONSTANT_F64 => {
-                    const constant = self.read_constant_f64();
-                    self.push_f64(constant);
-                },
                 .OP_PRINT_F64 => {
-                    std.debug.print("{d}\n", .{self.pop_f64()});
+                    std.debug.print("{d}\n", .{@as(f64, @bitCast(self.pop()))});
                 },
-                .OP_NEGATE_F64 => self.push_f64(-self.pop_f64()),
+                .OP_CONSTANT => {
+                    const constant = self.read_constant();
+                    self.push(constant);
+                },
+                .OP_NEGATE_F64 => {
+                    const v: f64 = @bitCast(self.pop());
+                    self.push(@bitCast(-v));
+                },
                 .OP_ADD_F64 => {
-                    const b = self.pop_f64();
-                    const a = self.pop_f64();
-                    self.push_f64(a + b);
+                    const b: f64 = @bitCast(self.pop());
+                    const a: f64 = @bitCast(self.pop());
+                    self.push(@bitCast(a + b));
                 },
                 .OP_SUB_F64 => {
-                    const b = self.pop_f64();
-                    const a = self.pop_f64();
-                    self.push_f64(a - b);
+                    const b: f64 = @bitCast(self.pop());
+                    const a: f64 = @bitCast(self.pop());
+                    self.push(@bitCast(a - b));
                 },
-                .OP_CONSTANT_U64 => {
-                    const constant = self.read_constant_u64();
-                    self.push_u64(constant);
+                .OP_ADD_U64 => {
+                    const b = self.pop();
+                    const a = self.pop();
+                    self.push(a + b);
+                },
+                .OP_SUB_U64 => {
+                    const b = self.pop();
+                    const a = self.pop();
+                    self.push(a - b);
                 },
             }
         }
     }
 
-    fn push_f64(self: *Self, value: f64) void {
-        self.stack_top[0] = @bitCast(value);
+    fn push(self: *Self, value: u64) void {
+        self.stack_top[0] = value;
         self.stack_top += 1;
     }
 
-    fn pop_f64(self: *Self) f64 {
+    fn pop(self: *Self) u64 {
         self.stack_top -= 1;
-        return @bitCast(self.stack_top[0]);
+        return self.stack_top[0];
     }
 
     // NOTE: crafting interpreters had this as a C macro
@@ -102,15 +111,7 @@ pub const VM = struct {
     }
 
     // NOTE: crafting interpreters had this as a C macro
-    fn read_constant_f64(self: *Self) f64 {
-        return @bitCast(self.chunk.constants.items[self.read_byte()]);
-    }
-
-    fn push_u64(self: *Self, value: u64) void {
-        self.stack_top[0] = value;
-        self.stack_top += 1;
-    }
-    fn read_constant_u64(self: *Self) u64 {
+    fn read_constant(self: *Self) u64 {
         return self.chunk.constants.items[self.read_byte()];
     }
 

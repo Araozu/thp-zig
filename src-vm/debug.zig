@@ -28,14 +28,11 @@ pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
     const instruction = chunk.code.items[offset];
     const e_instruction: OpCode = @enumFromInt(instruction);
     switch (e_instruction) {
+        .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
         .OP_CONSTANT => |op| {
             return constant_instruction(@tagName(op), chunk, offset);
         },
-        .OP_NEGATE => |op| return simple_instruction(@tagName(op), offset),
-        .OP_ADD => |op| return simple_instruction(@tagName(op), offset),
-        .OP_SUB => |op| return simple_instruction(@tagName(op), offset),
-        .OP_PRINT => |op| return simple_instruction(@tagName(op), offset),
-        .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
+        else => return simple_instruction(@tagName(e_instruction), offset),
     }
 
     return 0;

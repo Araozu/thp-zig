@@ -34,10 +34,10 @@ pub const ByteCodeGenerator = struct {
             switch (statement.*) {
                 .variableBinding => |b| {
                     // ignore the binding itself, focus on the expresion
-                    try emit_pratt_expression(&chunk, &b.expression);
+                    try self.emit_pratt_expression(&chunk, &b.expression);
                 },
                 .expression => |e| {
-                    try emit_pratt_expression(&chunk, e);
+                    try self.emit_pratt_expression(&chunk, e);
                 },
             }
         }
@@ -49,12 +49,12 @@ pub const ByteCodeGenerator = struct {
 
     /// What does this do? it computes the bytecode for an expression,
     /// and has the top of the stack ready to use that computed value
-    fn emit_pratt_expression(chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
+    fn emit_pratt_expression(self: *Self, chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
             .function => |*f| {
                 // Emit bytecode for the args
                 for (f.arguments.items) |argument| {
-                    try emit_pratt_expression(chunk, argument);
+                    try self.emit_pratt_expression(chunk, argument);
                 }
 
                 // call the function, if `print`
@@ -81,17 +81,32 @@ pub const ByteCodeGenerator = struct {
 
                 // emit for left and right
                 // TODO: how to know when to promote?
-                try emit_pratt_expression(chunk, binary.left);
-                try emit_pratt_expression(chunk, binary.right);
+                try self.emit_pratt_expression(chunk, binary.left);
+                try self.emit_pratt_expression(chunk, binary.right);
 
-                // get the resolved type of the expression, and choose opcode accordingly
-                // const expr_type = type_map.get(binary.id);
+                const node_type_info = self.semantic_ctx.type_map.get(binary.id) orelse {
+                    // FIXME: better error message
+                    std.debug.panic("Type not found for binary expression. This is a Semantic Analysis bug in the compiler\n", .{});
+                };
+                const t_op_result = node_type_info.computed_type;
 
-                // emit add opcode
+                // emit opcode per operator & type
                 if (std.mem.eql(u8, binary.operator.value, "+")) {
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD_F64), 123);
+                    switch (t_op_result) {
+                        .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD_F64), 1),
+                        .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD_U64), 1),
+                        else => {
+                            std.debug.panic("Not implemented: add operator on type `{s}`\n", .{t_op_result.to_str()});
+                        },
+                    }
                 } else if (std.mem.eql(u8, binary.operator.value, "-")) {
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB_F64), 123);
+                    switch (t_op_result) {
+                        .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB_F64), 1),
+                        .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_SUB_U64), 1),
+                        else => {
+                            std.debug.panic("Not implemented: add operator on type `{s}`\n", .{t_op_result.to_str()});
+                        },
+                    }
                 } else {
                     std.debug.panic("Not implemented: operator `{s}`\n", .{binary.operator.value});
                 }
@@ -109,7 +124,7 @@ pub const ByteCodeGenerator = struct {
                 // Add to the constants section
                 const constant_idx = try chunk.write_constant(@bitCast(float_value));
                 // Push to stack
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_F64), 1);
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             // HACK: assumed to be u64
@@ -120,7 +135,7 @@ pub const ByteCodeGenerator = struct {
                 const constant_idx = try chunk.write_constant(int_value);
 
                 // Push to stack
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT_U64), 1);
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             else => {
