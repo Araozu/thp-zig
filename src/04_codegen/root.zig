@@ -1,21 +1,25 @@
 const std = @import("std");
 const m_syntax = @import("syntax");
+const m_semantic = @import("semantic");
 const m_vm = @import("vm");
 
 const Chunk = m_vm.Chunk;
 const OpCode = m_vm.OpCode;
 const ASTModule = m_syntax.Module;
+const SemanticContext = m_semantic.SemanticContext;
 
 pub const ByteCodeGenerator = struct {
     ast: *const ASTModule,
     allocator: std.mem.Allocator,
+    semantic_ctx: *SemanticContext,
 
     const Self = @This();
 
-    pub fn init(self: *Self, ast: *const ASTModule, alloc: std.mem.Allocator) void {
+    pub fn init(self: *Self, ast: *const ASTModule, semantic_ctx: *SemanticContext, alloc: std.mem.Allocator) void {
         self.* = .{
             .ast = ast,
             .allocator = alloc,
+            .semantic_ctx = semantic_ctx,
         };
     }
 

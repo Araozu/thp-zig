@@ -132,7 +132,7 @@ pub fn run(self: *const RunOptions) !void {
     try symbol_table.init(arena.allocator());
     defer symbol_table.deinit();
 
-    _ = semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
+    var semantic_ctx = semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
         error.OutOfMemory => {
             try stderr.print("System ran out of memory!\n", .{});
             try stderr.flush();
@@ -149,13 +149,14 @@ pub fn run(self: *const RunOptions) !void {
             return;
         },
     };
+    defer semantic_ctx.deinit();
 
     // ==========================================
     //   Emit
     // ==========================================
 
     var generator: codegen.ByteCodeGenerator = undefined;
-    generator.init(&ast, arena.allocator());
+    generator.init(&ast, &semantic_ctx, arena.allocator());
 
     var chunk = try generator.emit();
     defer chunk.deinit();

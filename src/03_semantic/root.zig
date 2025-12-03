@@ -17,7 +17,7 @@ const Type = types.Type;
 pub const Scope = types.Scope;
 pub const Visitor = visitor.Visitor;
 pub const VisitorError = visitor.VisitorError;
-const SemanticContext = m_semantic_context.SemanticContext;
+pub const SemanticContext = m_semantic_context.SemanticContext;
 
 pub fn semantic_analysis(
     alloc: std.mem.Allocator,
