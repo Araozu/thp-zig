@@ -72,7 +72,7 @@ pub fn run() !void {
 
         if (!parser_error) {
             // semantic analysis
-            semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
+            _ = semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
                 error.OutOfMemory => {
                     try stdout.print("System ran out of memory!\n", .{});
                 },

@@ -80,6 +80,9 @@ pub const ByteCodeGenerator = struct {
                 try emit_pratt_expression(chunk, binary.left);
                 try emit_pratt_expression(chunk, binary.right);
 
+                // get the resolved type of the expression, and choose opcode accordingly
+                // const expr_type = type_map.get(binary.id);
+
                 // emit add opcode
                 if (std.mem.eql(u8, binary.operator.value, "+")) {
                     try chunk.write_chunk(@intFromEnum(OpCode.OP_ADD_F64), 123);
