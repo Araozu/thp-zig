@@ -64,7 +64,7 @@ pub const Chunk = struct {
     }
 
     /// Write raw bytes to the chunk's raw byte array, returning the start index
-    pub fn write_constant_bytes(self: *Self, bytes: []u8) !usize {
+    pub fn write_constant_bytes(self: *Self, bytes: []const u8) !usize {
         const start_index = self.raw_bytes.items.len;
         try self.raw_bytes.appendSlice(self.allocator, bytes);
         return start_index;

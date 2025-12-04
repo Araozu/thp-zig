@@ -117,9 +117,9 @@ pub const ByteCodeGenerator = struct {
     fn emit_primary_expresion(chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
         switch (exp.*) {
             // HACK: assumed to be f64
-            .float => |t_float| {
+            .float => |tok_float| {
                 // put the float at the top of the stack
-                const float_value = try std.fmt.parseFloat(f64, t_float.value);
+                const float_value = try std.fmt.parseFloat(f64, tok_float.value);
 
                 // Add to the constants section
                 const constant_idx = try chunk.write_constant(@bitCast(float_value));
@@ -128,8 +128,8 @@ pub const ByteCodeGenerator = struct {
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             // HACK: assumed to be u64
-            .int => |t_int| {
-                const int_value = try std.fmt.parseInt(u64, t_int.value, 10);
+            .int => |tok_int| {
+                const int_value = try std.fmt.parseInt(u64, tok_int.value, 10);
 
                 // Add to the constants section
                 const constant_idx = try chunk.write_constant(int_value);
@@ -138,9 +138,18 @@ pub const ByteCodeGenerator = struct {
                 try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
+            .string => |tok_string| {
+                // Add bytes sans quotes
+                const byte_offset = try chunk.write_constant_bytes(tok_string.value[1 .. tok_string.value.len - 1]);
+
+                // Push to stack
+                // FIXME: use a different opcode for byte constants
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                try chunk.write_chunk(@intCast(byte_offset), 123);
+            },
             else => {
                 // TODO
-                std.debug.panic("Not implemented: bytecode from function call\n", .{});
+                std.debug.panic("Not implemented: codegen other primary expr\n", .{});
             },
         }
     }
