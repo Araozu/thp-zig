@@ -152,7 +152,9 @@ pub fn run(self: *const CompileOptions) !void {
     defer semantic_ctx.deinit();
 
     // ==========================================
+    //
     //   Emit
+    //
     // ==========================================
 
     var generator: codegen.ByteCodeGenerator = undefined;
@@ -172,9 +174,15 @@ pub fn run(self: *const CompileOptions) !void {
 
     // write
     _ = try stdout.write("THP!");
+    //  constants
     _ = try stdout.writeInt(u32, @intCast(chunk.constants.items.len), .big);
-    for (chunk.constants.items) |float| {
-        _ = try stdout.writeInt(u64, @bitCast(float), .big);
+    for (chunk.constants.items) |bytes| {
+        _ = try stdout.writeInt(u64, @bitCast(bytes), .big);
+    }
+    //  raw bytes
+    _ = try stdout.writeInt(u32, @intCast(chunk.raw_bytes.items.len), .big);
+    for (chunk.raw_bytes.items) |byte| {
+        _ = try stdout.writeInt(u8, @bitCast(byte), .big);
     }
     _ = try stdout.write(std.mem.sliceAsBytes(chunk.code.items));
 

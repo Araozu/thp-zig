@@ -50,8 +50,8 @@ This is a rough, non-commital roadmap of sorts.
 - [x] parse binary operators
 - [x] regression: reenable function call parsing
 - [x] typed & overloaded binary operators
-- [ ] create id for AST nodes
-- [ ] store type info
+- [x] create id for AST nodes
+- [x] store type info
 - [ ] more datatypes: f64, u64, bool
 - [x] vm: binary operators
 

@@ -25,7 +25,12 @@ pub const OpCode = enum(u8) {
 pub const Chunk = struct {
     code: std.ArrayListUnmanaged(u8),
     allocator: std.mem.Allocator,
+
+    // Scalar constants all aligned to u64
     constants: std.ArrayListUnmanaged(u64),
+
+    // Raw bytes, used for string constants
+    raw_bytes: std.ArrayListUnmanaged(u8),
     lines: std.ArrayListUnmanaged(u32),
 
     const Self = @This();
@@ -35,6 +40,7 @@ pub const Chunk = struct {
             .code = .empty,
             .allocator = allocator,
             .constants = .empty,
+            .raw_bytes = .empty,
             .lines = .empty,
         };
     }
@@ -51,14 +57,23 @@ pub const Chunk = struct {
         try self.lines.append(self.allocator, line);
     }
 
+    /// Write a constant to the chunk's constant array, returning its index
     pub fn write_constant(self: *Self, constant: u64) !usize {
         try self.constants.append(self.allocator, constant);
         return self.constants.items.len - 1;
     }
 
+    /// Write raw bytes to the chunk's raw byte array, returning the start index
+    pub fn write_constant_bytes(self: *Self, bytes: []u8) !usize {
+        const start_index = self.raw_bytes.items.len;
+        try self.raw_bytes.appendSlice(self.allocator, bytes);
+        return start_index;
+    }
+
     pub fn deinit(self: *Self) void {
         self.code.deinit(self.allocator);
         self.constants.deinit(self.allocator);
+        self.raw_bytes.deinit(self.allocator);
         self.lines.deinit(self.allocator);
     }
 };
