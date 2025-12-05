@@ -28,7 +28,7 @@ pub fn semantic_analysis(
     try symbol_table.init(alloc);
     defer symbol_table.deinit();
 
-    try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
+    _ = try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
 }
 
 pub fn semantic_analysis_unmanaged(
