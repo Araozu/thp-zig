@@ -28,6 +28,8 @@ pub const Module = struct {
     statements: std.ArrayListUnmanaged(statement.Statement),
     id: u64,
 
+    const Self = @This();
+
     /// Parses a module.
     ///
     /// If this function fails an error will be returned, and additionally the out parameter
@@ -86,7 +88,7 @@ pub const Module = struct {
         target.* = .{ .statements = arrl, .id = m_ids.generate_id() };
     }
 
-    pub fn deinit(self: *@This(), ctx: *const context.ParserContext) void {
+    pub fn deinit(self: *Self, ctx: *const context.ParserContext) void {
         for (self.statements.items) |*stmt| {
             stmt.deinit(ctx);
         }
