@@ -72,12 +72,16 @@ pub fn run() !void {
 
         if (!parser_error) {
             // semantic analysis
-            semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
+            var semantic_ctx = semantic.semantic_analysis_unmanaged(&symbol_table, allocator, &ast, &ctx) catch |e| switch (e) {
                 error.OutOfMemory => {
                     try stdout.print("System ran out of memory!\n", .{});
+                    std.process.exit(1);
                 },
-                else => {},
+                else => {
+                    std.process.exit(1);
+                },
             };
+            defer semantic_ctx.deinit();
         }
     }
 

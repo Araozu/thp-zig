@@ -9,7 +9,7 @@ pub const Chunk = m_chunk.Chunk;
 pub const OpCode = m_chunk.OpCode;
 
 pub fn main() !void {
-    var gpa = std.heap.DebugAllocator(.{}){};
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
     var allocator = gpa.allocator();
 
     // Read bytes

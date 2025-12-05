@@ -37,6 +37,19 @@ pub const SymbolTable = struct {
                 .location = .{ .start = 0, .end = 1 },
             });
         }
+        {
+            const type_ref = try allocator.create(Type);
+            type_ref.* = Type.Unit;
+            try self.scope.symbols.put(allocator, "prints", .{
+                .t = Type{
+                    .Function = .{
+                        .params = &.{},
+                        .return_t = type_ref,
+                    },
+                },
+                .location = .{ .start = 0, .end = 1 },
+            });
+        }
     }
 
     pub fn lookup_type(self: *const SymbolTable, type_name: []const u8) ?Type {

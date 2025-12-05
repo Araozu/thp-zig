@@ -38,6 +38,21 @@ pub fn read_bytecode(allocator: std.mem.Allocator, bytes: []u8) !m_chunk.Chunk {
         }
     }
 
+    const next_pos = 8 + (contants_bytes_len * 8);
+    const raw_bytes_len = std.mem.readInt(u32, bytes[next_pos..][0..4], .big);
+
+    // Read raw bytes
+    if (raw_bytes_len > 0) {
+        // Ensure enough bytes
+        try chunk.raw_bytes.ensureTotalCapacity(chunk.allocator, raw_bytes_len);
+
+        // Read & insert bytes
+        try chunk.raw_bytes.appendSlice(
+            chunk.allocator,
+            bytes[(next_pos + 4)..(next_pos + 4 + raw_bytes_len)],
+        );
+    }
+
     // Remaining bytes are bytecode
     const bytecode_start_idx = 8 + (contants_bytes_len * 8);
     const bytecode_bytes = bytes[bytecode_start_idx..];

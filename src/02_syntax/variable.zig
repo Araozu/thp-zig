@@ -7,6 +7,7 @@ const m_pratt_expression = @import("./expression/pratt_expression.zig");
 const types = @import("./types.zig");
 const utils = @import("./utils.zig");
 const context = @import("./context.zig");
+const m_id = @import("./ids.zig");
 
 const PrattExpression = m_pratt_expression.PrattExpression;
 
@@ -20,6 +21,7 @@ pub const VariableBinding = struct {
     datatype: ?*lexic.Token,
     identifier: *lexic.Token,
     expression: PrattExpression,
+    id: u64,
 
     /// Parses a variable binding and returns the position of the next token
     /// of the form:
@@ -187,6 +189,7 @@ pub const VariableBinding = struct {
             .datatype = datatype_token,
             .identifier = identifier,
             .expression = exp,
+            .id = m_id.generate_id(),
         };
         return next_pos;
     }

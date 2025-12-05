@@ -17,7 +17,6 @@ This is a rough, non-commital roadmap of sorts.
 - [ ] Project mode compilation
 - [ ] Docs generator
 - [ ] Parse function call w arguments
-- [ ] Parse binary ops
 - [ ] Parse unary ops
 - [ ] Parse conditionals
 - [ ] Parse multiple statements
@@ -31,16 +30,33 @@ This is a rough, non-commital roadmap of sorts.
 - [ ] vm: support more datatypes
 - [ ] vm: variables
 
-## v0.0.4: technically turing complete
+## v0.0.5: technically turing complete
 
 - [ ] parse conditionals
 - [ ] vm: conditionals
 
-## v0.0.3: cleaning house
+
+## v0.0.4: typed
+
+- [ ] more datatypes: i8, i16, i32, i64, u8, u16, u32, u64, f32
+- [ ] number promotion
+- [ ] number casts
+- [ ] strings
+- [ ] IR lowering
+
+
+## v0.0.3: hello world
 
 - [x] parse binary operators
 - [x] regression: reenable function call parsing
-- [ ] vm: binary operators
+- [x] typed & overloaded binary operators
+- [x] create id for AST nodes
+- [x] store type info
+- [x] more datatypes: f64, u64
+- [x] constant strings
+- [x] vm: binary operators
+- [x] print strings
+
 
 ## v0.0.2: bare minimum
 
