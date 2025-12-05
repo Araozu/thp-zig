@@ -23,6 +23,8 @@ pub fn main() !void {
     var args = std.process.args();
     defer args.deinit();
 
+    std.debug.print("THP v{}.{}.{}\n\n", .{ thp_version.major, thp_version.minor, thp_version.patch });
+
     const cli_args = cli_interface.CliArgs.parse(&args) catch |err| switch (err) {
         error.CompileMissingFilename => {
             std.debug.print("{s}\n\n", .{cli_interface.compile_command.CompileOptions.usage()});

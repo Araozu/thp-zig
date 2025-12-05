@@ -1,8 +1,6 @@
 const std = @import("std");
 
 const command_help =
-    \\THP v{}.{}.{}
-    \\
     \\compile: Compiles a single file into bytecode
     \\
     \\ thp compile <file> [options]
@@ -47,7 +45,7 @@ pub const CompileOptions = struct {
         };
     }
 
-    pub fn printUsage(version: std.SemanticVersion) void {
-        std.debug.print(command_help, .{ version.major, version.minor, version.patch });
+    pub fn usage() []const u8 {
+        return command_help;
     }
 };
