@@ -45,15 +45,17 @@ This is a rough, non-commital roadmap of sorts.
 - [ ] IR lowering
 
 
-## v0.0.3: cleaning house
+## v0.0.3: hello world
 
 - [x] parse binary operators
 - [x] regression: reenable function call parsing
 - [x] typed & overloaded binary operators
 - [x] create id for AST nodes
 - [x] store type info
-- [ ] more datatypes: f64, u64, bool
+- [x] more datatypes: f64, u64
+- [x] constant strings
 - [x] vm: binary operators
+- [x] print strings
 
 
 ## v0.0.2: bare minimum

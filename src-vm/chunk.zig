@@ -4,7 +4,9 @@ pub const OpCode = enum(u8) {
     OP_RETURN = 0x00,
     OP_PRINT_F64 = 0x01,
 
-    /// Push a constant onto the stack. Its always a u64.
+    /// <cons> idx
+    ///
+    /// Push a constant **index** onto the stack. Its always a u64.
     OP_CONSTANT = 0x02,
 
     /// Binary addition
@@ -20,6 +22,11 @@ pub const OpCode = enum(u8) {
     //
     OP_ADD_U64 = 0x07,
     OP_SUB_U64 = 0x08,
+
+    /// <prints> len, offset
+    /// pops a len+offset from the stack, extracts the bytes
+    /// from the raw byte array, and prints them as a string
+    OP_PRINT_CONST = 0x09,
 };
 
 pub const Chunk = struct {

@@ -61,6 +61,12 @@ pub const VM = struct {
                 .OP_PRINT_F64 => {
                     std.debug.print("{d}\n", .{@as(f64, @bitCast(self.pop()))});
                 },
+                .OP_PRINT_CONST => {
+                    const offset = @as(usize, self.pop());
+                    const len = @as(usize, self.pop());
+                    const bytes = self.read_constant_bytes(offset, len);
+                    std.debug.print("{s}\n", .{bytes});
+                },
                 .OP_CONSTANT => {
                     const constant = self.read_constant();
                     self.push(constant);
@@ -111,8 +117,16 @@ pub const VM = struct {
     }
 
     // NOTE: crafting interpreters had this as a C macro
+    /// Read a constant from the chunk's constant array
     fn read_constant(self: *Self) u64 {
         return self.chunk.constants.items[self.read_byte()];
+    }
+
+    /// Read raw bytes from the chunk's raw byte array.
+    fn read_constant_bytes(self: *Self, offset: usize, len: usize) []u8 {
+        std.debug.assert(offset + len <= self.chunk.raw_bytes.items.len);
+
+        return self.chunk.raw_bytes.items[offset..][0..len];
     }
 
     pub fn deinit(self: *Self) void {

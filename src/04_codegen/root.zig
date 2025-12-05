@@ -62,11 +62,13 @@ pub const ByteCodeGenerator = struct {
                     .primary => |primary| {
                         switch (primary.*) {
                             .identifier => |id| {
-                                if (!std.mem.eql(u8, id.value, "print")) {
+                                if (std.mem.eql(u8, id.value, "print")) {
+                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_F64), 1);
+                                } else if (std.mem.eql(u8, id.value, "prints")) {
+                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_CONST), 1);
+                                } else {
                                     std.debug.panic("Not implemented: function call other than print\n", .{});
                                 }
-
-                                try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_F64), 1);
                             },
                             else => std.debug.panic("Not implemented: not identifier function call\n", .{}),
                         }
@@ -139,13 +141,23 @@ pub const ByteCodeGenerator = struct {
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             .string => |tok_string| {
-                // Add bytes sans quotes
-                const byte_offset = try chunk.write_constant_bytes(tok_string.value[1 .. tok_string.value.len - 1]);
+                const str_value = tok_string.value[1 .. tok_string.value.len - 1];
 
-                // Push to stack
-                // FIXME: use a different opcode for byte constants
-                try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
-                try chunk.write_chunk(@intCast(byte_offset), 123);
+                // Add bytes sans quotes
+                const byte_offset = try chunk.write_constant_bytes(str_value);
+
+                // Push to stack: <cons> len, <cons> offset
+                {
+                    const constant_idx = try chunk.write_constant(str_value.len);
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                    try chunk.write_chunk(@intCast(constant_idx), 1);
+                }
+
+                {
+                    const constant_idx = try chunk.write_constant(byte_offset);
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                    try chunk.write_chunk(@intCast(constant_idx), 1);
+                }
             },
             else => {
                 // TODO
