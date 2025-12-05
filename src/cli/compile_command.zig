@@ -1,7 +1,9 @@
 const std = @import("std");
 
 const command_help =
-    \\THP compile: Compiles a single file into bytecode
+    \\THP v{}.{}.{}
+    \\
+    \\compile: Compiles a single file into bytecode
     \\
     \\ thp compile <file> [options]
     \\     c       <file> [options]
@@ -10,6 +12,7 @@ const command_help =
     \\
     \\ -o <output>   - specifies the output file
     \\ -p            - compiles the file in place, output file is <file>.php
+    \\
 ;
 
 pub const CompileOptionsError = error{
@@ -44,7 +47,7 @@ pub const CompileOptions = struct {
         };
     }
 
-    pub fn usage() []const u8 {
-        return command_help;
+    pub fn printUsage(version: std.SemanticVersion) void {
+        std.debug.print(command_help, .{ version.major, version.minor, version.patch });
     }
 };

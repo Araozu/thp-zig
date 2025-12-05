@@ -12,7 +12,11 @@ const config = @import("config");
 const tracing = config.tracing;
 const json = config.json;
 
-const thp_version: []const u8 = "0.0.1";
+pub const thp_version: std.SemanticVersion = .{
+    .major = 0,
+    .minor = 0,
+    .patch = 4,
+};
 
 pub fn main() !void {
     // just run the CLI
@@ -46,7 +50,7 @@ pub fn main() !void {
             _ = try cli_interface.lex_runner.run();
         },
         else => {
-            std.debug.print("CLI command not implemented.\n", .{});
+            std.debug.print("{s}\n", .{cli_interface.CliArgs.usage()});
             return;
         },
     }

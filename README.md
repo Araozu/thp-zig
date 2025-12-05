@@ -1,17 +1,13 @@
 # The THP programming language
 
-This is the source code for the THP programming language.
-THP stands for "Typed Hypertext Preprocessor", and is a
-functional first, strong, nominal, statically typed language
-that compiles down to PHP.
+THP is a statically typed, compiled programming language. Compiles to its
+own bytecode format, and runs on its own VM.
 
-It is completely written in Zig, it is being rewritten from Rust.
 There is documentation and a WIP spec at
 [https://thp-lang.org](https://thp-lang.org).
 
-## Install
 
-This software is nowhere near to be useful, but hey, it runs... some of the time.
+## Install
 
 This program has exactly 1 dependency: the zig standard library, and has 2 binaries:
 
@@ -27,27 +23,37 @@ This program has exactly 1 dependency: the zig standard library, and has 2 binar
 
 ## Usage
 
-Again, nowhere near to be useful.
 
 ### Write source code
 
-As of v0.0.2 the compiler is able to compile a print of exactly 1 float number.
+As of v0.0.3 the compiler is able to do:
+- Basic f64/u64 arithmetic
+- Print f64 values
+- Print strings
 
 ```thp
-val _ = print(125.322)
-val __ = print(644.0)
+print("hello world")
+print(1.5 + 2.5 - 3.0)
 ```
 
-### Compile
 
-Run `zig build run -- c /path/to/thp/source/code > out.thpb`, where `out.thpb` is
+### Compile to file
+
+Run `zig build run -- c /path/to/thp/source/code > out`, where `out` is
 the file to write the bytecode to. Right now the compiler just writes bytes to
 stdout.
 
-### Run
 
-Load & execute the bytecode with `zig build run-vm -- out.thpb`. Your floats
+### Run bytecode
+
+Load & execute the bytecode with `zig build run-vm -- out`. Your floats
 should be printed.
+
+
+### Compile & run in one command
+
+Run `zig build run -- run /path/to/thp/source/code`. It will compile & run
+the code in one command.
 
 
 ## Contributing

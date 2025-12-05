@@ -1,7 +1,9 @@
 const std = @import("std");
 
 const command_help =
-    \\THP run: Compiles and executes a single file in the VM
+    \\THP v{}.{}.{}
+    \\
+    \\run: Compiles and executes a single file in the VM
     \\
     \\ thp run <file>
     \\
@@ -28,7 +30,7 @@ pub const RunOptions = struct {
         };
     }
 
-    pub fn usage() []const u8 {
-        return command_help;
+    pub fn printUsage(version: std.SemanticVersion) void {
+        std.debug.print(command_help, .{ version.major, version.minor, version.patch });
     }
 };

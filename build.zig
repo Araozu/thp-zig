@@ -1,5 +1,11 @@
 const std = @import("std");
 
+const thp_version: std.SemanticVersion = .{
+    .major = 0,
+    .minor = 0,
+    .patch = 4,
+};
+
 fn create_module(
     path: []const u8,
     b: *std.Build,
