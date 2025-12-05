@@ -28,13 +28,11 @@ pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
     const instruction = chunk.code.items[offset];
     const e_instruction: OpCode = @enumFromInt(instruction);
     switch (e_instruction) {
+        .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
         .OP_CONSTANT => |op| {
             return constant_instruction(@tagName(op), chunk, offset);
         },
-        .OP_NEGATE => |op| return simple_instruction(@tagName(op), offset),
-        .OP_ADD => |op| return simple_instruction(@tagName(op), offset),
-        .OP_PRINT => |op| return simple_instruction(@tagName(op), offset),
-        .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
+        else => return simple_instruction(@tagName(e_instruction), offset),
     }
 
     return 0;
@@ -47,8 +45,8 @@ fn simple_instruction(name: []const u8, offset: usize) usize {
 
 fn constant_instruction(name: []const u8, chunk: *Chunk, offset: usize) usize {
     const constant_idx = chunk.code.items[offset + 1];
-    std.debug.print("{s:<16} {d:<4}", .{ name, constant_idx });
+    std.debug.print("{s:<16} @{d:<4} <", .{ name, constant_idx });
     m_value.print_value(chunk.constants.items[constant_idx]);
-    std.debug.print("\n", .{});
+    std.debug.print(">\n", .{});
     return offset + 2;
 }

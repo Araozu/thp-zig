@@ -9,6 +9,7 @@ const types = @import("./types.zig");
 const statement = @import("./statement.zig");
 const m_pratt_expression = @import("./expression/pratt_expression.zig");
 const m_primary_expression = @import("./expression/primary_expression.zig");
+const m_ids = @import("./ids.zig");
 
 // export AST nodes to other modules
 pub const Statement = statement.Statement;
@@ -25,6 +26,7 @@ const TokenStream = types.TokenStream;
 /// A module in the AST.
 pub const Module = struct {
     statements: std.ArrayListUnmanaged(statement.Statement),
+    id: u64,
 
     /// Parses a module.
     ///
@@ -81,9 +83,7 @@ pub const Module = struct {
             return error.Error;
         }
 
-        target.* = .{
-            .statements = arrl,
-        };
+        target.* = .{ .statements = arrl, .id = m_ids.generate_id() };
     }
 
     pub fn deinit(self: *@This(), ctx: *const context.ParserContext) void {

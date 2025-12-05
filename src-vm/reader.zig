@@ -9,7 +9,6 @@ pub fn read_bytecode(allocator: std.mem.Allocator, bytes: []u8) !m_chunk.Chunk {
     }
 
     // Assert first 4 bytes have the right signature
-
     if (!std.mem.eql(u8, bytes[0..4], "THP!")) {
         const bytes_hex = std.fmt.bytesToHex(bytes[0..4], std.fmt.Case.lower);
         std.debug.print("Invalid bytecode header bytes: {s}\n", .{bytes_hex});
@@ -33,10 +32,25 @@ pub fn read_bytecode(allocator: std.mem.Allocator, bytes: []u8) !m_chunk.Chunk {
         for (0..contants_bytes_len) |i| {
             const bytes_start = 8 + (i * 8);
             const bytes_end = 8 + ((i + 1) * 8);
-            const f64_value: f64 = @bitCast(std.mem.readInt(u64, bytes[bytes_start..bytes_end][0..8], .big));
+            const u64_value = std.mem.readInt(u64, bytes[bytes_start..bytes_end][0..8], .big);
 
-            try chunk.constants.append(chunk.allocator, f64_value);
+            try chunk.constants.append(chunk.allocator, u64_value);
         }
+    }
+
+    const next_pos = 8 + (contants_bytes_len * 8);
+    const raw_bytes_len = std.mem.readInt(u32, bytes[next_pos..][0..4], .big);
+
+    // Read raw bytes
+    if (raw_bytes_len > 0) {
+        // Ensure enough bytes
+        try chunk.raw_bytes.ensureTotalCapacity(chunk.allocator, raw_bytes_len);
+
+        // Read & insert bytes
+        try chunk.raw_bytes.appendSlice(
+            chunk.allocator,
+            bytes[(next_pos + 4)..(next_pos + 4 + raw_bytes_len)],
+        );
     }
 
     // Remaining bytes are bytecode

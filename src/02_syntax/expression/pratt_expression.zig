@@ -4,6 +4,7 @@ const semantic = @import("semantic");
 
 const context = @import("../context.zig");
 const types = @import("../types.zig");
+const ids = @import("../ids.zig");
 
 const m_primary_expression = @import("primary_expression.zig");
 const PrimaryExpression = m_primary_expression.PrimaryExpression;
@@ -41,15 +42,20 @@ const Precedence = enum(u8) {
 
 pub const PrattExpression = union(enum) {
     primary: *PrimaryExpression,
-    binary: struct {
+    binary: Binary,
+    function: Function,
+
+    pub const Binary = struct {
         left: *PrattExpression,
         operator: *const lexic.Token,
         right: *PrattExpression,
-    },
-    function: struct {
+        id: u64,
+    };
+    pub const Function = struct {
         callee: *PrattExpression,
         arguments: std.ArrayListUnmanaged(*PrattExpression),
-    },
+        id: u64,
+    };
 
     const Self = @This();
 
@@ -117,6 +123,7 @@ pub const PrattExpression = union(enum) {
                 new_function.* = .{ .function = .{
                     .callee = temp_expr,
                     .arguments = arguments,
+                    .id = ids.generate_id(),
                 } };
 
                 temp_expr = new_function;
@@ -150,6 +157,7 @@ pub const PrattExpression = union(enum) {
                 .left = temp_expr,
                 .operator = operator_token,
                 .right = right_expr,
+                .id = ids.generate_id(),
             } };
 
             temp_expr = new_binary;
@@ -210,6 +218,11 @@ pub const PrattExpression = union(enum) {
     pub fn get_range(self: *const Self) struct { usize, usize } {
         return switch (self.*) {
             .primary => |p| p.get_range(),
+            .binary => |b| {
+                const left_range = b.left.get_range();
+                const right_range = b.right.get_range();
+                return .{ left_range.@"0", right_range.@"1" };
+            },
             else => std.debug.panic("Not implemented: get range\n", .{}),
         };
     }

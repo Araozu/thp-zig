@@ -7,6 +7,7 @@ const context = @import("./context.zig");
 const error_context = @import("context");
 const semantic = @import("semantic");
 const m_expression = @import("./expression/pratt_expression.zig");
+const m_ids = @import("./ids.zig");
 
 const TokenStream = types.TokenStream;
 const ParseError = types.ParseError;

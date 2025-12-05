@@ -6,6 +6,7 @@ const context = @import("context");
 const types = @import("../../types.zig");
 const symbol_table = @import("../../symbol_table.zig");
 const visitor = @import("../../visitor.zig");
+const m_semantic_context = @import("../../semantic_context.zig");
 
 const TokenType = lexic.TokenType;
 const ErrorCtx = context.ErrorContext;
@@ -25,18 +26,21 @@ pub const TypecheckerVisitor = struct {
     symbol_table: *const SymbolTable,
     scope: *Scope,
     alloc: std.mem.Allocator,
+    semantic_ctx: *m_semantic_context.SemanticContext,
     err: *ErrorCtx,
 
     pub fn init(
         alloc: std.mem.Allocator,
         table: *const SymbolTable,
         s: *Scope,
+        semantic_ctx: *m_semantic_context.SemanticContext,
         err: *ErrorCtx,
     ) TypecheckerVisitor {
         return TypecheckerVisitor{
             .scope = s,
             .symbol_table = table,
             .alloc = alloc,
+            .semantic_ctx = semantic_ctx,
             .err = err,
         };
     }
@@ -56,7 +60,7 @@ pub const TypecheckerVisitor = struct {
 
     pub fn visitExpression(ptr: *anyopaque, node: *const syntax.PrattExpression) VisitorError!Type {
         const self: *TypecheckerVisitor = @ptrCast(@alignCast(ptr));
-        return try expressionVisitor.visit(self, node);
+        return try expressionVisitor.visit(self, node, self.semantic_ctx);
     }
 
     pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!Type {
@@ -64,7 +68,7 @@ pub const TypecheckerVisitor = struct {
 
         // ensure the binding is on the symbol table
         // get the type of the binding expression
-        const expression_type = try expressionVisitor.visit(self, &node.expression);
+        const expression_type = try expressionVisitor.visit(self, &node.expression, self.semantic_ctx);
 
         // get the type of the type hint, if any
         const hinted_type = if (node.datatype) |type_hint| switch (type_hint.token_type) {
