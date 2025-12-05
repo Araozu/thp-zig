@@ -11,14 +11,14 @@ const parser_ctx = syntax.context;
 const config = @import("config");
 const tracing = config.tracing;
 
-const CompileOptions = @import("../compile_command.zig").CompileOptions;
+const RunOptions = @import("../run_command.zig").RunOptions;
 
 var stderr_buffer: [128]u8 = undefined;
 var stderr_writer = std.fs.File.stderr().writer(&stderr_buffer);
 var stderr = &stderr_writer.interface;
 
-/// Runs the compile command.
-pub fn run(self: *const CompileOptions) !void {
+/// Runs the run command - compiles and executes code in the VM.
+pub fn run(self: *const RunOptions) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
@@ -152,9 +152,7 @@ pub fn run(self: *const CompileOptions) !void {
     defer semantic_ctx.deinit();
 
     // ==========================================
-    //
     //   Emit
-    //
     // ==========================================
 
     var generator: codegen.ByteCodeGenerator = undefined;
@@ -164,40 +162,18 @@ pub fn run(self: *const CompileOptions) !void {
     defer chunk.deinit();
 
     // ==========================================
-    //   Out to stdout
+    //   Execute in VM
     // ==========================================
-    const stdout_buffer = try allocator.alloc(u8, 1024);
-    defer allocator.free(stdout_buffer);
 
-    var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
-    const stdout = &stdout_writer.interface;
+    var vm: m_vm.VM = undefined;
+    vm.init(chunk);
+    defer vm.deinit();
 
-    // write
-    _ = try stdout.write("THP!");
-    //  constants
-    _ = try stdout.writeInt(u32, @intCast(chunk.constants.items.len), .big);
-    for (chunk.constants.items) |bytes| {
-        _ = try stdout.writeInt(u64, @bitCast(bytes), .big);
+    const result = vm.interpret();
+
+    if (result != .INTERPRET_OK) {
+        std.process.exit(1);
     }
-    //  raw bytes
-    _ = try stdout.writeInt(u32, @intCast(chunk.raw_bytes.items.len), .big);
-    for (chunk.raw_bytes.items) |byte| {
-        _ = try stdout.writeInt(u8, @bitCast(byte), .big);
-    }
-    _ = try stdout.write(std.mem.sliceAsBytes(chunk.code.items));
-
-    // don't forget to flush
-    try stdout.flush();
-
-    // ==========================================
-    //   Execution?
-    // ==========================================
-
-    // var vm: m_vm.VM = undefined;
-    // vm.init(chunk);
-    // defer vm.deinit();
-    //
-    // _ = vm.interpret();
 }
 
 inline fn trace_header() void {

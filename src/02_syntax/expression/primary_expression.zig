@@ -3,7 +3,8 @@ const lexic = @import("lexic");
 const context = @import("../context.zig");
 const error_context = @import("context");
 const types = @import("../types.zig");
-const CallExpression = @import("./call_expression.zig").CallExpression;
+const PrattExpression = @import("./pratt_expression.zig").PrattExpression;
+const m_ids = @import("../ids.zig");
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -24,9 +25,10 @@ pub const PrimaryExpression = union(enum) {
     string: *const Token,
     identifier: *const Token,
     paren: struct {
-        exp: *CallExpression,
+        exp: *PrattExpression,
         lparen: *const Token,
         rparen: *const Token,
+        id: u64,
     },
 
     /// Attempts to parse an expression from a token stream.
@@ -37,7 +39,7 @@ pub const PrimaryExpression = union(enum) {
         self: *PrimaryExpression,
         pos: usize,
         ctx: *const context.ParserContext,
-    ) !?usize {
+    ) ParseError!?usize {
         std.debug.assert(pos < ctx.tokens.items.len);
 
         // Check if parsing simple tokens
@@ -70,7 +72,7 @@ pub const PrimaryExpression = union(enum) {
                 return ParseError.Error;
             }
 
-            var inner_exp = try ctx.allocator.create(CallExpression);
+            var inner_exp = try ctx.allocator.create(PrattExpression);
             errdefer ctx.allocator.destroy(inner_exp);
 
             const next_pos_maybe = try inner_exp.init(pos + 1, ctx);
@@ -118,6 +120,7 @@ pub const PrimaryExpression = union(enum) {
                     .exp = inner_exp,
                     .lparen = lparen_t,
                     .rparen = rparen_t,
+                    .id = m_ids.generate_id(),
                 },
             };
 
@@ -159,9 +162,10 @@ test "should parse int expression" {
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("322", expr.int.value);
         try std.testing.expectEqualDeep(TokenType.Int, expr.int.token_type);
+        try std.testing.expectEqualDeep(1, next_pos);
         return;
     }
     try std.testing.expect(false);
@@ -177,9 +181,10 @@ test "should parse float expression" {
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("322.644", expr.float.value);
         try std.testing.expectEqualDeep(TokenType.Float, expr.float.token_type);
+        try std.testing.expectEqualDeep(1, next_pos);
         return;
     }
     try std.testing.expect(false);
@@ -195,9 +200,10 @@ test "should parse string expression" {
     const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         try std.testing.expectEqualDeep("\"hello\"", expr.string.value);
         try std.testing.expectEqualDeep(TokenType.String, expr.string.token_type);
+        try std.testing.expectEqualDeep(1, next_pos);
         return;
     }
     try std.testing.expect(false);
@@ -214,11 +220,14 @@ test "should parse expression within parens" {
     var expr: PrimaryExpression = undefined;
     defer expr.deinit(&parser_context);
 
-    if (try expr.init(0, &parser_context)) |_| {
+    if (try expr.init(0, &parser_context)) |next_pos| {
         switch (expr) {
             .paren => |inner_exp| {
+                // The inner expression should be a PrattExpression wrapping a primary
+                try std.testing.expect(inner_exp.exp.* == .primary);
                 try std.testing.expectEqualDeep("322", inner_exp.exp.*.primary.int.value);
                 try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.*.primary.int.token_type);
+                try std.testing.expectEqualDeep(3, next_pos);
             },
             else => try std.testing.expect(false),
         }

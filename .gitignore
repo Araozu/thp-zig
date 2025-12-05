@@ -2,5 +2,6 @@ zig-out
 .zig-cache
 
 # bytecode output
+out
 out.thpb
 

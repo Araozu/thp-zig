@@ -1,20 +1,22 @@
 const std = @import("std");
 const lexic = @import("lexic");
-pub const context = @import("./context.zig");
 const error_context = @import("context");
 
-const call_expression = @import("./expression/call_expression.zig");
+pub const context = @import("./context.zig");
 const primary_expression = @import("./expression/primary_expression.zig");
 const variable = @import("./variable.zig");
 const types = @import("./types.zig");
 const statement = @import("./statement.zig");
+const m_pratt_expression = @import("./expression/pratt_expression.zig");
+const m_primary_expression = @import("./expression/primary_expression.zig");
+const m_ids = @import("./ids.zig");
 
 // export AST nodes to other modules
 pub const Statement = statement.Statement;
 pub const VariableBinding = variable.VariableBinding;
 pub const Expression = primary_expression.PrimaryExpression;
-pub const CallExpression = call_expression.CallExpression;
-pub const PrimaryExpression = call_expression.PrimaryExpression;
+pub const PrattExpression = m_pratt_expression.PrattExpression;
+pub const PrimaryExpression = m_primary_expression.PrimaryExpression;
 
 const Token = lexic.Token;
 const TokenType = lexic.TokenType;
@@ -24,6 +26,7 @@ const TokenStream = types.TokenStream;
 /// A module in the AST.
 pub const Module = struct {
     statements: std.ArrayListUnmanaged(statement.Statement),
+    id: u64,
 
     /// Parses a module.
     ///
@@ -38,7 +41,7 @@ pub const Module = struct {
     ) ParseError!void {
         var arrl = std.ArrayListUnmanaged(statement.Statement).empty;
         errdefer arrl.deinit(ctx.allocator);
-        errdefer for (arrl.items) |i| {
+        errdefer for (arrl.items) |*i| {
             i.deinit(ctx);
         };
 
@@ -80,13 +83,11 @@ pub const Module = struct {
             return error.Error;
         }
 
-        target.* = .{
-            .statements = arrl,
-        };
+        target.* = .{ .statements = arrl, .id = m_ids.generate_id() };
     }
 
     pub fn deinit(self: *@This(), ctx: *const context.ParserContext) void {
-        for (self.statements.items) |stmt| {
+        for (self.statements.items) |*stmt| {
             stmt.deinit(ctx);
         }
         self.statements.deinit(ctx.allocator);
@@ -117,7 +118,7 @@ test "should parse a single statement" {
 test "should clean memory if a statement parsing fails after one item has been inserted" {
     var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
     defer err_ctx.deinit();
-    const input = "var my_variable = 322 unrelated()";
+    const input = "var my_variable = 322 var 644";
     var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
     defer tokens.deinit(std.testing.allocator);
 

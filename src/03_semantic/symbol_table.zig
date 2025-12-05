@@ -18,25 +18,38 @@ pub const SymbolTable = struct {
         };
 
         // Insert builtin types
-        try self.builtin_types.put(self.allocator, "Int", Type.Int);
-        try self.builtin_types.put(self.allocator, "Float", Type.Float);
-        try self.builtin_types.put(self.allocator, "String", Type.String);
-        try self.builtin_types.put(self.allocator, "Bool", Type.Bool);
+        try self.builtin_types.put(allocator, "i64", Type.I64);
+        try self.builtin_types.put(allocator, "f64", Type.F64);
+        try self.builtin_types.put(allocator, "String", Type.String);
+        try self.builtin_types.put(allocator, "bool", Type.Bool);
 
         // Builtin functions
-
-        const type_ref = try allocator.create(Type);
-        type_ref.* = Type.Unit;
-
-        try self.scope.symbols.put(allocator, "print", .{
-            .t = Type{
-                .Function = .{
-                    .params = &.{},
-                    .return_t = type_ref,
+        {
+            const type_ref = try allocator.create(Type);
+            type_ref.* = Type.Unit;
+            try self.scope.symbols.put(allocator, "print", .{
+                .t = Type{
+                    .Function = .{
+                        .params = &.{},
+                        .return_t = type_ref,
+                    },
                 },
-            },
-            .location = .{ .start = 0, .end = 1 },
-        });
+                .location = .{ .start = 0, .end = 1 },
+            });
+        }
+        {
+            const type_ref = try allocator.create(Type);
+            type_ref.* = Type.Unit;
+            try self.scope.symbols.put(allocator, "prints", .{
+                .t = Type{
+                    .Function = .{
+                        .params = &.{},
+                        .return_t = type_ref,
+                    },
+                },
+                .location = .{ .start = 0, .end = 1 },
+            });
+        }
     }
 
     pub fn lookup_type(self: *const SymbolTable, type_name: []const u8) ?Type {

@@ -4,23 +4,44 @@ const syntax = @import("syntax");
 const type_visitor = @import("./typechecker_visitor.zig");
 const visitor = @import("../../visitor.zig");
 const types = @import("../../types.zig");
+const m_operators = @import("../../operators.zig");
+const m_semantic_context = @import("../../semantic_context.zig");
 
-const CallExpression = syntax.CallExpression;
+const PrattExpression = syntax.PrattExpression;
 const PrimaryExpression = syntax.Expression;
 const TypecheckerVisitor = type_visitor.TypecheckerVisitor;
 const VisitorError = visitor.VisitorError;
 const Type = types.Type;
+const SemanticContext = m_semantic_context.SemanticContext;
 
-pub fn visit(self: *TypecheckerVisitor, node: *const CallExpression) VisitorError!Type {
+pub fn visit(
+    self: *TypecheckerVisitor,
+    node: *const PrattExpression,
+    ctx: *SemanticContext,
+) VisitorError!Type {
     switch (node.*) {
-        .function => |f| {
+        .binary => return typecheck_binary_expression(self, node, ctx),
+        .function => |*funcall| {
             // Check that the function_id resolves to a function type
-            const t_function_id = try visit_primary_expression(self, &f.primary);
+            const t_function_id = try visit(self, funcall.callee, ctx);
 
             // Assert its a function type
             switch (t_function_id) {
                 .Function => |t_function| {
                     // TODO: assert args are correct when the function calls other things
+
+                    // get type of the function
+
+                    // check arity
+
+                    // get types of params
+                    for (funcall.arguments.items) |arg| {
+                        const v = self.visitor();
+                        _ = try arg.accept(Type, &v);
+                    }
+
+                    // check types of params
+
                     return t_function.return_t.*;
                 },
                 else => {
@@ -41,19 +62,64 @@ pub fn visit(self: *TypecheckerVisitor, node: *const CallExpression) VisitorErro
             std.debug.print("TODO: get expression of function call\n", .{});
             return Type.Untyped;
         },
-        .primary => |expr| return try visit_primary_expression(self, &expr),
+        .primary => |expr| return try typecheck_primary_expression(self, expr, ctx),
     }
-
-    // FIXME:
-    // Process other expression types
 
     return Type.Untyped;
 }
 
-pub fn visit_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryExpression) VisitorError!Type {
+pub fn typecheck_binary_expression(
+    self: *TypecheckerVisitor,
+    node: *const PrattExpression,
+    ctx: *SemanticContext,
+) VisitorError!Type {
+    const binary_expr = &node.binary;
+    const expr_visitor = self.visitor();
+    const operator_token = binary_expr.operator;
+
+    const left_type = try binary_expr.left.accept(Type, &expr_visitor);
+    const right_type = try binary_expr.right.accept(Type, &expr_visitor);
+
+    // FIXME: this is getting called always, unneccessarily, even when a error is not hit
+    // const left_start, const left_end = binary_expr.left.get_range();
+    // const right_start, const right_end = binary_expr.right.get_range();
+
+    const operator_signature = m_operators.resolve_binary_operator(
+        operator_token.value,
+        left_type,
+        right_type,
+    ) orelse {
+        var new_error = try self.err.create_and_append_error(
+            "Invalid operator",
+            operator_token.start_pos,
+            operator_token.end_pos(),
+        );
+        {
+            const err_msg = try std.fmt.allocPrint(self.err.allocator, "Operator `{s}` doesn't exist in this scope", .{operator_token.value});
+            const err_msg_label = self.err.create_error_label_alloc(
+                err_msg,
+                operator_token.start_pos,
+                operator_token.end_pos(),
+            );
+            try new_error.add_label(err_msg_label);
+        }
+        return VisitorError.SemanticError;
+    };
+
+    // register the node type
+    try ctx.set_type(binary_expr.id, operator_signature.result);
+
+    return operator_signature.result;
+}
+
+pub fn typecheck_primary_expression(
+    self: *TypecheckerVisitor,
+    node: *const PrimaryExpression,
+    ctx: *SemanticContext,
+) VisitorError!Type {
     switch (node.*) {
-        .float => return Type.Float,
-        .int => return Type.Int,
+        .float => return Type.F64,
+        .int => return Type.I64,
         .string => return Type.String,
         .identifier => |token| {
             // NOTE: should the lexer emit those as their own tokens?
@@ -86,7 +152,7 @@ pub fn visit_primary_expression(self: *TypecheckerVisitor, node: *const PrimaryE
             return t_id.t;
         },
         .paren => |inner_exp| {
-            return try visit(self, inner_exp.exp);
+            return try visit(self, inner_exp.exp, ctx);
         },
     }
 }

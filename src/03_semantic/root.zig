@@ -7,6 +7,7 @@ const SymbolVisitor = @import("./visitors/symbol_visitor.zig").SymbolCollectorVi
 const TypecheckerVisitor = @import("./visitors/typechecker/typechecker_visitor.zig").TypecheckerVisitor;
 const types = @import("types.zig");
 const symbol_table_mod = @import("./symbol_table.zig");
+const m_semantic_context = @import("./semantic_context.zig");
 
 const ASTModule = syntax.Module;
 
@@ -16,6 +17,7 @@ const Type = types.Type;
 pub const Scope = types.Scope;
 pub const Visitor = visitor.Visitor;
 pub const VisitorError = visitor.VisitorError;
+pub const SemanticContext = m_semantic_context.SemanticContext;
 
 pub fn semantic_analysis(
     alloc: std.mem.Allocator,
@@ -26,7 +28,7 @@ pub fn semantic_analysis(
     try symbol_table.init(alloc);
     defer symbol_table.deinit();
 
-    try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
+    _ = try semantic_analysis_unmanaged(&symbol_table, alloc, ast, err);
 }
 
 pub fn semantic_analysis_unmanaged(
@@ -34,7 +36,10 @@ pub fn semantic_analysis_unmanaged(
     alloc: std.mem.Allocator,
     ast: *const ASTModule,
     err: *ctx.ErrorContext,
-) VisitorError!void {
+) VisitorError!SemanticContext {
+    var semantic_ctx = SemanticContext.init(alloc);
+    errdefer semantic_ctx.deinit();
+
     // Symbol collection
     // Scope building
     // Iterate over the AST
@@ -42,15 +47,15 @@ pub fn semantic_analysis_unmanaged(
     var symbol_visitor = SymbolVisitor.init(alloc, &symbol_table.scope, err);
     const v = symbol_visitor.visitor();
     for (ast.statements.items) |*statement| {
-        try statement.accept(&v);
+        try statement.accept(void, &v);
     }
 
     // Name resolution
     // Type checking
-    var typechecker_visitor = TypecheckerVisitor.init(alloc, symbol_table, &symbol_table.scope, err);
+    var typechecker_visitor = TypecheckerVisitor.init(alloc, symbol_table, &symbol_table.scope, &semantic_ctx, err);
     const type_visitor = typechecker_visitor.visitor();
     for (ast.statements.items) |*statement| {
-        try statement.accept(&type_visitor);
+        _ = try statement.accept(Type, &type_visitor);
     }
 
     // Control flow analysis
@@ -64,6 +69,8 @@ pub fn semantic_analysis_unmanaged(
     //     std.debug.print("analyzed:\n\t{s}: {s}\n", .{ next_entry.key_ptr.*, symbol_info.t.to_str() });
     //     std.debug.print("\tat {d}:{d}\n", .{ symbol_info.location.start, symbol_info.location.end });
     // }
+
+    return semantic_ctx;
 }
 
 test {

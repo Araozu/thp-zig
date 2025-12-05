@@ -31,10 +31,15 @@ pipeline {
 				sh 'docker run -v $PWD:/app denisgolius/zig:0.15.1 build -Djson=true -Doptimize=ReleaseSmall'
 			}
 		}
-		stage('Build ReleaseFast & install') {
+		stage('Build ReleaseFast') {
 			steps {
 				sh 'docker run -v $PWD:/app denisgolius/zig:0.15.1 build test -Djson=true -Doptimize=ReleaseFast'
-				sh 'cp ./zig-out/bin/thp /var/bin/thp-zig'
+			}
+		}
+		stage('Install') {
+			when { branch 'develop' }
+			steps {
+				sh 'cp ./zig-out/bin/thp /var/bin/thp'
 			}
 		}
 	}
