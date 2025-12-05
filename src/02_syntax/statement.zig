@@ -19,9 +19,11 @@ pub const Statement = union(enum) {
     variableBinding: *variable.VariableBinding,
     expression: *PrattExpression,
 
+    const Self = @This();
+
     /// Parses a Statement and returns the position of the next token
     pub fn init(
-        self: *Statement,
+        self: *Self,
         pos: usize,
         ctx: *const context.ParserContext,
     ) ParseError!?usize {
@@ -56,12 +58,12 @@ pub const Statement = union(enum) {
     }
 
     /// Method for accepting a visitor
-    pub fn accept(self: *const Statement, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
+    pub fn accept(self: *const Self, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
         return try v.visitStatement(self);
     }
 
     pub fn deinit(
-        self: *Statement,
+        self: *Self,
         ctx: *const context.ParserContext,
     ) void {
         switch (self.*) {

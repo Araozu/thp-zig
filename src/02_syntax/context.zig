@@ -13,8 +13,10 @@ pub const ParserContext = struct {
     tokens: *const TokenStream,
     err: *context.ErrorContext,
 
+    const Self = @This();
+
     /// Returns true if `pos` is greater than the number of tokens
-    pub fn oob(self: *const ParserContext, pos: usize) bool {
+    pub fn oob(self: *const Self, pos: usize) bool {
         return pos >= self.tokens.items.len;
     }
 };

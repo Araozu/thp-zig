@@ -23,6 +23,8 @@ pub const VariableBinding = struct {
     expression: PrattExpression,
     id: u64,
 
+    const Self = @This();
+
     /// Parses a variable binding and returns the position of the next token
     /// of the form:
     ///
@@ -194,12 +196,12 @@ pub const VariableBinding = struct {
         return next_pos;
     }
 
-    pub fn accept(self: *const VariableBinding, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
+    pub fn accept(self: *const Self, comptime ReturnType: type, v: *const Visitor(ReturnType)) VisitorError!ReturnType {
         return try v.visitVariableBinding(self);
     }
 
     pub fn deinit(
-        self: *@This(),
+        self: *Self,
         ctx: *const context.ParserContext,
     ) void {
         self.expression.deinit(ctx);

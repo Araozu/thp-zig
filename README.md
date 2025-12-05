@@ -49,3 +49,16 @@ stdout.
 Load & execute the bytecode with `zig build run-vm -- out.thpb`. Your floats
 should be printed.
 
+
+## Contributing
+
+### Naming conventions
+
+- When importing modules, use `m_<module-name>`: `const m_parser = @import("./parser.zig");`
+- Variables that hold a token have a `tok_` prefix: `const tok_number = ...`
+- Variables that hold a type have a `t_` prefix: `const t_number = ...`
+- Inside structs, the reference to self is always named `self`, and a helper const
+  is created: `const Self = @This();`
+
+
+
