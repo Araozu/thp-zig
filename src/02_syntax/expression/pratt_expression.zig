@@ -203,8 +203,8 @@ pub const PrattExpression = union(enum) {
 
         const op = token.value;
 
-        // Arithmetic operators
-        if (std.mem.eql(u8, op, "+") or std.mem.eql(u8, op, "-")) {
+        // Arithmetic operators & string concatenation
+        if (std.mem.eql(u8, op, "+") or std.mem.eql(u8, op, "-") or std.mem.eql(u8, op, "++")) {
             return .PREC_TERM;
         }
 

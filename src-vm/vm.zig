@@ -95,6 +95,7 @@ pub const VM = struct {
                     const a = self.pop();
                     self.push(a - b);
                 },
+                .OP_CONCAT => unreachable,
             }
         }
     }

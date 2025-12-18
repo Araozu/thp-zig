@@ -29,6 +29,9 @@ This is a rough, non-commital roadmap of sorts.
 - [ ] Typecheck function call
 - [ ] vm: support more datatypes
 - [ ] vm: variables
+- [ ] IR lowering
+- [ ] req: IR lowering | number promotion
+- [ ] req: IR lowering | number casts
 
 ## v0.0.5: technically turing complete
 
@@ -39,10 +42,7 @@ This is a rough, non-commital roadmap of sorts.
 ## v0.0.4: typed
 
 - [ ] more datatypes: i8, i16, i32, i64, u8, u16, u32, u64, f32
-- [ ] number promotion
-- [ ] number casts
-- [ ] strings
-- [ ] IR lowering
+- [%] runtime strings
 
 
 ## v0.0.3: hello world

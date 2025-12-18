@@ -27,6 +27,9 @@ pub const OpCode = enum(u8) {
     /// pops a len+offset from the stack, extracts the bytes
     /// from the raw byte array, and prints them as a string
     OP_PRINT_CONST = 0x09,
+
+    /// String concatenation
+    OP_CONCAT = 0x0A,
 };
 
 pub const Chunk = struct {

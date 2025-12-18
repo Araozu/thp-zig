@@ -109,6 +109,8 @@ pub const ByteCodeGenerator = struct {
                             std.debug.panic("Not implemented: add operator on type `{s}`\n", .{t_op_result.to_str()});
                         },
                     }
+                } else if (std.mem.eql(u8, binary.operator.value, "++")) {
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONCAT), 1);
                 } else {
                     std.debug.panic("Not implemented: operator `{s}`\n", .{binary.operator.value});
                 }
