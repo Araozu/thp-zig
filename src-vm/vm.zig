@@ -75,16 +75,17 @@ pub const VM = struct {
                         .value => @panic("Expected to find a reference on the stack, found a value. This is a bug in the compiler."),
                     };
 
-                    std.debug.print("Obj allegedly at 0x{X}\n", .{@intFromPtr(obj)});
-
-                    switch (obj.t) {
-                        .String => {
-                            const obj_string: *m_obj.ObjString = @alignCast(@fieldParentPtr("base", obj));
-                            _ = obj_string;
+                    const obj_string: *m_obj.ObjString = switch (obj.t) {
+                        .String => @alignCast(@fieldParentPtr("base", obj)),
+                    };
+                    switch (obj_string.bytes) {
+                        .constant => |bytes| {
+                            std.debug.print("{s}\n", .{bytes});
+                        },
+                        .heap => |bytes| {
+                            std.debug.print("{s}\n", .{bytes});
                         },
                     }
-
-                    @panic("Regression: OP_PRINT_CONST");
                 },
                 .OP_CONSTANT => {
                     const constant = self.read_constant();
