@@ -42,7 +42,7 @@ This is a rough, non-commital roadmap of sorts.
 ## v0.0.4: typed
 
 - [ ] more datatypes: i8, i16, i32, i64, u8, u16, u32, u64, f32
-- [%] runtime strings
+- [x] runtime strings
 
 
 ## v0.0.3: hello world

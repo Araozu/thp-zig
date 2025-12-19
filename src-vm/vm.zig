@@ -147,7 +147,43 @@ pub const VM = struct {
 
                     self.push(.{ .value = @bitCast(a - b) });
                 },
-                .OP_CONCAT => unreachable,
+                .OP_CONCAT => {
+                    //
+                    // pop two strings from the stack
+                    //
+                    const obj_string_1: *m_obj.ObjString = switch (self.pop()) {
+                        .ref => |ref| switch (ref.t) {
+                            .String => @alignCast(@fieldParentPtr("base", ref)),
+                        },
+                        .value => @panic("Expected to find a reference on the stack, found a value. This is a bug in the compiler."),
+                    };
+                    const obj_string_2: *m_obj.ObjString = switch (self.pop()) {
+                        .ref => |ref| switch (ref.t) {
+                            .String => @alignCast(@fieldParentPtr("base", ref)),
+                        },
+                        .value => @panic("Expected to find a reference on the stack, found a value. This is a bug in the compiler."),
+                    };
+
+                    const bytes_1: []const u8 = switch (obj_string_1.bytes) {
+                        .constant => |b| b,
+                        .heap => |b| b,
+                    };
+                    const bytes_2: []const u8 = switch (obj_string_2.bytes) {
+                        .constant => |b| b,
+                        .heap => |b| b,
+                    };
+
+                    //
+                    // concatenate them
+                    //
+                    const new_str_pointer: u64 = self.chunk.create_string_2(bytes_2, bytes_1) catch {
+                        std.debug.print("Runtime Error: Unable to concatenate strings due to memory allocation failure.\n", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+
+                    // push the result back onto the stack
+                    self.push(.{ .ref = @ptrFromInt(@as(usize, @intCast(new_str_pointer))) });
+                },
                 .OP_REF => {
                     // Reads the constant at `constant_idx`.
                     const obj_pointer: usize = @intCast(self.read_constant());

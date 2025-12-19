@@ -121,6 +121,24 @@ pub const Chunk = struct {
         return @intCast(@intFromPtr(&obj_string.base));
     }
 
+    /// Creates a constant string Obj and returns a pointer to it as `u64`,
+    /// from 2 slices. Used for concatenation.
+    ///
+    /// Clones the bytes.
+    ///
+    /// Returns the pointer to the Obj as u64.
+    pub fn create_string_2(self: *Self, bytes_1: []const u8, bytes_2: []const u8) !u64 {
+        const obj_string = try self.allocator.create(m_obj.ObjString);
+        errdefer self.allocator.destroy(obj_string);
+
+        try obj_string.init_dynamic_from_2(self.allocator, bytes_1, bytes_2);
+
+        // Store the reference
+        try self.refs.append(self.allocator, &obj_string.base);
+
+        return @intCast(@intFromPtr(&obj_string.base));
+    }
+
     pub fn deinit(self: *Self) void {
         self.code.deinit(self.allocator);
         self.constants.deinit(self.allocator);
