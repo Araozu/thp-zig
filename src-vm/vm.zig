@@ -2,6 +2,7 @@ const std = @import("std");
 const config = @import("config");
 const m_chunk = @import("./chunk.zig");
 const m_value = @import("./value.zig");
+const m_obj = @import("./obj.zig");
 const m_debug = @import("./debug.zig");
 
 const Chunk = m_chunk.Chunk;
@@ -131,7 +132,16 @@ pub const VM = struct {
                     self.push(.{ .value = @bitCast(a - b) });
                 },
                 .OP_CONCAT => unreachable,
-                .OP_REF => unreachable,
+                .OP_REF => {
+                    // Reads the constant at `constant_idx`.
+                    const obj_pointer: usize = @intCast(self.read_constant());
+
+                    // Interprets it as a pointer to an Obj.
+                    const obj_ptr: *m_obj.Obj = @ptrFromInt(obj_pointer);
+
+                    // Pushes the Obj onto the stack, as a Value.
+                    self.push(.{ .ref = obj_ptr });
+                },
             }
         }
     }
