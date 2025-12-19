@@ -6,6 +6,7 @@ const m_debug = @import("./debug.zig");
 
 const Chunk = m_chunk.Chunk;
 const OpCode = m_chunk.OpCode;
+const Value = m_value.Value;
 
 const STACK_MAX = 256;
 
@@ -18,8 +19,8 @@ pub const InterpretResult = enum {
 pub const VM = struct {
     chunk: Chunk,
     ip: [*]u8,
-    stack: [STACK_MAX]u64,
-    stack_top: [*]u64,
+    stack: [STACK_MAX]Value,
+    stack_top: [*]Value,
 
     const Self = @This();
 
@@ -39,19 +40,19 @@ pub const VM = struct {
 
     fn run(self: *Self) InterpretResult {
         while (true) {
-            if (config.tracing) {
-                std.debug.print("          ", .{});
-                var start_ptr: [*]u64 = &self.stack;
-                while (start_ptr != self.stack_top) {
-                    std.debug.print("[ ", .{});
-                    m_value.print_value(start_ptr[0]);
-                    std.debug.print(" ]", .{});
-
-                    start_ptr += 1;
-                }
-                std.debug.print("\n", .{});
-                _ = m_debug.dissasemble_instruction(&self.chunk, self.ip - self.chunk.code.items.ptr);
-            }
+            // if (config.tracing) {
+            //     std.debug.print("          ", .{});
+            //     var start_ptr: [*]u64 = &self.stack;
+            //     while (start_ptr != self.stack_top) {
+            //         std.debug.print("[ ", .{});
+            //         m_value.print_value(start_ptr[0]);
+            //         std.debug.print(" ]", .{});
+            //
+            //         start_ptr += 1;
+            //     }
+            //     std.debug.print("\n", .{});
+            //     _ = m_debug.dissasemble_instruction(&self.chunk, self.ip - self.chunk.code.items.ptr);
+            // }
 
             const e_instruction: OpCode = @enumFromInt(self.read_byte());
             switch (e_instruction) {
@@ -59,58 +60,93 @@ pub const VM = struct {
                     return .INTERPRET_OK;
                 },
                 .OP_PRINT_F64 => {
-                    std.debug.print("{d}\n", .{@as(f64, @bitCast(self.pop()))});
+                    switch (self.pop()) {
+                        .value => |value| {
+                            std.debug.print("{d}\n", .{@as(f64, @bitCast(value))});
+                        },
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    }
                 },
                 .OP_PRINT_CONST => {
-                    const offset = @as(usize, self.pop());
-                    const len = @as(usize, self.pop());
-                    const bytes = self.read_constant_bytes(offset, len);
-                    std.debug.print("{s}\n", .{bytes});
+                    @panic("Regression: OP_PRINT_CONST");
                 },
                 .OP_CONSTANT => {
                     const constant = self.read_constant();
-                    self.push(constant);
+                    self.push(.{ .value = constant });
                 },
                 .OP_NEGATE_F64 => {
-                    const v: f64 = @bitCast(self.pop());
-                    self.push(@bitCast(-v));
+                    switch (self.pop()) {
+                        .value => |value| {
+                            self.push(.{ .value = @bitCast(-@as(f64, @bitCast(value))) });
+                        },
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    }
                 },
                 .OP_ADD_F64 => {
-                    const b: f64 = @bitCast(self.pop());
-                    const a: f64 = @bitCast(self.pop());
-                    self.push(@bitCast(a + b));
+                    const b: f64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+                    const a: f64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+
+                    self.push(.{ .value = @bitCast(a + b) });
                 },
                 .OP_SUB_F64 => {
-                    const b: f64 = @bitCast(self.pop());
-                    const a: f64 = @bitCast(self.pop());
-                    self.push(@bitCast(a - b));
+                    const b: f64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+                    const a: f64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+
+                    self.push(.{ .value = @bitCast(a - b) });
                 },
                 .OP_ADD_U64 => {
-                    const b = self.pop();
-                    const a = self.pop();
-                    self.push(a + b);
+                    const b: u64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+                    const a: u64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+
+                    self.push(.{ .value = @bitCast(a + b) });
                 },
                 .OP_SUB_U64 => {
-                    const b = self.pop();
-                    const a = self.pop();
-                    self.push(a - b);
+                    const b: u64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+                    const a: u64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+
+                    self.push(.{ .value = @bitCast(a - b) });
                 },
                 .OP_CONCAT => unreachable,
             }
         }
     }
 
-    fn push(self: *Self, value: u64) void {
+    fn push(self: *Self, value: Value) void {
         self.stack_top[0] = value;
         self.stack_top += 1;
     }
 
-    fn pop(self: *Self) u64 {
+    fn pop(self: *Self) Value {
         self.stack_top -= 1;
         return self.stack_top[0];
     }
 
     // NOTE: crafting interpreters had this as a C macro
+    /// Read a single byte from the chunk's bytecode array
     fn read_byte(self: *Self) u8 {
         const b = self.ip[0];
         self.ip += 1;
