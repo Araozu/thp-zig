@@ -41,19 +41,19 @@ pub const VM = struct {
 
     fn run(self: *Self) InterpretResult {
         while (true) {
-            // if (config.tracing) {
-            //     std.debug.print("          ", .{});
-            //     var start_ptr: [*]u64 = &self.stack;
-            //     while (start_ptr != self.stack_top) {
-            //         std.debug.print("[ ", .{});
-            //         m_value.print_value(start_ptr[0]);
-            //         std.debug.print(" ]", .{});
-            //
-            //         start_ptr += 1;
-            //     }
-            //     std.debug.print("\n", .{});
-            //     _ = m_debug.dissasemble_instruction(&self.chunk, self.ip - self.chunk.code.items.ptr);
-            // }
+            if (config.tracing) {
+                std.debug.print("          ", .{});
+                var start_ptr: [*]Value = &self.stack;
+                while (start_ptr != self.stack_top) {
+                    std.debug.print("[ ", .{});
+                    m_value.print_value(start_ptr[0]);
+                    std.debug.print(" ]", .{});
+
+                    start_ptr += 1;
+                }
+                std.debug.print("\n", .{});
+                _ = m_debug.dissasemble_instruction(&self.chunk, self.ip - self.chunk.code.items.ptr);
+            }
 
             const e_instruction: OpCode = @enumFromInt(self.read_byte());
             switch (e_instruction) {
@@ -69,6 +69,21 @@ pub const VM = struct {
                     }
                 },
                 .OP_PRINT_CONST => {
+                    const value = self.pop();
+                    const obj = switch (value) {
+                        .ref => |ref| ref,
+                        .value => @panic("Expected to find a reference on the stack, found a value. This is a bug in the compiler."),
+                    };
+
+                    std.debug.print("Obj allegedly at 0x{X}\n", .{@intFromPtr(obj)});
+
+                    switch (obj.t) {
+                        .String => {
+                            const obj_string: *m_obj.ObjString = @alignCast(@fieldParentPtr("base", obj));
+                            _ = obj_string;
+                        },
+                    }
+
                     @panic("Regression: OP_PRINT_CONST");
                 },
                 .OP_CONSTANT => {

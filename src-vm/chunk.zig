@@ -1,4 +1,5 @@
 const std = @import("std");
+const tracing = @import("config").tracing;
 
 const m_obj = @import("./obj.zig");
 
@@ -101,10 +102,23 @@ pub const Chunk = struct {
 
         try obj_string.init_dynamic(self.allocator, bytes);
 
-        // Store the reference
-        try self.refs.append(self.allocator, @ptrCast(obj_string));
+        if (tracing) {
+            const obj: *m_obj.Obj = &obj_string.base;
 
-        return @intCast(@intFromPtr(obj_string));
+            std.debug.print(
+                \\Creating string object for `{s}`:
+                \\    obj_string at address 0x{X}
+                \\    obj        at address 0x{X}
+                \\
+            ,
+                .{ bytes, @intFromPtr(obj_string), @intFromPtr(obj) },
+            );
+        }
+
+        // Store the reference
+        try self.refs.append(self.allocator, &obj_string.base);
+
+        return @intCast(@intFromPtr(&obj_string.base));
     }
 
     pub fn deinit(self: *Self) void {

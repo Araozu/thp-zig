@@ -144,9 +144,7 @@ pub const ByteCodeGenerator = struct {
             },
             .string => |tok_string| {
                 // NOTE: OP_REF
-
                 const str_value = tok_string.value[1 .. tok_string.value.len - 1];
-
                 const obj_string_ptr: u64 = try chunk.create_string(str_value);
 
                 {
