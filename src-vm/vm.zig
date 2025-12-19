@@ -131,6 +131,7 @@ pub const VM = struct {
                     self.push(.{ .value = @bitCast(a - b) });
                 },
                 .OP_CONCAT => unreachable,
+                .OP_REF => unreachable,
             }
         }
     }

@@ -143,21 +143,17 @@ pub const ByteCodeGenerator = struct {
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             .string => |tok_string| {
+                // NOTE: OP_REF
+
                 const str_value = tok_string.value[1 .. tok_string.value.len - 1];
 
-                // Add bytes sans quotes
-                const byte_offset = try chunk.write_constant_bytes(str_value);
-
-                // Push to stack: <cons> len, <cons> offset
-                {
-                    const constant_idx = try chunk.write_constant(str_value.len);
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
-                    try chunk.write_chunk(@intCast(constant_idx), 1);
-                }
+                const obj_string_ptr: u64 = try chunk.create_string(str_value);
 
                 {
-                    const constant_idx = try chunk.write_constant(byte_offset);
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                    // Write the pointer as a constant
+                    const constant_idx = try chunk.write_constant(obj_string_ptr);
+
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_REF), 1);
                     try chunk.write_chunk(@intCast(constant_idx), 1);
                 }
             },
