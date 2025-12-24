@@ -75,18 +75,13 @@ pub const ByteCodeGenerator = struct {
                                         std.debug.panic("Type for the argument of print not found. This is a bug in the compiler.\n", .{});
                                     };
 
-                                    // Do something per type
+                                    try self.emit_pratt_expression(chunk, arg_print);
+                                    // Do type conversion if needed
                                     switch (t_arg_print.computed_type) {
                                         // FIXME: it says I64 but it's u64
-                                        .I64 => {
-                                            try self.emit_pratt_expression(chunk, arg_print);
-                                            try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1);
-                                        },
-                                        .F64 => {
-                                            try self.emit_pratt_expression(chunk, arg_print);
-                                            try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1);
-                                        },
-                                        .String => try self.emit_pratt_expression(chunk, arg_print),
+                                        .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                                        .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                                        .String => {},
                                         else => {
                                             std.debug.panic("Not implemented: print for type `{s}`\n", .{t_arg_print.computed_type.to_str()});
                                         },
@@ -106,7 +101,46 @@ pub const ByteCodeGenerator = struct {
             },
             .primary => |p| try emit_primary_expresion(chunk, p.expr),
             .binary => |*binary| {
-                // HACK: hardcoded binary operators
+                // NOTE: the `++` operator is special, it coerces to string its operands
+                if (std.mem.eql(u8, binary.operator.value, "++")) {
+                    {
+                        // left
+                        const t_left = self.semantic_ctx.type_map.get(binary.left.get_id()) orelse {
+                            std.debug.panic("Type for left operand of `++` not found. This is a Semantic Analysis bug in the compiler\n", .{});
+                        };
+
+                        try self.emit_pratt_expression(chunk, binary.left);
+                        switch (t_left.computed_type) {
+                            // FIXME: it says I64 but it's u64
+                            .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                            .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                            .String => {},
+                            else => {
+                                std.debug.panic("Type `{s}` can't be coerced to string.\n", .{t_left.computed_type.to_str()});
+                            },
+                        }
+                    }
+                    {
+                        // right
+                        const t_right = self.semantic_ctx.type_map.get(binary.right.get_id()) orelse {
+                            std.debug.panic("Type for left operand of `++` not found. This is a Semantic Analysis bug in the compiler\n", .{});
+                        };
+
+                        try self.emit_pratt_expression(chunk, binary.right);
+                        switch (t_right.computed_type) {
+                            // FIXME: it says I64 but it's u64
+                            .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                            .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                            .String => {},
+                            else => {
+                                std.debug.panic("Type `{s}` can't be coerced to string.\n", .{t_right.computed_type.to_str()});
+                            },
+                        }
+                    }
+
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONCAT), 1);
+                    return;
+                }
 
                 // emit for left and right
                 // TODO: how to know when to promote?
@@ -136,8 +170,6 @@ pub const ByteCodeGenerator = struct {
                             std.debug.panic("Not implemented: add operator on type `{s}`\n", .{t_op_result.to_str()});
                         },
                     }
-                } else if (std.mem.eql(u8, binary.operator.value, "++")) {
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONCAT), 1);
                 } else {
                     std.debug.panic("Not implemented: operator `{s}`\n", .{binary.operator.value});
                 }

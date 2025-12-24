@@ -30,7 +30,15 @@ pub fn resolve_binary_operator(operator: []const u8, left: Type, right: Type) ?O
         } else if (std.mem.eql(u8, operator, "-")) {
             break :blk &minus_signatures;
         } else if (std.mem.eql(u8, operator, "++")) {
-            break :blk &plus_plus_signatures;
+            // just check: types are stringable
+            if (left != .String and left != .F64 and left != .I64) {
+                return null;
+            }
+            if (right != .String and right != .F64 and right != .I64) {
+                return null;
+            }
+
+            return plus_plus_signatures[0];
         } else {
             return null;
         }
