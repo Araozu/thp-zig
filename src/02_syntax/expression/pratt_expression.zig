@@ -41,10 +41,14 @@ const Precedence = enum(u8) {
 };
 
 pub const PrattExpression = union(enum) {
-    primary: *PrimaryExpression,
+    primary: Primary,
     binary: Binary,
     function: Function,
 
+    pub const Primary = struct {
+        expr: *PrimaryExpression,
+        id: u64,
+    };
     pub const Binary = struct {
         left: *PrattExpression,
         operator: *const lexic.Token,
@@ -187,7 +191,10 @@ pub const PrattExpression = union(enum) {
             return null;
         };
         self.* = .{
-            .primary = parsed_primary,
+            .primary = .{
+                .expr = parsed_primary,
+                .id = ids.generate_id(),
+            },
         };
         return next_pos;
     }
@@ -227,14 +234,22 @@ pub const PrattExpression = union(enum) {
         };
     }
 
+    pub fn get_id(self: *const Self) u64 {
+        return switch (self.*) {
+            .primary => |p| p.id,
+            .binary => |b| b.id,
+            .function => |f| f.id,
+        };
+    }
+
     pub fn deinit(
         self: *Self,
         ctx: *const context.ParserContext,
     ) void {
         switch (self.*) {
             .primary => |p| {
-                p.deinit(ctx);
-                ctx.allocator.destroy(p);
+                p.expr.deinit(ctx);
+                ctx.allocator.destroy(p.expr);
             },
             .function => |*f| {
                 f.callee.deinit(ctx);

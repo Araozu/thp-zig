@@ -62,7 +62,7 @@ pub fn visit(
             std.debug.print("TODO: get expression of function call\n", .{});
             return Type.Untyped;
         },
-        .primary => |expr| return try typecheck_primary_expression(self, expr, ctx),
+        .primary => |expr| return try typecheck_primary_expression(self, expr.expr, ctx),
     }
 
     return Type.Untyped;

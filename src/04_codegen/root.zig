@@ -51,18 +51,47 @@ pub const ByteCodeGenerator = struct {
     /// and has the top of the stack ready to use that computed value
     fn emit_pratt_expression(self: *Self, chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
-            .function => |*f| {
-                // Emit bytecode for the args
-                for (f.arguments.items) |argument| {
-                    try self.emit_pratt_expression(chunk, argument);
-                }
+            .function => |*expr_fn_call| {
+                // new workflow for `print` builtin:
+                // - check the type of the arg
+                // - emit the arg
+                // - emit to_string if needed
+                // - emit OP_PRINT
 
                 // call the function, if `print`
-                switch (f.callee.*) {
+                switch (expr_fn_call.callee.*) {
                     .primary => |primary| {
-                        switch (primary.*) {
+                        switch (primary.expr.*) {
                             .identifier => |id| {
                                 if (std.mem.eql(u8, id.value, "print")) {
+                                    // check type of arg, should be only one
+                                    if (expr_fn_call.arguments.items.len != 1) {
+                                        std.debug.panic("Expected `print` to have exactly 1 argument, found {d}.\n", .{expr_fn_call.arguments.items.len});
+                                    }
+
+                                    const arg_print = expr_fn_call.arguments.items[0];
+                                    // check type from the type map
+                                    const t_arg_print = self.semantic_ctx.type_map.get(arg_print.get_id()) orelse {
+                                        std.debug.panic("Type for the argument of print not found. This is a bug in the compiler.\n", .{});
+                                    };
+
+                                    // Do something per type
+                                    switch (t_arg_print.computed_type) {
+                                        // FIXME: it says I64 but it's u64
+                                        .I64 => {
+                                            try self.emit_pratt_expression(chunk, arg_print);
+                                            try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1);
+                                        },
+                                        .F64 => {
+                                            try self.emit_pratt_expression(chunk, arg_print);
+                                            try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1);
+                                        },
+                                        .String => try self.emit_pratt_expression(chunk, arg_print),
+                                        else => {
+                                            std.debug.panic("Not implemented: print for type `{s}`\n", .{t_arg_print.computed_type.to_str()});
+                                        },
+                                    }
+
                                     try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
                                 } else {
                                     std.debug.panic("Not implemented: function call other than print\n", .{});
@@ -75,7 +104,7 @@ pub const ByteCodeGenerator = struct {
                     else => std.debug.panic("Not implemented: function call\n", .{}),
                 }
             },
-            .primary => |p| try emit_primary_expresion(chunk, p),
+            .primary => |p| try emit_primary_expresion(chunk, p.expr),
             .binary => |*binary| {
                 // HACK: hardcoded binary operators
 

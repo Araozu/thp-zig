@@ -60,7 +60,9 @@ pub const TypecheckerVisitor = struct {
 
     pub fn visitExpression(ptr: *anyopaque, node: *const syntax.PrattExpression) VisitorError!Type {
         const self: *TypecheckerVisitor = @ptrCast(@alignCast(ptr));
-        return try expressionVisitor.visit(self, node, self.semantic_ctx);
+        const expr_type = try expressionVisitor.visit(self, node, self.semantic_ctx);
+        try self.semantic_ctx.set_type(node.get_id(), expr_type);
+        return expr_type;
     }
 
     pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!Type {
