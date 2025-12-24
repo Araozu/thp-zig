@@ -9,7 +9,7 @@ const Chunk = m_chunk.Chunk;
 const OpCode = m_chunk.OpCode;
 const Value = m_value.Value;
 
-const STACK_MAX = 256;
+const STACK_MAX = 1024;
 
 pub const InterpretResult = enum {
     INTERPRET_OK,
@@ -60,15 +60,7 @@ pub const VM = struct {
                 .OP_RETURN => {
                     return .INTERPRET_OK;
                 },
-                .OP_PRINT_F64 => {
-                    switch (self.pop()) {
-                        .value => |value| {
-                            std.debug.print("{d}\n", .{@as(f64, @bitCast(value))});
-                        },
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    }
-                },
-                .OP_PRINT_CONST => {
+                .OP_PRINT => {
                     const value = self.pop();
                     const obj = switch (value) {
                         .ref => |ref| ref,

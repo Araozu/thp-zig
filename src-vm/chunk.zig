@@ -7,8 +7,6 @@ const Obj = m_obj.Obj;
 
 pub const OpCode = enum(u8) {
     OP_RETURN = 0x00,
-    /// Deprecated
-    OP_PRINT_F64 = 0x01,
 
     /// <cons> idx
     ///
@@ -30,7 +28,7 @@ pub const OpCode = enum(u8) {
     OP_SUB_U64 = 0x08,
 
     /// Prints the string currently at the top of the stack
-    OP_PRINT_CONST = 0x09,
+    OP_PRINT = 0x09,
 
     /// String concatenation
     OP_CONCAT = 0x0A,

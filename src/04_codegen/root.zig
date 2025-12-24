@@ -63,9 +63,7 @@ pub const ByteCodeGenerator = struct {
                         switch (primary.*) {
                             .identifier => |id| {
                                 if (std.mem.eql(u8, id.value, "print")) {
-                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_F64), 1);
-                                } else if (std.mem.eql(u8, id.value, "prints")) {
-                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_CONST), 1);
+                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
                                 } else {
                                     std.debug.panic("Not implemented: function call other than print\n", .{});
                                 }
