@@ -186,6 +186,44 @@ pub const VM = struct {
                     // Pushes the Obj onto the stack, as a Value.
                     self.push(.{ .ref = obj_ptr });
                 },
+                .OP_F64_TO_STRING => {
+                    const value: f64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+
+                    const value_bytes = std.fmt.allocPrint(self.chunk.allocator, "{d}", .{value}) catch {
+                        std.debug.print("Runtime Error: Unable to convert f64 to string due to memory allocation failure.\n", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+                    defer self.chunk.allocator.free(value_bytes);
+
+                    // Build the string representation
+                    const new_str_pointer: u64 = self.chunk.create_string(value_bytes) catch {
+                        std.debug.print("Runtime Error: Unable to convert f64 to string due to memory allocation failure.\n", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+                    self.push(.{ .ref = @ptrFromInt(@as(usize, @intCast(new_str_pointer))) });
+                },
+                .OP_U64_TO_STRING => {
+                    const value: u64 = switch (self.pop()) {
+                        .value => |v| @bitCast(v),
+                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+                    };
+
+                    const value_bytes = std.fmt.allocPrint(self.chunk.allocator, "{d}", .{value}) catch {
+                        std.debug.print("Runtime Error: Unable to convert f64 to string due to memory allocation failure.\n", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+                    defer self.chunk.allocator.free(value_bytes);
+
+                    // Build the string representation
+                    const new_str_pointer: u64 = self.chunk.create_string(value_bytes) catch {
+                        std.debug.print("Runtime Error: Unable to convert f64 to string due to memory allocation failure.\n", .{});
+                        return .INTERPRET_RUNTIME_ERROR;
+                    };
+                    self.push(.{ .ref = @ptrFromInt(@as(usize, @intCast(new_str_pointer))) });
+                },
             }
         }
     }

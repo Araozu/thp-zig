@@ -39,6 +39,10 @@ pub const OpCode = enum(u8) {
     /// Interprets it as a pointer to an Obj.
     /// Pushes the Obj onto the stack, as a Value.
     OP_REF = 0x0B,
+
+    /// Transformations to string
+    OP_F64_TO_STRING = 0x0C,
+    OP_U64_TO_STRING = 0x0D,
 };
 
 pub const Chunk = struct {
