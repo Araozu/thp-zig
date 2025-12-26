@@ -35,6 +35,7 @@ pub const SymbolTable = struct {
                     },
                 },
                 .location = .{ .start = 0, .end = 1 },
+                .slot_index = null,
             });
         }
         {
@@ -48,6 +49,7 @@ pub const SymbolTable = struct {
                     },
                 },
                 .location = .{ .start = 0, .end = 1 },
+                .slot_index = null,
             });
         }
     }

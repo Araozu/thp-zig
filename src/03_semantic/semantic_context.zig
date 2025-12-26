@@ -11,6 +11,7 @@ const Type = m_types.Type;
 pub const SemanticContext = struct {
     type_map: TypeMap,
     allocator: std.mem.Allocator,
+    local_count: u8,
 
     const Self = @This();
 
@@ -18,6 +19,7 @@ pub const SemanticContext = struct {
         return .{
             .type_map = .empty,
             .allocator = allocator,
+            .local_count = 0,
         };
     }
 

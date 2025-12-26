@@ -43,7 +43,9 @@ This is a rough, non-commital roadmap of sorts.
 
 - [ ] more datatypes: i8, i16, i32, i64, u8, u16, u32, u64, f32
 - [x] runtime strings
-
+- [x] cast numbers to string
+- [x] Operator `++` coerces to string
+- [x] Builtin `print` coerces to string
 
 ## v0.0.3: hello world
 

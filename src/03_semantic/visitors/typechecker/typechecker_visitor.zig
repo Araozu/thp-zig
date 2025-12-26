@@ -134,19 +134,20 @@ pub const TypecheckerVisitor = struct {
 
         // assign types
         const symbol_name = node.identifier.value;
-        if (!self.scope.has(symbol_name)) {
+        const prev_symbol = self.scope.get(symbol_name) orelse {
             // the node was not inserted  on a previous phase?
             std.debug.panic("A symbol was not on the symbol table during typechecking...", .{});
-        }
+        };
 
         try self.scope.insert(
             symbol_name,
             .{
                 .t = expression_type,
                 .location = .{
-                    .start = node.identifier.start_pos,
-                    .end = node.identifier.start_pos + node.identifier.value.len,
+                    .start = prev_symbol.location.start,
+                    .end = prev_symbol.location.end,
                 },
+                .slot_index = prev_symbol.slot_index,
             },
         );
 

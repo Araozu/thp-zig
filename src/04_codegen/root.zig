@@ -26,13 +26,15 @@ pub const ByteCodeGenerator = struct {
     /// Caller must call `deinit` on the returned chunk
     pub fn emit(self: *Self) !Chunk {
         var chunk: Chunk = undefined;
-        chunk.init(self.allocator);
+        chunk.init(self.allocator, 0);
         errdefer chunk.deinit();
 
         // walk the AST, generate bytecode
         for (self.ast.statements.items) |*statement| {
             switch (statement.*) {
                 .variableBinding => |b| {
+                    // ...
+
                     // ignore the binding itself, focus on the expresion
                     try self.emit_pratt_expression(&chunk, &b.expression);
                 },

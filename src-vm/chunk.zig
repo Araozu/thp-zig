@@ -56,11 +56,15 @@ pub const Chunk = struct {
     raw_bytes: std.ArrayListUnmanaged(u8),
     lines: std.ArrayListUnmanaged(u32),
 
+    // Pointers to dynamically allocated objects
     refs: std.ArrayListUnmanaged(*Obj),
+
+    // Number of variables slots used by this chunk
+    var_slots: u8,
 
     const Self = @This();
 
-    pub fn init(self: *Self, allocator: std.mem.Allocator) void {
+    pub fn init(self: *Self, allocator: std.mem.Allocator, var_slots: u8) void {
         self.* = .{
             .code = .empty,
             .allocator = allocator,
@@ -68,6 +72,7 @@ pub const Chunk = struct {
             .raw_bytes = .empty,
             .lines = .empty,
             .refs = .empty,
+            .var_slots = var_slots,
         };
     }
 

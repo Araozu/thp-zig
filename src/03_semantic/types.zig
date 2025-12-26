@@ -10,6 +10,7 @@ pub const SymbolInfo = struct {
         start: usize,
         end: usize,
     },
+    slot_index: ?u8,
 
     pub fn deinit(self: *SymbolInfo, allocator: std.mem.Allocator) void {
         self.t.deinit(allocator);

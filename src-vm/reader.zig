@@ -17,7 +17,7 @@ pub fn read_bytecode(allocator: std.mem.Allocator, bytes: []u8) !m_chunk.Chunk {
 
     // Build chunk
     var chunk: m_chunk.Chunk = undefined;
-    chunk.init(allocator);
+    chunk.init(allocator, 0);
     errdefer chunk.deinit();
 
     // Read next byte for size
