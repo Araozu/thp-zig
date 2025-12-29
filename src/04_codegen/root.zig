@@ -32,21 +32,37 @@ pub const ByteCodeGenerator = struct {
         // walk the AST, generate bytecode
         for (self.ast.statements.items) |*statement| {
             switch (statement.*) {
-                .variableBinding => |b| {
-                    // ...
-
-                    // ignore the binding itself, focus on the expresion
-                    try self.emit_pratt_expression(&chunk, &b.expression);
-                },
-                .expression => |e| {
-                    try self.emit_pratt_expression(&chunk, e);
-                },
+                .variableBinding => |b| try self.emit_variable_binding(&chunk, b),
+                .expression => |e| try self.emit_pratt_expression(&chunk, e),
             }
         }
 
         try chunk.write_chunk(@intFromEnum(OpCode.OP_RETURN), 0);
 
         return chunk;
+    }
+
+    fn emit_variable_binding(self: *Self, chunk: *Chunk, binding: *m_syntax.VariableBinding) !void {
+        // Ensure the binding has a idx
+        const symbol = self.semantic_ctx.symbol_table.scope.get(binding.identifier.value) orelse {
+            std.debug.panic("Compiler bug: a variable binding was not registered in the symbol table.\n", .{});
+        };
+        const symbol_slot_idx = symbol.slot_index orelse {
+            std.debug.panic("Compiler bug: a variable binding has no slot index assigned.\n", .{});
+        };
+
+        // prepare the value
+        try self.emit_pratt_expression(chunk, &binding.expression);
+
+        // store in the slot
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_STORE), 1);
+        try chunk.write_chunk(@intCast(symbol_slot_idx), 1);
+
+        // Up the chunk slot count
+        chunk.var_slots += 1;
+
+        // profit?
+        // ?: how to link a identifier to a slot index? ugh
     }
 
     /// What does this do? it computes the bytecode for an expression,

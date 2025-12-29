@@ -1,6 +1,7 @@
 const std = @import("std");
 const m_type_info = @import("type_info.zig");
 const m_types = @import("types.zig");
+const m_symbol_table = @import("symbol_table.zig");
 
 const TypeMap = m_type_info.TypeInfoMap;
 const Type = m_types.Type;
@@ -11,15 +12,17 @@ const Type = m_types.Type;
 pub const SemanticContext = struct {
     type_map: TypeMap,
     allocator: std.mem.Allocator,
+    symbol_table: *const m_symbol_table.SymbolTable,
     local_count: u8,
 
     const Self = @This();
 
-    pub fn init(allocator: std.mem.Allocator) Self {
+    pub fn init(allocator: std.mem.Allocator, symbol_table: *const m_symbol_table.SymbolTable) Self {
         return .{
             .type_map = .empty,
             .allocator = allocator,
             .local_count = 0,
+            .symbol_table = symbol_table,
         };
     }
 

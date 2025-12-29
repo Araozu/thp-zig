@@ -1,3 +1,3 @@
-var gaaa = print("Hello, World!")
-var aea = print("omg! " ++ 322)
+var first  = "hello"
+var second = 123
 

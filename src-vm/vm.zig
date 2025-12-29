@@ -33,6 +33,7 @@ pub const VM = struct {
             .stack_top = undefined,
         };
         self.*.stack_top = &self.*.stack;
+        self.*.stack_top += chunk.var_slots;
     }
 
     pub fn interpret(self: *Self) InterpretResult {
@@ -228,6 +229,16 @@ pub const VM = struct {
                         return .INTERPRET_RUNTIME_ERROR;
                     };
                     self.push(.{ .ref = @ptrFromInt(@as(usize, @intCast(new_str_pointer))) });
+                },
+                .OP_STORE => {
+                    const slot_idx: u8 = self.read_byte();
+                    const value = self.pop();
+                    self.stack[slot_idx] = value;
+                },
+                .OP_LOAD => {
+                    const slot_idx: u8 = self.read_byte();
+                    const value = self.stack[slot_idx];
+                    self.push(value);
                 },
             }
         }

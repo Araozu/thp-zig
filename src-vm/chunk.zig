@@ -43,6 +43,15 @@ pub const OpCode = enum(u8) {
     /// Transformations to string
     OP_F64_TO_STRING = 0x0C,
     OP_U64_TO_STRING = 0x0D,
+
+    /// Store to variable slot
+    ///
+    /// <op> <idx>
+    OP_STORE = 0x0E,
+    /// Load from variable slot
+    ///
+    /// <op> <idx>
+    OP_LOAD = 0x0F,
 };
 
 pub const Chunk = struct {

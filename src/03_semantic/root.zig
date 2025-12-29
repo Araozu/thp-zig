@@ -37,7 +37,7 @@ pub fn semantic_analysis_unmanaged(
     ast: *const ASTModule,
     err: *ctx.ErrorContext,
 ) VisitorError!SemanticContext {
-    var semantic_ctx = SemanticContext.init(alloc);
+    var semantic_ctx = SemanticContext.init(alloc, symbol_table);
     errdefer semantic_ctx.deinit();
 
     // Symbol collection
