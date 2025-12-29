@@ -1,8 +1,12 @@
 const std = @import("std");
+const tracing = @import("config").tracing;
+
+const m_obj = @import("./obj.zig");
+
+const Obj = m_obj.Obj;
 
 pub const OpCode = enum(u8) {
     OP_RETURN = 0x00,
-    OP_PRINT_F64 = 0x01,
 
     /// <cons> idx
     ///
@@ -23,10 +27,31 @@ pub const OpCode = enum(u8) {
     OP_ADD_U64 = 0x07,
     OP_SUB_U64 = 0x08,
 
-    /// <prints> len, offset
-    /// pops a len+offset from the stack, extracts the bytes
-    /// from the raw byte array, and prints them as a string
-    OP_PRINT_CONST = 0x09,
+    /// Prints the string currently at the top of the stack
+    OP_PRINT = 0x09,
+
+    /// String concatenation
+    OP_CONCAT = 0x0A,
+
+    /// <ref> constant_idx:u8
+    ///
+    /// Reads the constant at `constant_idx`.
+    /// Interprets it as a pointer to an Obj.
+    /// Pushes the Obj onto the stack, as a Value.
+    OP_REF = 0x0B,
+
+    /// Transformations to string
+    OP_F64_TO_STRING = 0x0C,
+    OP_U64_TO_STRING = 0x0D,
+
+    /// Store to variable slot
+    ///
+    /// <op> <idx>
+    OP_STORE = 0x0E,
+    /// Load from variable slot
+    ///
+    /// <op> <idx>
+    OP_LOAD = 0x0F,
 };
 
 pub const Chunk = struct {
@@ -40,15 +65,23 @@ pub const Chunk = struct {
     raw_bytes: std.ArrayListUnmanaged(u8),
     lines: std.ArrayListUnmanaged(u32),
 
+    // Pointers to dynamically allocated objects
+    refs: std.ArrayListUnmanaged(*Obj),
+
+    // Number of variables slots used by this chunk
+    var_slots: u8,
+
     const Self = @This();
 
-    pub fn init(self: *Self, allocator: std.mem.Allocator) void {
+    pub fn init(self: *Self, allocator: std.mem.Allocator, var_slots: u8) void {
         self.* = .{
             .code = .empty,
             .allocator = allocator,
             .constants = .empty,
             .raw_bytes = .empty,
             .lines = .empty,
+            .refs = .empty,
+            .var_slots = var_slots,
         };
     }
 
@@ -77,10 +110,67 @@ pub const Chunk = struct {
         return start_index;
     }
 
+    /// Creates a constant string Obj and returns a pointer to it as `u64`.
+    /// Clones the bytes.
+    pub fn create_string(self: *Self, bytes: []const u8) !u64 {
+        const obj_string = try self.allocator.create(m_obj.ObjString);
+        errdefer self.allocator.destroy(obj_string);
+
+        try obj_string.init_dynamic(self.allocator, bytes);
+
+        if (tracing) {
+            const obj: *m_obj.Obj = &obj_string.base;
+
+            std.debug.print(
+                \\Creating string object for `{s}`:
+                \\    obj_string at address 0x{X}
+                \\    obj        at address 0x{X}
+                \\
+            ,
+                .{ bytes, @intFromPtr(obj_string), @intFromPtr(obj) },
+            );
+        }
+
+        // Store the reference
+        try self.refs.append(self.allocator, &obj_string.base);
+
+        return @intCast(@intFromPtr(&obj_string.base));
+    }
+
+    /// Creates a constant string Obj and returns a pointer to it as `u64`,
+    /// from 2 slices. Used for concatenation.
+    ///
+    /// Clones the bytes.
+    ///
+    /// Returns the pointer to the Obj as u64.
+    pub fn create_string_2(self: *Self, bytes_1: []const u8, bytes_2: []const u8) !u64 {
+        const obj_string = try self.allocator.create(m_obj.ObjString);
+        errdefer self.allocator.destroy(obj_string);
+
+        try obj_string.init_dynamic_from_2(self.allocator, bytes_1, bytes_2);
+
+        // Store the reference
+        try self.refs.append(self.allocator, &obj_string.base);
+
+        return @intCast(@intFromPtr(&obj_string.base));
+    }
+
     pub fn deinit(self: *Self) void {
         self.code.deinit(self.allocator);
         self.constants.deinit(self.allocator);
         self.raw_bytes.deinit(self.allocator);
         self.lines.deinit(self.allocator);
+
+        // Delete string refs
+        for (self.refs.items) |reference| {
+            switch (reference.t) {
+                .String => {
+                    const str_obj: *m_obj.ObjString = @alignCast(@fieldParentPtr("base", reference));
+                    str_obj.deinit(self.allocator);
+                },
+            }
+        }
+
+        self.refs.deinit(self.allocator);
     }
 };

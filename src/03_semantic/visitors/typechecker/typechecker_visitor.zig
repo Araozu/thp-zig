@@ -60,7 +60,9 @@ pub const TypecheckerVisitor = struct {
 
     pub fn visitExpression(ptr: *anyopaque, node: *const syntax.PrattExpression) VisitorError!Type {
         const self: *TypecheckerVisitor = @ptrCast(@alignCast(ptr));
-        return try expressionVisitor.visit(self, node, self.semantic_ctx);
+        const expr_type = try expressionVisitor.visit(self, node, self.semantic_ctx);
+        try self.semantic_ctx.set_type(node.get_id(), expr_type);
+        return expr_type;
     }
 
     pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!Type {
@@ -132,19 +134,20 @@ pub const TypecheckerVisitor = struct {
 
         // assign types
         const symbol_name = node.identifier.value;
-        if (!self.scope.has(symbol_name)) {
+        const prev_symbol = self.scope.get(symbol_name) orelse {
             // the node was not inserted  on a previous phase?
             std.debug.panic("A symbol was not on the symbol table during typechecking...", .{});
-        }
+        };
 
         try self.scope.insert(
             symbol_name,
             .{
                 .t = expression_type,
                 .location = .{
-                    .start = node.identifier.start_pos,
-                    .end = node.identifier.start_pos + node.identifier.value.len,
+                    .start = prev_symbol.location.start,
+                    .end = prev_symbol.location.end,
                 },
+                .slot_index = prev_symbol.slot_index,
             },
         );
 

@@ -62,7 +62,7 @@ pub fn visit(
             std.debug.print("TODO: get expression of function call\n", .{});
             return Type.Untyped;
         },
-        .primary => |expr| return try typecheck_primary_expression(self, expr, ctx),
+        .primary => |expr| return try typecheck_primary_expression(self, expr.expr, ctx),
     }
 
     return Type.Untyped;
@@ -79,10 +79,6 @@ pub fn typecheck_binary_expression(
 
     const left_type = try binary_expr.left.accept(Type, &expr_visitor);
     const right_type = try binary_expr.right.accept(Type, &expr_visitor);
-
-    // FIXME: this is getting called always, unneccessarily, even when a error is not hit
-    // const left_start, const left_end = binary_expr.left.get_range();
-    // const right_start, const right_end = binary_expr.right.get_range();
 
     const operator_signature = m_operators.resolve_binary_operator(
         operator_token.value,

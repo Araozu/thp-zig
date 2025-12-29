@@ -10,6 +10,7 @@ pub const SymbolInfo = struct {
         start: usize,
         end: usize,
     },
+    slot_index: ?u8,
 
     const Self = @This();
 
