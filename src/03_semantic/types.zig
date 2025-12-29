@@ -126,7 +126,7 @@ pub const Scope = struct {
         return self.symbols.contains(name);
     }
 
-    pub fn get(self: *Self, name: []const u8) ?SymbolInfo {
+    pub fn get(self: *const Self, name: []const u8) ?SymbolInfo {
         // Check current scope
         const t = self.symbols.get(name);
         if (t != null) {
