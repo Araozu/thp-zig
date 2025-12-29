@@ -117,7 +117,7 @@ pub const ByteCodeGenerator = struct {
                     else => std.debug.panic("Not implemented: function call\n", .{}),
                 }
             },
-            .primary => |p| try emit_primary_expresion(chunk, p.expr),
+            .primary => |p| try self.emit_primary_expresion(chunk, p.expr),
             .binary => |*binary| {
                 // NOTE: the `++` operator is special, it coerces to string its operands
                 if (std.mem.eql(u8, binary.operator.value, "++")) {
@@ -195,7 +195,7 @@ pub const ByteCodeGenerator = struct {
         }
     }
 
-    fn emit_primary_expresion(chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
+    fn emit_primary_expresion(self: *Self, chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
         switch (exp.*) {
             // HACK: assumed to be f64
             .float => |tok_float| {
@@ -231,6 +231,20 @@ pub const ByteCodeGenerator = struct {
                     try chunk.write_chunk(@intFromEnum(OpCode.OP_REF), 1);
                     try chunk.write_chunk(@intCast(constant_idx), 1);
                 }
+            },
+            .identifier => |tok_id| {
+                // get the slot index from the symbol table
+                const symbol = self.semantic_ctx.symbol_table.scope.get(tok_id.value) orelse {
+                    // FIXME: proper error message
+                    std.debug.panic("Undefined identifier `{s}`\n", .{tok_id.value});
+                };
+                const symbol_slot_idx = symbol.slot_index orelse {
+                    std.debug.panic("Compiler bug: identifier `{s}` has no slot index assigned.\n", .{tok_id.value});
+                };
+
+                // load from the slot
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_LOAD), 1);
+                try chunk.write_chunk(@intCast(symbol_slot_idx), 1);
             },
             else => {
                 // TODO
