@@ -26,14 +26,14 @@ This program has exactly 1 dependency: the zig standard library, and has 2 binar
 
 ### Write source code
 
-As of v0.0.3 the compiler is able to do:
+As of v0.0.4 the compiler is able to do:
 - Basic f64/u64 arithmetic
-- Print f64 values
-- Print strings
+- Print strings & numbers
+- Declare & use variables
 
 ```thp
-print("hello world")
-print(1.5 + 2.5 - 3.0)
+var name = "John"
+print("Hello, " + name + "!")
 ```
 
 
