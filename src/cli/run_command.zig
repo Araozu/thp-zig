@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const command_help =
-    \\THP run: Compiles and executes a single file in the VM
+    \\run: Compiles and executes a single file in the VM
     \\
     \\ thp run <file>
     \\

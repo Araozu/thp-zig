@@ -11,7 +11,6 @@ This is a rough, non-commital roadmap of sorts.
 - [ ] Rewrite REPL
 - [ ] Type definition generator
 - [ ] Code formatter
-- [!] Language server - first implementation will be done elsewhere
 - [ ] stdlib
 - [ ] Watch mode compilation
 - [ ] Project mode compilation
@@ -28,7 +27,6 @@ This is a rough, non-commital roadmap of sorts.
 - [ ] Test memory errors w failing allocator
 - [ ] Typecheck function call
 - [ ] vm: support more datatypes
-- [ ] vm: variables
 - [ ] IR lowering
 - [ ] req: IR lowering | number promotion
 - [ ] req: IR lowering | number casts
@@ -46,6 +44,7 @@ This is a rough, non-commital roadmap of sorts.
 - [x] cast numbers to string
 - [x] Operator `++` coerces to string
 - [x] Builtin `print` coerces to string
+- [x] vm: variables
 
 ## v0.0.3: hello world
 
