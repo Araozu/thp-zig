@@ -21,11 +21,20 @@ pub const SymbolInfo = struct {
 
 pub const Type = union(enum) {
     Untyped,
+
+    // Common types
     Unit,
+    I8,
+    U8,
+    I32,
+    U32,
     I64,
+    U64,
+    F32,
     F64,
     String,
     Bool,
+
     /// Type assumes ownership of `return_t`.
     /// It **must** be `create`d with the same allocator passed to this `deinit`
     Function: struct {
@@ -40,7 +49,13 @@ pub const Type = union(enum) {
         return switch (self.*) {
             .Untyped => "<untyped>",
             .Unit => "<unit>",
+            .I8 => "i8",
+            .U8 => "u8",
+            .I32 => "i32",
+            .U32 => "u32",
             .I64 => "i64",
+            .U64 => "u64",
+            .F32 => "f32",
             .F64 => "f64",
             .String => "String",
             .Bool => "bool",
@@ -118,6 +133,7 @@ pub const Scope = struct {
         return child;
     }
 
+    /// Inserts a symbol into the current scope, overwriting any existing symbol with the same name.
     pub fn insert(self: *Self, name: []const u8, insert_value: SymbolInfo) !void {
         try self.symbols.put(self.allocator, name, insert_value);
     }

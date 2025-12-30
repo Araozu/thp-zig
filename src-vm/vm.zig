@@ -89,62 +89,43 @@ pub const VM = struct {
                     const constant = self.read_constant();
                     self.push(.{ .value = constant });
                 },
-                .OP_NEGATE_F64 => {
-                    switch (self.pop()) {
-                        .value => |value| {
-                            self.push(.{ .value = @bitCast(-@as(f64, @bitCast(value))) });
-                        },
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    }
-                },
-                .OP_ADD_F64 => {
-                    const b: f64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-                    const a: f64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
 
+                //
+                .OP_ADD_I64 => {
+                    const b = self.pop_n(i64);
+                    const a = self.pop_n(i64);
+                    self.push(.{ .value = @bitCast(a + b) });
+                },
+                .OP_SUB_I64 => {
+                    const b = self.pop_n(i64);
+                    const a = self.pop_n(i64);
+                    self.push(.{ .value = @bitCast(a - b) });
+                },
+                .OP_NEGATE_I64 => self.push(.{ .value = @bitCast(-self.pop_n(i64)) }),
+                //
+                .OP_ADD_F64 => {
+                    const b = self.pop_n(f64);
+                    const a = self.pop_n(f64);
                     self.push(.{ .value = @bitCast(a + b) });
                 },
                 .OP_SUB_F64 => {
-                    const b: f64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-                    const a: f64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-
+                    const b = self.pop_n(f64);
+                    const a = self.pop_n(f64);
                     self.push(.{ .value = @bitCast(a - b) });
                 },
+                .OP_NEGATE_F64 => self.push(.{ .value = @bitCast(-self.pop_n(f64)) }),
+                //
                 .OP_ADD_U64 => {
-                    const b: u64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-                    const a: u64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-
+                    const b = self.pop_n(u64);
+                    const a = self.pop_n(u64);
                     self.push(.{ .value = @bitCast(a + b) });
                 },
                 .OP_SUB_U64 => {
-                    const b: u64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-                    const a: u64 = switch (self.pop()) {
-                        .value => |v| @bitCast(v),
-                        .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
-                    };
-
+                    const b = self.pop_n(u64);
+                    const a = self.pop_n(u64);
                     self.push(.{ .value = @bitCast(a - b) });
                 },
+                //
                 .OP_CONCAT => {
                     //
                     // pop two strings from the stack
@@ -252,6 +233,16 @@ pub const VM = struct {
     fn pop(self: *Self) Value {
         self.stack_top -= 1;
         return self.stack_top[0];
+    }
+
+    /// Pops a number from the stack, and panics if it's a reference instead
+    fn pop_n(self: *Self, comptime T: type) T {
+        self.stack_top -= 1;
+        const value = self.stack_top[0];
+        return switch (value) {
+            .value => |v| @bitCast(v),
+            .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+        };
     }
 
     // NOTE: crafting interpreters had this as a C macro

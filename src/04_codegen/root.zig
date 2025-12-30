@@ -60,9 +60,6 @@ pub const ByteCodeGenerator = struct {
 
         // Up the chunk slot count
         chunk.var_slots += 1;
-
-        // profit?
-        // ?: how to link a identifier to a slot index? ugh
     }
 
     /// What does this do? it computes the bytecode for an expression,
@@ -235,8 +232,8 @@ pub const ByteCodeGenerator = struct {
             .identifier => |tok_id| {
                 // get the slot index from the symbol table
                 const symbol = self.semantic_ctx.symbol_table.scope.get(tok_id.value) orelse {
-                    // FIXME: proper error message
-                    std.debug.panic("Undefined identifier `{s}`\n", .{tok_id.value});
+                    // The semantic analysis should have caught this
+                    std.debug.panic("Compiler bug: Undefined identifier `{s}` on codegen\n", .{tok_id.value});
                 };
                 const symbol_slot_idx = symbol.slot_index orelse {
                     std.debug.panic("Compiler bug: identifier `{s}` has no slot index assigned.\n", .{tok_id.value});

@@ -42,6 +42,11 @@ Inside the raw bytes section, arbitrary data can be stored, following the format
 Multiple of these tuples are stored back to back.
 
 
+## Types
+
+The VM supports the following types: `i32`, `u32`, `f32`, `i64`, `u64`, `f64`.
+
+
 
 ## Bytecode behaviour
 

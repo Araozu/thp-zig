@@ -65,6 +65,7 @@ pub const TypecheckerVisitor = struct {
         return expr_type;
     }
 
+    /// Always returns Type.Untyped on success
     pub fn visitVariableBinding(ptr: *anyopaque, node: *const VariableBinding) VisitorError!Type {
         const self: *TypecheckerVisitor = @ptrCast(@alignCast(ptr));
 
@@ -91,6 +92,7 @@ pub const TypecheckerVisitor = struct {
         } else Type.Untyped;
 
         // check types
+        // TODO: should allow safe upcasting
         if (!hinted_type.is_untyped()) {
             // Assert both the type hint and the actual type are the same
             if (!hinted_type.eql(&expression_type)) {
@@ -133,25 +135,24 @@ pub const TypecheckerVisitor = struct {
         }
 
         // assign types
-        const symbol_name = node.identifier.value;
-        const prev_symbol = self.scope.get(symbol_name) orelse {
-            // the node was not inserted  on a previous phase?
-            std.debug.panic("A symbol was not on the symbol table during typechecking...", .{});
+        const binding_name = node.identifier.value;
+        const existing_symbol = self.scope.get(binding_name) orelse {
+            // the node was not inserted on the previous symbol collection phase
+            std.debug.panic("Compiler erros: Symbol {s} was not on the symbol table during typechecking...", .{binding_name});
         };
 
         try self.scope.insert(
-            symbol_name,
+            binding_name,
             .{
                 .t = expression_type,
                 .location = .{
-                    .start = prev_symbol.location.start,
-                    .end = prev_symbol.location.end,
+                    .start = existing_symbol.location.start,
+                    .end = existing_symbol.location.end,
                 },
-                .slot_index = prev_symbol.slot_index,
+                .slot_index = existing_symbol.slot_index,
             },
         );
 
-        // FIXME: return a proper type
         return Type.Untyped;
     }
 

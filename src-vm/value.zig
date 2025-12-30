@@ -1,5 +1,4 @@
 const std = @import("std");
-
 const m_obj = @import("obj.zig");
 
 const Obj = m_obj.Obj;

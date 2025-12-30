@@ -3,56 +3,8 @@ const tracing = @import("config").tracing;
 
 const m_obj = @import("./obj.zig");
 
+pub const OpCode = @import("./opcode.zig").OpCode;
 const Obj = m_obj.Obj;
-
-pub const OpCode = enum(u8) {
-    OP_RETURN = 0x00,
-
-    /// <cons> idx
-    ///
-    /// Push a constant **index** onto the stack. Its always a u64.
-    OP_CONSTANT = 0x02,
-
-    /// Binary addition
-    ///
-    /// Pops two values from the stack, adds them, and pushes the result.
-    OP_ADD_F64 = 0x03,
-    OP_NEGATE_F64 = 0x04,
-    /// Pops two values from the stack, substracts them, and pushes the result.
-    OP_SUB_F64 = 0x05,
-
-    //
-    //  u64 opcodes
-    //
-    OP_ADD_U64 = 0x07,
-    OP_SUB_U64 = 0x08,
-
-    /// Prints the string currently at the top of the stack
-    OP_PRINT = 0x09,
-
-    /// String concatenation
-    OP_CONCAT = 0x0A,
-
-    /// <ref> constant_idx:u8
-    ///
-    /// Reads the constant at `constant_idx`.
-    /// Interprets it as a pointer to an Obj.
-    /// Pushes the Obj onto the stack, as a Value.
-    OP_REF = 0x0B,
-
-    /// Transformations to string
-    OP_F64_TO_STRING = 0x0C,
-    OP_U64_TO_STRING = 0x0D,
-
-    /// Store to variable slot
-    ///
-    /// <op> <idx>
-    OP_STORE = 0x0E,
-    /// Load from variable slot
-    ///
-    /// <op> <idx>
-    OP_LOAD = 0x0F,
-};
 
 pub const Chunk = struct {
     code: std.ArrayListUnmanaged(u8),

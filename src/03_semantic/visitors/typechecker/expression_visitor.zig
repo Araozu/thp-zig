@@ -144,7 +144,6 @@ pub fn typecheck_primary_expression(
                 return VisitorError.SemanticError;
             };
 
-            // TODO: throw if untyped?!
             return t_id.t;
         },
         .paren => |inner_exp| {
