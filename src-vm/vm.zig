@@ -91,6 +91,20 @@ pub const VM = struct {
                 },
 
                 //
+                .OP_ADD_I32 => {
+                    const b = self.pop_n(i32);
+                    const a = self.pop_n(i32);
+                    const r: i32 = a +% b;
+                    self.push(.{ .value = @bitCast(@as(i64, r)) });
+                },
+                .OP_SUB_I32 => {
+                    const b = self.pop_n(i32);
+                    const a = self.pop_n(i32);
+                    const r: i32 = a -% b;
+                    self.push(.{ .value = @bitCast(@as(i64, r)) });
+                },
+
+                //
                 .OP_ADD_I64 => {
                     const b = self.pop_n(i64);
                     const a = self.pop_n(i64);
@@ -240,8 +254,8 @@ pub const VM = struct {
         self.stack_top -= 1;
         const value = self.stack_top[0];
         return switch (value) {
-            .value => |v| @bitCast(v),
-            .ref => @panic("Expected to find a f64 on the stack, found a reference. This is a bug in the compiler."),
+            .value => |v| if (@sizeOf(T) == 8) @bitCast(v) else @bitCast(@as(u32, @truncate(v))),
+            .ref => @panic("Expected to find a u64 on the stack, found a reference. This is a bug in the compiler."),
         };
     }
 

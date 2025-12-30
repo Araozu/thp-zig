@@ -9,8 +9,8 @@ pub const OpCode = enum(u8) {
     // ====================
     //  Numeric opcodes
     // ====================
-    // OP_ADD_I32 = 0x03,
-    // OP_SUB_I32 = 0x04,
+    OP_ADD_I32 = 0x03,
+    OP_SUB_I32 = 0x04,
     // OP_NEGATE_I32 = 0x05,
     //
     // OP_ADD_U32 = 0x06,
