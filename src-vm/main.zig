@@ -47,3 +47,7 @@ pub fn main() !void {
 
     _ = vm.interpret();
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

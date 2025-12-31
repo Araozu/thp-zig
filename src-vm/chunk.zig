@@ -130,5 +130,5 @@ pub const Chunk = struct {
 const expect = std.testing.expect;
 
 test "should fail" {
-    expect(false);
+    try expect(false);
 }
