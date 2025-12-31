@@ -227,8 +227,8 @@ test "should parse expression within parens" {
             .paren => |inner_exp| {
                 // The inner expression should be a PrattExpression wrapping a primary
                 try std.testing.expect(inner_exp.exp.* == .primary);
-                try std.testing.expectEqualDeep("322", inner_exp.exp.*.primary.int.value);
-                try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.*.primary.int.token_type);
+                try std.testing.expectEqualDeep("322", inner_exp.exp.*.primary.expr.int.value);
+                try std.testing.expectEqualDeep(TokenType.Int, inner_exp.exp.*.primary.expr.int.token_type);
                 try std.testing.expectEqualDeep(3, next_pos);
             },
             else => try std.testing.expect(false),
@@ -501,7 +501,7 @@ test "should parse nested parentheses" {
     try std.testing.expect(expr == .paren);
     // Inner expression is also paren (wrapped in PrattExpression.primary)
     try std.testing.expect(expr.paren.exp.* == .primary);
-    try std.testing.expect(expr.paren.exp.primary.* == .paren);
+    try std.testing.expect(expr.paren.exp.primary.expr.* == .paren);
 }
 
 test "should parse deeply nested parentheses" {
@@ -910,8 +910,8 @@ test "paren expression inner value should match" {
     _ = try expr.init(0, &parser_context);
     try std.testing.expect(expr == .paren);
     try std.testing.expect(expr.paren.exp.* == .primary);
-    try std.testing.expect(expr.paren.exp.primary.* == .identifier);
-    try std.testing.expectEqualStrings("myIdent", expr.paren.exp.primary.identifier.value);
+    try std.testing.expect(expr.paren.exp.primary.expr.* == .identifier);
+    try std.testing.expectEqualStrings("myIdent", expr.paren.exp.primary.expr.identifier.value);
 }
 
 test "paren expression with float inner value" {
@@ -928,8 +928,8 @@ test "paren expression with float inner value" {
     _ = try expr.init(0, &parser_context);
     try std.testing.expect(expr == .paren);
     try std.testing.expect(expr.paren.exp.* == .primary);
-    try std.testing.expect(expr.paren.exp.primary.* == .float);
-    try std.testing.expectEqualStrings("2.718", expr.paren.exp.primary.float.value);
+    try std.testing.expect(expr.paren.exp.primary.expr.* == .float);
+    try std.testing.expectEqualStrings("2.718", expr.paren.exp.primary.expr.float.value);
 }
 
 test "paren expression with string inner value" {
@@ -946,6 +946,6 @@ test "paren expression with string inner value" {
     _ = try expr.init(0, &parser_context);
     try std.testing.expect(expr == .paren);
     try std.testing.expect(expr.paren.exp.* == .primary);
-    try std.testing.expect(expr.paren.exp.primary.* == .string);
-    try std.testing.expectEqualStrings("\"inner\"", expr.paren.exp.primary.string.value);
+    try std.testing.expect(expr.paren.exp.primary.expr.* == .string);
+    try std.testing.expectEqualStrings("\"inner\"", expr.paren.exp.primary.expr.string.value);
 }

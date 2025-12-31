@@ -450,8 +450,8 @@ test "argument value should be integer literal" {
 
     try expectEqual(1, arguments.items.len);
     try expect(arguments.items[0].* == .primary);
-    try expect(arguments.items[0].primary.* == .int);
-    try std.testing.expectEqualStrings("999", arguments.items[0].primary.int.value);
+    try expect(arguments.items[0].primary.expr.* == .int);
+    try std.testing.expectEqualStrings("999", arguments.items[0].primary.expr.int.value);
 }
 
 test "argument value should be float literal" {
@@ -479,8 +479,8 @@ test "argument value should be float literal" {
 
     try expectEqual(1, arguments.items.len);
     try expect(arguments.items[0].* == .primary);
-    try expect(arguments.items[0].primary.* == .float);
-    try std.testing.expectEqualStrings("3.14", arguments.items[0].primary.float.value);
+    try expect(arguments.items[0].primary.expr.* == .float);
+    try std.testing.expectEqualStrings("3.14", arguments.items[0].primary.expr.float.value);
 }
 
 test "argument value should be string literal" {
@@ -508,7 +508,7 @@ test "argument value should be string literal" {
 
     try expectEqual(1, arguments.items.len);
     try expect(arguments.items[0].* == .primary);
-    try expect(arguments.items[0].primary.* == .string);
+    try expect(arguments.items[0].primary.expr.* == .string);
     try std.testing.expectEqualStrings("\"hello\"", arguments.items[0].primary.string.value);
 }
 
@@ -537,8 +537,8 @@ test "argument value should be identifier" {
 
     try expectEqual(1, arguments.items.len);
     try expect(arguments.items[0].* == .primary);
-    try expect(arguments.items[0].primary.* == .identifier);
-    try std.testing.expectEqualStrings("myVar", arguments.items[0].primary.identifier.value);
+    try expect(arguments.items[0].primary.expr.* == .identifier);
+    try std.testing.expectEqualStrings("myVar", arguments.items[0].primary.expr.identifier.value);
 }
 
 test "argument should be binary expression" {
@@ -594,7 +594,7 @@ test "argument should be parenthesized expression" {
 
     try expectEqual(1, arguments.items.len);
     try expect(arguments.items[0].* == .primary);
-    try expect(arguments.items[0].primary.* == .paren);
+    try expect(arguments.items[0].primary.expr.* == .paren);
 }
 
 // ============================================================================

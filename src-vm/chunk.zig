@@ -126,3 +126,9 @@ pub const Chunk = struct {
         self.refs.deinit(self.allocator);
     }
 };
+
+const expect = std.testing.expect;
+
+test "should fail" {
+    expect(false);
+}
