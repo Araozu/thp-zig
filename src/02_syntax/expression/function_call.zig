@@ -509,7 +509,7 @@ test "argument value should be string literal" {
     try expectEqual(1, arguments.items.len);
     try expect(arguments.items[0].* == .primary);
     try expect(arguments.items[0].primary.expr.* == .string);
-    try std.testing.expectEqualStrings("\"hello\"", arguments.items[0].primary.string.value);
+    try std.testing.expectEqualStrings("\"hello\"", arguments.items[0].primary.expr.string.value);
 }
 
 test "argument value should be identifier" {
