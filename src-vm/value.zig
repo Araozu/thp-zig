@@ -11,6 +11,6 @@ pub const Value = union(enum(u8)) {
 };
 
 pub fn print_value(value: Value) void {
-    // std.debug.print("{d}", .{value});
+    std.debug.print("_", .{});
     _ = value;
 }

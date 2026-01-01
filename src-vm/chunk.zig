@@ -49,6 +49,11 @@ pub const Chunk = struct {
         try self.lines.append(self.allocator, line);
     }
 
+    /// Writes a single opcode. The opcode enum is casted to a byte.
+    pub fn write_opcode(self: *Self, opcode: OpCode, line: u32) !void {
+        try self.write_chunk(@intFromEnum(opcode), line);
+    }
+
     /// Write a constant to the chunk's constant array, returning its index
     pub fn write_constant(self: *Self, constant: u64) !usize {
         try self.constants.append(self.allocator, constant);

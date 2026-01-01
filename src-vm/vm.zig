@@ -42,8 +42,9 @@ pub const VM = struct {
 
     fn run(self: *Self) InterpretResult {
         // Setup the slots for variables
-        for (0..self.chunk.var_slots) |_| {
-            self.stack_top += 1;
+        self.stack_top += self.chunk.var_slots;
+        if (config.tracing) {
+            std.debug.print("  | stack initialized with {d} slots for variables\n", .{self.chunk.var_slots});
         }
 
         while (true) {
