@@ -16,7 +16,7 @@ pub fn dissasemble_chunk(chunk: *Chunk, name: []const u8) void {
 }
 
 pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
-    std.debug.print("{d:0>4} ", .{offset});
+    std.debug.print("  {X:0>4} ", .{offset});
 
     // print line number
     if (offset > 0 and chunk.lines.items[offset] == chunk.lines.items[offset - 1]) {
@@ -29,9 +29,10 @@ pub fn dissasemble_instruction(chunk: *Chunk, offset: usize) usize {
     const e_instruction: OpCode = @enumFromInt(instruction);
     switch (e_instruction) {
         .OP_RETURN => |op| return simple_instruction(@tagName(op), offset),
-        .OP_CONSTANT => |op| {
-            return constant_instruction(@tagName(op), chunk, offset);
-        },
+        .OP_CONSTANT => |op| return constant_pool_instruction(@tagName(op), chunk, offset),
+        .OP_REF => |op| return constant_pool_instruction(@tagName(op), chunk, offset),
+        .OP_STORE => |op| return constant_inline_instruction(@tagName(op), chunk, offset),
+        .OP_LOAD => |op| return constant_inline_instruction(@tagName(op), chunk, offset),
         else => return simple_instruction(@tagName(e_instruction), offset),
     }
 
@@ -43,11 +44,17 @@ fn simple_instruction(name: []const u8, offset: usize) usize {
     return offset + 1;
 }
 
-fn constant_instruction(name: []const u8, chunk: *Chunk, offset: usize) usize {
+fn constant_inline_instruction(name: []const u8, chunk: *Chunk, offset: usize) usize {
     const constant_idx = chunk.code.items[offset + 1];
-    std.debug.print("{s:<16} @{d:<4} <", .{ name, constant_idx });
+    std.debug.print("{s:<16} @{d:<4}\n", .{ name, constant_idx });
+    return offset + 2;
+}
+
+fn constant_pool_instruction(name: []const u8, chunk: *Chunk, offset: usize) usize {
+    const constant_idx = chunk.code.items[offset + 1];
+    std.debug.print("{s:<16} @{d:<4} (", .{ name, constant_idx });
     // m_value.print_value(chunk.constants.items[constant_idx]);
     std.debug.print("{d}", .{chunk.constants.items[constant_idx]});
-    std.debug.print(">\n", .{});
+    std.debug.print(")\n", .{});
     return offset + 2;
 }
