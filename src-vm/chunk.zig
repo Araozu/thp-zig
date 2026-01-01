@@ -37,7 +37,7 @@ pub const Chunk = struct {
         };
     }
 
-    // HACK: input raw bytes without support for line numbers
+    // HACK: input raw bytes
     pub fn write_raw_bytecode_bytes(self: *Self, bytes: []u8, line: u32) !void {
         try self.code.appendSlice(self.allocator, bytes);
         try self.lines.appendNTimes(self.allocator, line, bytes.len);
@@ -119,6 +119,7 @@ pub const Chunk = struct {
                 .String => {
                     const str_obj: *m_obj.ObjString = @alignCast(@fieldParentPtr("base", reference));
                     str_obj.deinit(self.allocator);
+                    self.allocator.destroy(str_obj);
                 },
             }
         }
@@ -128,7 +129,35 @@ pub const Chunk = struct {
 };
 
 const expect = std.testing.expect;
+const expectEqual = std.testing.expectEqual;
 
-test "should fail" {
-    try expect(false);
+test "should cleanup 1" {
+    const allocator = std.testing.allocator;
+    const chunk = try allocator.create(Chunk);
+    defer allocator.destroy(chunk);
+
+    chunk.init(allocator, 0);
+    defer chunk.deinit();
+}
+
+test "should write to a chunk" {
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    try chunk.write_chunk(0x00, 1);
+    try expectEqual(0x00, chunk.code.items[0]);
+
+    const pos = try chunk.write_constant(0xFF);
+    try expectEqual(0, pos);
+    try expectEqual(0xFF, chunk.constants.items[0]);
+}
+
+test "should create a const string" {
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    const str_ptr = try chunk.create_string("hello");
+    _ = str_ptr;
 }
