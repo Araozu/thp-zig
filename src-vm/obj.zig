@@ -39,7 +39,7 @@ pub const ObjString = struct {
 
         self.* = .{
             .base = .{ .t = ObjType.String },
-            .bytes = .{ .heap = try allocator.dupe(u8, new_str) },
+            .bytes = .{ .heap = new_str },
         };
     }
 

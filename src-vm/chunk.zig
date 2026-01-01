@@ -158,6 +158,14 @@ test "should create a const string" {
     chunk.init(std.testing.allocator, 0);
     defer chunk.deinit();
 
-    const str_ptr = try chunk.create_string("hello");
-    _ = str_ptr;
+    _ = try chunk.create_string("hello");
+    _ = try chunk.create_string("world");
+}
+
+test "should create a const string from 2 strings" {
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    _ = try chunk.create_string_2("hello ", "world");
 }
