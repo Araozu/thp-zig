@@ -1,9 +1,10 @@
 const std = @import("std");
 const tracing = @import("config").tracing;
 
-const m_obj = @import("./obj.zig");
+const m_obj = @import("../obj.zig");
+pub const serialization = @import("./serialization.zig");
 
-pub const OpCode = @import("./opcode.zig").OpCode;
+pub const OpCode = @import("../opcode.zig").OpCode;
 const Obj = m_obj.Obj;
 
 pub const Chunk = struct {

@@ -1,5 +1,5 @@
 const std = @import("std");
-const m_chunk = @import("./chunk.zig");
+const m_chunk = @import("./chunk/root.zig");
 
 pub fn read_bytecode(allocator: std.mem.Allocator, bytes: []u8) !m_chunk.Chunk {
     // Bytecode must be at least 6 bytes long: 4 bytes header, 1 byte constant length (0), 1 byte OP_RETURN

@@ -1,5 +1,5 @@
 const std = @import("std");
-const m_chunk = @import("./chunk.zig");
+pub const m_chunk = @import("./chunk/root.zig");
 const m_debug = @import("./debug.zig");
 const m_vm = @import("./vm.zig");
 const m_reader = @import("./reader.zig");

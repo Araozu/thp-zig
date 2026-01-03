@@ -1,5 +1,5 @@
 const std = @import("std");
-const m_chunk = @import("./chunk.zig");
+const m_chunk = @import("./chunk/root.zig");
 const m_value = @import("./value.zig");
 
 const Chunk = m_chunk.Chunk;

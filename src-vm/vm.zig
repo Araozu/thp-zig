@@ -1,6 +1,6 @@
 const std = @import("std");
 const config = @import("config");
-const m_chunk = @import("./chunk.zig");
+const m_chunk = @import("./chunk/root.zig");
 const m_value = @import("./value.zig");
 const m_obj = @import("./obj.zig");
 const m_debug = @import("./debug.zig");
