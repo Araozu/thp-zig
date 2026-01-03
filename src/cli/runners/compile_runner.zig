@@ -188,16 +188,6 @@ pub fn run(self: *const CompileOptions) !void {
 
     // don't forget to flush
     try stdout.flush();
-
-    // ==========================================
-    //   Execution?
-    // ==========================================
-
-    // var vm: m_vm.VM = undefined;
-    // vm.init(chunk);
-    // defer vm.deinit();
-    //
-    // _ = vm.interpret();
 }
 
 inline fn trace_header() void {

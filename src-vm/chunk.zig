@@ -75,19 +75,6 @@ pub const Chunk = struct {
 
         try obj_string.init_dynamic(self.allocator, bytes);
 
-        if (tracing) {
-            const obj: *m_obj.Obj = &obj_string.base;
-
-            std.debug.print(
-                \\Creating string object for `{s}`:
-                \\    obj_string at address 0x{X}
-                \\    obj        at address 0x{X}
-                \\
-            ,
-                .{ bytes, @intFromPtr(obj_string), @intFromPtr(obj) },
-            );
-        }
-
         // Store the reference
         try self.refs.append(self.allocator, &obj_string.base);
 
