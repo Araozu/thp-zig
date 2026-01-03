@@ -239,6 +239,18 @@ pub const VM = struct {
                     const value = self.stack[slot_idx];
                     self.push(value);
                 },
+
+                .OP_TRUE => {
+                    self.push(.{ .value = 1 });
+                },
+                .OP_FALSE => {
+                    self.push(.{ .value = 0 });
+                },
+                .OP_EQL => {
+                    const b = self.pop_n(u64);
+                    const a = self.pop_n(u64);
+                    self.push(.{ .value = b & a });
+                },
             }
         }
     }
