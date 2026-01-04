@@ -1,0 +1,2 @@
+val my_bool = true
+print(my_bool)

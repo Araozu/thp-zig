@@ -172,32 +172,7 @@ pub fn run(self: *const CompileOptions) !void {
     var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
     const stdout = &stdout_writer.interface;
 
-    // write
-    _ = try stdout.write("THP!");
-    //  constants
-    _ = try stdout.writeInt(u32, @intCast(chunk.constants.items.len), .big);
-    for (chunk.constants.items) |bytes| {
-        _ = try stdout.writeInt(u64, @bitCast(bytes), .big);
-    }
-    //  raw bytes
-    _ = try stdout.writeInt(u32, @intCast(chunk.raw_bytes.items.len), .big);
-    for (chunk.raw_bytes.items) |byte| {
-        _ = try stdout.writeInt(u8, @bitCast(byte), .big);
-    }
-    _ = try stdout.write(std.mem.sliceAsBytes(chunk.code.items));
-
-    // don't forget to flush
-    try stdout.flush();
-
-    // ==========================================
-    //   Execution?
-    // ==========================================
-
-    // var vm: m_vm.VM = undefined;
-    // vm.init(chunk);
-    // defer vm.deinit();
-    //
-    // _ = vm.interpret();
+    try m_vm.m_chunk.serialization.serialize(&chunk, stdout);
 }
 
 inline fn trace_header() void {

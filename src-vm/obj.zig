@@ -7,10 +7,6 @@ pub const ObjType = enum(u8) {
 /// A dynamic reference type, for data that lives on the heap.
 pub const Obj = struct {
     t: ObjType,
-
-    pub fn as_string(self: *const Obj) *ObjString {
-        return @ptrCast(self);
-    }
 };
 
 pub const ObjString = struct {
@@ -39,7 +35,7 @@ pub const ObjString = struct {
 
         self.* = .{
             .base = .{ .t = ObjType.String },
-            .bytes = .{ .heap = try allocator.dupe(u8, new_str) },
+            .bytes = .{ .heap = new_str },
         };
     }
 

@@ -11,6 +11,12 @@ pub const Value = union(enum(u8)) {
 };
 
 pub fn print_value(value: Value) void {
-    // std.debug.print("{d}", .{value});
-    _ = value;
+    switch (value) {
+        .ref => |ref| {
+            std.debug.print("r: 0x{X}", .{@intFromPtr(ref)});
+        },
+        .value => |v| {
+            std.debug.print("v: {d}", .{v});
+        },
+    }
 }

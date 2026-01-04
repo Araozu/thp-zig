@@ -1,9 +1,10 @@
 const std = @import("std");
 const tracing = @import("config").tracing;
 
-const m_obj = @import("./obj.zig");
+const m_obj = @import("../obj.zig");
+pub const serialization = @import("./serialization.zig");
 
-pub const OpCode = @import("./opcode.zig").OpCode;
+pub const OpCode = @import("../opcode.zig").OpCode;
 const Obj = m_obj.Obj;
 
 pub const Chunk = struct {
@@ -37,7 +38,7 @@ pub const Chunk = struct {
         };
     }
 
-    // HACK: input raw bytes without support for line numbers
+    // HACK: input raw bytes
     pub fn write_raw_bytecode_bytes(self: *Self, bytes: []u8, line: u32) !void {
         try self.code.appendSlice(self.allocator, bytes);
         try self.lines.appendNTimes(self.allocator, line, bytes.len);
@@ -47,6 +48,11 @@ pub const Chunk = struct {
     pub fn write_chunk(self: *Self, byte: u8, line: u32) !void {
         try self.code.append(self.allocator, byte);
         try self.lines.append(self.allocator, line);
+    }
+
+    /// Writes a single opcode. The opcode enum is casted to a byte.
+    pub fn write_opcode(self: *Self, opcode: OpCode, line: u32) !void {
+        try self.write_chunk(@intFromEnum(opcode), line);
     }
 
     /// Write a constant to the chunk's constant array, returning its index
@@ -69,19 +75,6 @@ pub const Chunk = struct {
         errdefer self.allocator.destroy(obj_string);
 
         try obj_string.init_dynamic(self.allocator, bytes);
-
-        if (tracing) {
-            const obj: *m_obj.Obj = &obj_string.base;
-
-            std.debug.print(
-                \\Creating string object for `{s}`:
-                \\    obj_string at address 0x{X}
-                \\    obj        at address 0x{X}
-                \\
-            ,
-                .{ bytes, @intFromPtr(obj_string), @intFromPtr(obj) },
-            );
-        }
 
         // Store the reference
         try self.refs.append(self.allocator, &obj_string.base);
@@ -119,6 +112,7 @@ pub const Chunk = struct {
                 .String => {
                     const str_obj: *m_obj.ObjString = @alignCast(@fieldParentPtr("base", reference));
                     str_obj.deinit(self.allocator);
+                    self.allocator.destroy(str_obj);
                 },
             }
         }
@@ -126,3 +120,45 @@ pub const Chunk = struct {
         self.refs.deinit(self.allocator);
     }
 };
+
+const expect = std.testing.expect;
+const expectEqual = std.testing.expectEqual;
+
+test "should cleanup 1" {
+    const allocator = std.testing.allocator;
+    const chunk = try allocator.create(Chunk);
+    defer allocator.destroy(chunk);
+
+    chunk.init(allocator, 0);
+    defer chunk.deinit();
+}
+
+test "should write to a chunk" {
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    try chunk.write_chunk(0x00, 1);
+    try expectEqual(0x00, chunk.code.items[0]);
+
+    const pos = try chunk.write_constant(0xFF);
+    try expectEqual(0, pos);
+    try expectEqual(0xFF, chunk.constants.items[0]);
+}
+
+test "should create a const string" {
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    _ = try chunk.create_string("hello");
+    _ = try chunk.create_string("world");
+}
+
+test "should create a const string from 2 strings" {
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    _ = try chunk.create_string_2("hello ", "world");
+}

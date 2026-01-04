@@ -34,6 +34,13 @@ pub const OpCode = enum(u8) {
     //  end Numeric opcodes
     // ====================
 
+    /// Push true to the stack
+    OP_TRUE = 0x20,
+    /// Push false to the stack
+    OP_FALSE = 0x21,
+    /// Pops 2 bool from stack, pushes `a == b`
+    OP_EQL = 0x22,
+
     /// Prints the string currently at the top of the stack
     OP_PRINT = 0x13,
 

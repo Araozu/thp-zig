@@ -118,6 +118,7 @@ fn main_executable(
     const syntax_module_tests = b.addTest(.{ .name = "syntax", .root_module = syntax_module });
     const semantic_module_tests = b.addTest(.{ .name = "semantic", .root_module = semantic_module });
     const codegen_module_tests = b.addTest(.{ .name = "codegen", .root_module = codegen_module });
+    const vm_module_tests = b.addTest(.{ .name = "vm", .root_module = vm_module });
     const root_module_tests = b.addTest(.{ .name = "root", .root_module = root_module });
 
     const test_step = b.step("test", "Run all unit tests");
@@ -127,6 +128,7 @@ fn main_executable(
     test_step.dependOn(&b.addRunArtifact(syntax_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(semantic_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(codegen_module_tests).step);
+    test_step.dependOn(&b.addRunArtifact(vm_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(root_module_tests).step);
 }
 

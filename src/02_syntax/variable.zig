@@ -231,7 +231,7 @@ test "should parse a minimal var" {
     try std.testing.expectEqualStrings("my_variable", binding.identifier.value);
     const expr = binding.expression;
     switch (expr) {
-        .primary => |primary_exp| switch (primary_exp.*) {
+        .primary => |primary_exp| switch (primary_exp.expr.*) {
             .int => |n| {
                 try std.testing.expectEqualStrings("322", n.value);
             },
@@ -988,7 +988,7 @@ test "expression: should parse with integer literal" {
     defer binding.deinit(&parser_context);
 
     switch (binding.expression) {
-        .primary => |primary_exp| switch (primary_exp.*) {
+        .primary => |primary_exp| switch (primary_exp.expr.*) {
             .int => |n| try std.testing.expectEqualStrings("12345", n.value),
             else => try std.testing.expect(false),
         },
@@ -1013,7 +1013,7 @@ test "expression: should parse with identifier expression" {
     defer binding.deinit(&parser_context);
 
     switch (binding.expression) {
-        .primary => |primary_exp| switch (primary_exp.*) {
+        .primary => |primary_exp| switch (primary_exp.expr.*) {
             .identifier => |id| try std.testing.expectEqualStrings("other_var", id.value),
             else => try std.testing.expect(false),
         },
@@ -1155,7 +1155,7 @@ test "edge case: zero as expression" {
     defer binding.deinit(&parser_context);
 
     switch (binding.expression) {
-        .primary => |primary_exp| switch (primary_exp.*) {
+        .primary => |primary_exp| switch (primary_exp.expr.*) {
             .int => |n| try std.testing.expectEqualStrings("0", n.value),
             else => try std.testing.expect(false),
         },

@@ -96,6 +96,8 @@ pub const ByteCodeGenerator = struct {
                                         // FIXME: it says I64 but it's u64
                                         .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
                                         .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                                        // NOTE: Bool just printed as U64 rn
+                                        .Bool => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
                                         .String => {},
                                         else => {
                                             std.debug.panic("Not implemented: print for type `{s}`\n", .{t_arg_print.computed_type.to_str()});
@@ -227,6 +229,15 @@ pub const ByteCodeGenerator = struct {
 
                     try chunk.write_chunk(@intFromEnum(OpCode.OP_REF), 1);
                     try chunk.write_chunk(@intCast(constant_idx), 1);
+                }
+            },
+            .bool => |tok_bool| {
+                // NOTE: couldve stored the bool value right when it was lexed...
+
+                if (std.mem.eql(u8, "true", tok_bool.value)) {
+                    try chunk.write_opcode(OpCode.OP_TRUE, 1);
+                } else {
+                    try chunk.write_opcode(OpCode.OP_FALSE, 1);
                 }
             },
             .identifier => |tok_id| {

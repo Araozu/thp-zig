@@ -1,0 +1,39 @@
+// 2 numbers in the list that sum to 100
+
+val input = "..."
+val numbers = [...]
+
+val #(n1, n2) = for 0..(numbers.len) as i :blk {
+    for 1..(numbers.len) as j {
+        val g1 = numbers[i]
+        val g2 = numbers[j]
+
+	if g1 + g2 == 100 {
+	    break :blk #(g1, g2)
+	}
+    }
+}
+
+print("The numbers are " ++ n1 ++ ", " ++ n2)
+
+
+val numbers = [...]
+val cache_map = Set[I32]()
+
+val result = for numbers as n :blk {
+    if cache_map.has(n) {
+        break :blk #(n, 100 - n)
+    } else {
+        cache_map.set(100 - n)
+    }
+}
+
+if val #(n1, n2) = result {
+    print("The numbers are " ++ n1 ++ ", " ++ n2)
+}
+else {
+    print("Numbers not found")
+}
+
+
+

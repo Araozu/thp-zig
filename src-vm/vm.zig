@@ -1,6 +1,6 @@
 const std = @import("std");
 const config = @import("config");
-const m_chunk = @import("./chunk.zig");
+const m_chunk = @import("./chunk/root.zig");
 const m_value = @import("./value.zig");
 const m_obj = @import("./obj.zig");
 const m_debug = @import("./debug.zig");
@@ -41,9 +41,13 @@ pub const VM = struct {
     }
 
     fn run(self: *Self) InterpretResult {
-        // Setup the slots for variables
-        for (0..self.chunk.var_slots) |_| {
-            self.stack_top += 1;
+        if (config.tracing) {
+            // Zero the memory in the slots when tracing,
+            // so that printing them doesnt crash
+            for (0..self.chunk.var_slots) |i| {
+                self.stack[i] = .{ .value = 0 };
+            }
+            std.debug.print("  | stack initialized with {d} slots for variables\n", .{self.chunk.var_slots});
         }
 
         while (true) {
@@ -235,6 +239,18 @@ pub const VM = struct {
                     const value = self.stack[slot_idx];
                     self.push(value);
                 },
+
+                .OP_TRUE => {
+                    self.push(.{ .value = 1 });
+                },
+                .OP_FALSE => {
+                    self.push(.{ .value = 0 });
+                },
+                .OP_EQL => {
+                    const b = self.pop_n(u64);
+                    const a = self.pop_n(u64);
+                    self.push(.{ .value = b & a });
+                },
             }
         }
     }
@@ -284,3 +300,28 @@ pub const VM = struct {
         _ = self;
     }
 };
+
+test "should halt" {
+    //
+    // Arrange
+    //
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    try chunk.write_opcode(OpCode.OP_RETURN, 0);
+
+    var vm: VM = undefined;
+    vm.init(chunk);
+    defer vm.deinit();
+
+    //
+    // Act
+    //
+    const result = vm.run();
+
+    //
+    // Assert
+    //
+    try std.testing.expectEqual(.INTERPRET_OK, result);
+}

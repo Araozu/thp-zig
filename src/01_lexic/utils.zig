@@ -98,6 +98,7 @@ pub fn lex_many(
     return current_pos;
 }
 
-pub inline fn try_keyword(comptime expected: []const u8, actual: []const u8) bool {
+/// Inline string comparison
+pub inline fn inline_eql(comptime expected: []const u8, actual: []const u8) bool {
     return std.mem.eql(u8, expected, actual);
 }
