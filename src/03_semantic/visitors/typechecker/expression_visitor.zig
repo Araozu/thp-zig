@@ -117,6 +117,7 @@ pub fn typecheck_primary_expression(
         .float => return Type.F64,
         .int => return Type.I64,
         .string => return Type.String,
+        .bool => return Type.Bool,
         .identifier => |token| {
             // NOTE: should the lexer emit those as their own tokens?
             if (std.mem.eql(u8, token.*.value, "true")) {

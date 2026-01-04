@@ -27,12 +27,16 @@ pub fn lex(input: []const u8, start: usize) LexError!?LexReturn {
 
     const value = input[start..final_pos];
 
-    // check for keywords
+    // check for keywords & bool
     var new_token_type = TokenType.Identifier;
-    if (utils.try_keyword("var", value)) {
+    if (utils.inline_eql("var", value)) {
         new_token_type = TokenType.K_Var;
-    } else if (utils.try_keyword("val", value)) {
+    } else if (utils.inline_eql("val", value)) {
         new_token_type = TokenType.K_Val;
+    } else if (utils.inline_eql("true", value)) {
+        new_token_type = TokenType.Bool;
+    } else if (utils.inline_eql("false", value)) {
+        new_token_type = TokenType.Bool;
     }
 
     return .{

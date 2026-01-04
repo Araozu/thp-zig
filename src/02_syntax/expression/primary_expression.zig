@@ -23,6 +23,7 @@ pub const PrimaryExpression = union(enum) {
     int: *const Token,
     float: *const Token,
     string: *const Token,
+    bool: *const Token,
     identifier: *const Token,
     paren: struct {
         exp: *PrattExpression,
@@ -58,6 +59,9 @@ pub const PrimaryExpression = union(enum) {
             return pos + 1;
         } else if (t.token_type == TokenType.String) {
             self.* = .{ .string = t };
+            return pos + 1;
+        } else if (t.token_type == TokenType.Bool) {
+            self.* = .{ .bool = t };
             return pos + 1;
         } else if (t.token_type == TokenType.LeftParen) {
             const lparen_t = t;

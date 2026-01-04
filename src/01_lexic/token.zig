@@ -2,6 +2,7 @@ pub const TokenType = enum {
     Int,
     Float,
     String,
+    Bool,
     Identifier,
     Datatype,
     Operator,
@@ -24,6 +25,7 @@ pub const TokenType = enum {
         return switch (self.*) {
             TokenType.Int => "Int",
             TokenType.Float => "Float",
+            TokenType.Bool => "Bool",
             TokenType.Identifier => "Identifier",
             TokenType.Datatype => "Datatype",
             TokenType.Operator => "Operator",
