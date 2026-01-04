@@ -139,7 +139,7 @@ pub const PrimaryExpression = union(enum) {
 
     pub fn get_range(self: *const Self) struct { usize, usize } {
         return switch (self.*) {
-            .int, .float, .string, .identifier => |t| .{ t.start_pos, t.end_pos() },
+            .int, .float, .string, .bool, .identifier => |t| .{ t.start_pos, t.end_pos() },
             .paren => |p_struct| .{ p_struct.lparen.start_pos, p_struct.rparen.end_pos() },
         };
     }

@@ -300,3 +300,28 @@ pub const VM = struct {
         _ = self;
     }
 };
+
+test "should halt" {
+    //
+    // Arrange
+    //
+    var chunk: Chunk = undefined;
+    chunk.init(std.testing.allocator, 0);
+    defer chunk.deinit();
+
+    try chunk.write_opcode(OpCode.OP_RETURN, 0);
+
+    var vm: VM = undefined;
+    vm.init(chunk);
+    defer vm.deinit();
+
+    //
+    // Act
+    //
+    const result = vm.run();
+
+    //
+    // Assert
+    //
+    try std.testing.expectEqual(.INTERPRET_OK, result);
+}
