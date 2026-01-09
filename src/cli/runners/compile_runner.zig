@@ -1,5 +1,4 @@
 const std = @import("std");
-const m_vm = @import("vm");
 
 const lexic = @import("lexic");
 const syntax = @import("syntax");
@@ -160,8 +159,8 @@ pub fn run(self: *const CompileOptions) !void {
     var generator: codegen.ByteCodeGenerator = undefined;
     generator.init(&ast, &semantic_ctx, arena.allocator());
 
-    var chunk = try generator.emit();
-    defer chunk.deinit();
+    // var chunk = try generator.emit();
+    // defer chunk.deinit();
 
     // ==========================================
     //   Out to stdout
@@ -171,8 +170,9 @@ pub fn run(self: *const CompileOptions) !void {
 
     var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
     const stdout = &stdout_writer.interface;
+    _ = stdout;
 
-    try m_vm.m_chunk.serialization.serialize(&chunk, stdout);
+    // try m_vm.m_chunk.serialization.serialize(&chunk, stdout);
 }
 
 inline fn trace_header() void {
