@@ -10,7 +10,9 @@ pub const SymbolTable = struct {
     scope: Scope,
     builtin_types: std.StringHashMapUnmanaged(Type),
 
-    pub fn init(self: *SymbolTable, allocator: std.mem.Allocator) !void {
+    const Self = @This();
+
+    pub fn init(self: *Self, allocator: std.mem.Allocator) !void {
         self.* = .{
             .allocator = allocator,
             .scope = Scope.init(allocator),
@@ -35,6 +37,7 @@ pub const SymbolTable = struct {
                     },
                 },
                 .location = .{ .start = 0, .end = 1 },
+                .slot_index = null,
             });
         }
         {
@@ -48,15 +51,16 @@ pub const SymbolTable = struct {
                     },
                 },
                 .location = .{ .start = 0, .end = 1 },
+                .slot_index = null,
             });
         }
     }
 
-    pub fn lookup_type(self: *const SymbolTable, type_name: []const u8) ?Type {
+    pub fn lookup_type(self: *const Self, type_name: []const u8) ?Type {
         return self.builtin_types.get(type_name);
     }
 
-    pub fn deinit(self: *SymbolTable) void {
+    pub fn deinit(self: *Self) void {
         var scope_ref = &self.scope;
         self.builtin_types.deinit(self.allocator);
         scope_ref.deinit();

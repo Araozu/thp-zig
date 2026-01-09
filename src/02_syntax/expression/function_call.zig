@@ -36,13 +36,12 @@ pub fn parse_function_call(
         };
 
         // Parse many: comma, expression
+        try arguments.append(ctx.allocator, expr);
 
         // Consume trailing comma if exists
-        if (ctx.tokens.items[next_pos].token_type == .Comma) {
+        if (!ctx.oob(next_pos) and ctx.tokens.items[next_pos].token_type == .Comma) {
             next_pos += 1;
         }
-
-        try arguments.append(ctx.allocator, expr);
     }
 
     // Expect closing paren
@@ -282,4 +281,683 @@ test "should parse a function called with an expression" {
     // Should consume the closing paren and return position 6
     try expectEqual(6, next_pos);
     try expectEqual(0, err_ctx.errors.items.len);
+}
+
+// ============================================================================
+// Token offset/position tests
+// ============================================================================
+
+test "error position should point to open paren when closing paren missing at EOF" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "  (";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[0];
+    _ = parse_function_call(1, &parser_context, open_paren, &arguments) catch {};
+
+    try expect(err_ctx.errors.items.len > 0);
+    // Error should point to the opening paren at position 2
+    try expectEqual(2, err_ctx.errors.items[0].start_position);
+    try expectEqual(3, err_ctx.errors.items[0].end_position);
+}
+
+test "error position should point to wrong token when expecting closing paren" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "foo(42 ]";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = parse_function_call(2, &parser_context, open_paren, &arguments) catch {};
+
+    try expect(err_ctx.errors.items.len > 0);
+    // Error should point to the ']' token at position 7
+    try expectEqual(7, err_ctx.errors.items[0].start_position);
+    try expectEqual(8, err_ctx.errors.items[0].end_position);
+}
+
+// ============================================================================
+// Argument count tests
+// ============================================================================
+
+test "empty parens should have zero arguments" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn()";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(0, arguments.items.len);
+}
+
+test "single argument should have one argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(123)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+}
+
+test "single argument with trailing comma should have one argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(123,)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+}
+
+// ============================================================================
+// Argument value tests
+// ============================================================================
+
+test "argument value should be integer literal" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(999)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .primary);
+    try expect(arguments.items[0].primary.expr.* == .int);
+    try std.testing.expectEqualStrings("999", arguments.items[0].primary.expr.int.value);
+}
+
+test "argument value should be float literal" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(3.14)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .primary);
+    try expect(arguments.items[0].primary.expr.* == .float);
+    try std.testing.expectEqualStrings("3.14", arguments.items[0].primary.expr.float.value);
+}
+
+test "argument value should be string literal" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(\"hello\")";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .primary);
+    try expect(arguments.items[0].primary.expr.* == .string);
+    try std.testing.expectEqualStrings("\"hello\"", arguments.items[0].primary.expr.string.value);
+}
+
+test "argument value should be identifier" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(myVar)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .primary);
+    try expect(arguments.items[0].primary.expr.* == .identifier);
+    try std.testing.expectEqualStrings("myVar", arguments.items[0].primary.expr.identifier.value);
+}
+
+test "argument should be binary expression" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(1 + 2)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .binary);
+    try std.testing.expectEqualStrings("+", arguments.items[0].binary.operator.value);
+}
+
+test "argument should be parenthesized expression" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn((42))";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    _ = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .primary);
+    try expect(arguments.items[0].primary.expr.* == .paren);
+}
+
+// ============================================================================
+// Error cases
+// ============================================================================
+
+test "should error on wrong closing bracket type" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42]";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const result = parse_function_call(2, &parser_context, open_paren, &arguments);
+
+    try std.testing.expectError(ParseError.Error, result);
+    try expect(err_ctx.errors.items.len > 0);
+    try std.testing.expectEqualStrings("Expected ')' after function call", err_ctx.errors.items[0].reason);
+}
+
+test "should error on wrong closing brace type" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42}";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const result = parse_function_call(2, &parser_context, open_paren, &arguments);
+
+    try std.testing.expectError(ParseError.Error, result);
+    try expect(err_ctx.errors.items.len > 0);
+    try std.testing.expectEqualStrings("Expected ')' after function call", err_ctx.errors.items[0].reason);
+}
+
+test "should error when argument followed by identifier instead of comma or paren" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42 bar)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const result = parse_function_call(2, &parser_context, open_paren, &arguments);
+
+    try std.testing.expectError(ParseError.Error, result);
+    try expect(err_ctx.errors.items.len > 0);
+}
+
+test "error message should be correct for EOF after argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const result = parse_function_call(2, &parser_context, open_paren, &arguments);
+
+    try std.testing.expectError(ParseError.Error, result);
+    try expect(err_ctx.errors.items.len > 0);
+    try std.testing.expectEqualStrings("Expected ')' after function call", err_ctx.errors.items[0].reason);
+}
+
+test "error message should be correct for EOF after trailing comma" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42,";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const result = parse_function_call(2, &parser_context, open_paren, &arguments);
+
+    try std.testing.expectError(ParseError.Error, result);
+    try expect(err_ctx.errors.items.len > 0);
+    try std.testing.expectEqualStrings("Expected ')' after function call", err_ctx.errors.items[0].reason);
+}
+
+// ============================================================================
+// Next position tests
+// ============================================================================
+
+test "next position should be after closing paren for empty call" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn() + 1";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Tokens: fn(0) ((1) )(2) +(3) 1(4)
+    // Next position should be 3 (pointing to '+')
+    try expectEqual(3, next_pos);
+}
+
+test "next position should be after closing paren for call with argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42) + 1";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Tokens: fn(0) ((1) 42(2) )(3) +(4) 1(5)
+    // Next position should be 4 (pointing to '+')
+    try expectEqual(4, next_pos);
+}
+
+test "next position should be after closing paren for call with trailing comma" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(42,) + 1";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Tokens: fn(0) ((1) 42(2) ,(3) )(4) +(5) 1(6)
+    // Next position should be 5 (pointing to '+')
+    try expectEqual(5, next_pos);
+}
+
+test "next position should be after closing paren for call with expression argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(1 + 2) - 3";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Tokens: fn(0) ((1) 1(2) +(3) 2(4) )(5) -(6) 3(7)
+    // Next position should be 6 (pointing to '-')
+    try expectEqual(6, next_pos);
+}
+
+// ============================================================================
+// Edge cases
+// ============================================================================
+
+test "should parse function call at end of token stream" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn()";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Should return position after last token
+    try expectEqual(3, next_pos);
+    try expectEqual(0, err_ctx.errors.items.len);
+}
+
+test "should parse nested function call as argument" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "outer(inner())";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Tokens: outer(0) ((1) inner(2) ((3) )(4) )(5)
+    try expectEqual(6, next_pos);
+    try expectEqual(1, arguments.items.len);
+    // The argument should be a function call
+    try expect(arguments.items[0].* == .function);
+}
+
+test "argument with complex binary expression" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "fn(1 + 2 - 3)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    // Tokens: fn(0) ((1) 1(2) +(3) 2(4) -(5) 3(6) )(7)
+    try expectEqual(8, next_pos);
+    try expectEqual(1, arguments.items.len);
+    try expect(arguments.items[0].* == .binary);
+}
+
+test "should correctly parse when open paren has offset" {
+    var err_ctx = error_context.ErrorContext.init(std.testing.allocator);
+    defer err_ctx.deinit();
+    const input = "    fn(42)";
+    var tokens = try lexic.tokenize(input, std.testing.allocator, &err_ctx);
+    defer tokens.deinit(std.testing.allocator);
+    const parser_context = context.ParserContext{ .allocator = std.testing.allocator, .tokens = &tokens, .err = &err_ctx };
+
+    var arguments: std.ArrayListUnmanaged(*PrattExpression) = .empty;
+    defer {
+        for (arguments.items) |arg| {
+            arg.deinit(&parser_context);
+            parser_context.allocator.destroy(arg);
+        }
+        arguments.deinit(parser_context.allocator);
+    }
+
+    const open_paren = &tokens.items[1];
+    try expectEqual(6, open_paren.start_pos);
+    try expectEqual(7, open_paren.end_pos());
+
+    const next_pos = try parse_function_call(2, &parser_context, open_paren, &arguments) orelse {
+        try expect(false);
+        return;
+    };
+
+    try expectEqual(4, next_pos);
+    try expectEqual(1, arguments.items.len);
 }

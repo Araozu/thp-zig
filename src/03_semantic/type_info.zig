@@ -8,12 +8,14 @@ pub const TypeInfo = struct {
 };
 
 pub const U64Context = struct {
-    pub fn hash(self: *const U64Context, key: u64) u64 {
+    const Self = @This();
+
+    pub fn hash(self: *const Self, key: u64) u64 {
         _ = self;
         return key;
     }
 
-    pub fn eql(self: *const U64Context, a: u64, b: u64) bool {
+    pub fn eql(self: *const Self, a: u64, b: u64) bool {
         _ = self;
         return a == b;
     }

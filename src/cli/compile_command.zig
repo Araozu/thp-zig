@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const command_help =
-    \\THP compile: Compiles a single file into bytecode
+    \\compile: Compiles a single file into bytecode
     \\
     \\ thp compile <file> [options]
     \\     c       <file> [options]
@@ -10,6 +10,7 @@ const command_help =
     \\
     \\ -o <output>   - specifies the output file
     \\ -p            - compiles the file in place, output file is <file>.php
+    \\
 ;
 
 pub const CompileOptionsError = error{

@@ -26,19 +26,14 @@ pub const ByteCodeGenerator = struct {
     /// Caller must call `deinit` on the returned chunk
     pub fn emit(self: *Self) !Chunk {
         var chunk: Chunk = undefined;
-        chunk.init(self.allocator);
+        chunk.init(self.allocator, 0);
         errdefer chunk.deinit();
 
         // walk the AST, generate bytecode
         for (self.ast.statements.items) |*statement| {
             switch (statement.*) {
-                .variableBinding => |b| {
-                    // ignore the binding itself, focus on the expresion
-                    try self.emit_pratt_expression(&chunk, &b.expression);
-                },
-                .expression => |e| {
-                    try self.emit_pratt_expression(&chunk, e);
-                },
+                .variableBinding => |b| try self.emit_variable_binding(&chunk, b),
+                .expression => |e| try self.emit_pratt_expression(&chunk, e),
             }
         }
 
@@ -47,25 +42,69 @@ pub const ByteCodeGenerator = struct {
         return chunk;
     }
 
+    fn emit_variable_binding(self: *Self, chunk: *Chunk, binding: *m_syntax.VariableBinding) !void {
+        // Ensure the binding has a idx
+        const symbol = self.semantic_ctx.symbol_table.scope.get(binding.identifier.value) orelse {
+            std.debug.panic("Compiler bug: a variable binding was not registered in the symbol table.\n", .{});
+        };
+        const symbol_slot_idx = symbol.slot_index orelse {
+            std.debug.panic("Compiler bug: a variable binding has no slot index assigned.\n", .{});
+        };
+
+        // prepare the value
+        try self.emit_pratt_expression(chunk, &binding.expression);
+
+        // store in the slot
+        try chunk.write_chunk(@intFromEnum(OpCode.OP_STORE), 1);
+        try chunk.write_chunk(@intCast(symbol_slot_idx), 1);
+
+        // Up the chunk slot count
+        chunk.var_slots += 1;
+    }
+
     /// What does this do? it computes the bytecode for an expression,
     /// and has the top of the stack ready to use that computed value
     fn emit_pratt_expression(self: *Self, chunk: *Chunk, exp: *m_syntax.PrattExpression) !void {
         switch (exp.*) {
-            .function => |*f| {
-                // Emit bytecode for the args
-                for (f.arguments.items) |argument| {
-                    try self.emit_pratt_expression(chunk, argument);
-                }
+            .function => |*expr_fn_call| {
+                // new workflow for `print` builtin:
+                // - check the type of the arg
+                // - emit the arg
+                // - emit to_string if needed
+                // - emit OP_PRINT
 
                 // call the function, if `print`
-                switch (f.callee.*) {
+                switch (expr_fn_call.callee.*) {
                     .primary => |primary| {
-                        switch (primary.*) {
+                        switch (primary.expr.*) {
                             .identifier => |id| {
                                 if (std.mem.eql(u8, id.value, "print")) {
-                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_F64), 1);
-                                } else if (std.mem.eql(u8, id.value, "prints")) {
-                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT_CONST), 1);
+                                    // check type of arg, should be only one
+                                    if (expr_fn_call.arguments.items.len != 1) {
+                                        std.debug.panic("Expected `print` to have exactly 1 argument, found {d}.\n", .{expr_fn_call.arguments.items.len});
+                                    }
+
+                                    const arg_print = expr_fn_call.arguments.items[0];
+                                    // check type from the type map
+                                    const t_arg_print = self.semantic_ctx.type_map.get(arg_print.get_id()) orelse {
+                                        std.debug.panic("Type for the argument of print not found. This is a bug in the compiler.\n", .{});
+                                    };
+
+                                    try self.emit_pratt_expression(chunk, arg_print);
+                                    // Do type conversion if needed
+                                    switch (t_arg_print.computed_type) {
+                                        // FIXME: it says I64 but it's u64
+                                        .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                                        .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                                        // NOTE: Bool just printed as U64 rn
+                                        .Bool => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                                        .String => {},
+                                        else => {
+                                            std.debug.panic("Not implemented: print for type `{s}`\n", .{t_arg_print.computed_type.to_str()});
+                                        },
+                                    }
+
+                                    try chunk.write_chunk(@intFromEnum(OpCode.OP_PRINT), 1);
                                 } else {
                                     std.debug.panic("Not implemented: function call other than print\n", .{});
                                 }
@@ -77,9 +116,48 @@ pub const ByteCodeGenerator = struct {
                     else => std.debug.panic("Not implemented: function call\n", .{}),
                 }
             },
-            .primary => |p| try emit_primary_expresion(chunk, p),
+            .primary => |p| try self.emit_primary_expresion(chunk, p.expr),
             .binary => |*binary| {
-                // HACK: hardcoded binary operators
+                // NOTE: the `++` operator is special, it coerces to string its operands
+                if (std.mem.eql(u8, binary.operator.value, "++")) {
+                    {
+                        // left
+                        const t_left = self.semantic_ctx.type_map.get(binary.left.get_id()) orelse {
+                            std.debug.panic("Type for left operand of `++` not found. This is a Semantic Analysis bug in the compiler\n", .{});
+                        };
+
+                        try self.emit_pratt_expression(chunk, binary.left);
+                        switch (t_left.computed_type) {
+                            // FIXME: it says I64 but it's u64
+                            .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                            .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                            .String => {},
+                            else => {
+                                std.debug.panic("Type `{s}` can't be coerced to string.\n", .{t_left.computed_type.to_str()});
+                            },
+                        }
+                    }
+                    {
+                        // right
+                        const t_right = self.semantic_ctx.type_map.get(binary.right.get_id()) orelse {
+                            std.debug.panic("Type for left operand of `++` not found. This is a Semantic Analysis bug in the compiler\n", .{});
+                        };
+
+                        try self.emit_pratt_expression(chunk, binary.right);
+                        switch (t_right.computed_type) {
+                            // FIXME: it says I64 but it's u64
+                            .I64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_U64_TO_STRING), 1),
+                            .F64 => try chunk.write_chunk(@intFromEnum(OpCode.OP_F64_TO_STRING), 1),
+                            .String => {},
+                            else => {
+                                std.debug.panic("Type `{s}` can't be coerced to string.\n", .{t_right.computed_type.to_str()});
+                            },
+                        }
+                    }
+
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONCAT), 1);
+                    return;
+                }
 
                 // emit for left and right
                 // TODO: how to know when to promote?
@@ -116,7 +194,7 @@ pub const ByteCodeGenerator = struct {
         }
     }
 
-    fn emit_primary_expresion(chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
+    fn emit_primary_expresion(self: *Self, chunk: *Chunk, exp: *m_syntax.PrimaryExpression) !void {
         switch (exp.*) {
             // HACK: assumed to be f64
             .float => |tok_float| {
@@ -141,23 +219,40 @@ pub const ByteCodeGenerator = struct {
                 try chunk.write_chunk(@intCast(constant_idx), 123);
             },
             .string => |tok_string| {
+                // NOTE: OP_REF
                 const str_value = tok_string.value[1 .. tok_string.value.len - 1];
-
-                // Add bytes sans quotes
-                const byte_offset = try chunk.write_constant_bytes(str_value);
-
-                // Push to stack: <cons> len, <cons> offset
-                {
-                    const constant_idx = try chunk.write_constant(str_value.len);
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
-                    try chunk.write_chunk(@intCast(constant_idx), 1);
-                }
+                const obj_string_ptr: u64 = try chunk.create_string(str_value);
 
                 {
-                    const constant_idx = try chunk.write_constant(byte_offset);
-                    try chunk.write_chunk(@intFromEnum(OpCode.OP_CONSTANT), 1);
+                    // Write the pointer as a constant
+                    const constant_idx = try chunk.write_constant(obj_string_ptr);
+
+                    try chunk.write_chunk(@intFromEnum(OpCode.OP_REF), 1);
                     try chunk.write_chunk(@intCast(constant_idx), 1);
                 }
+            },
+            .bool => |tok_bool| {
+                // NOTE: couldve stored the bool value right when it was lexed...
+
+                if (std.mem.eql(u8, "true", tok_bool.value)) {
+                    try chunk.write_opcode(OpCode.OP_TRUE, 1);
+                } else {
+                    try chunk.write_opcode(OpCode.OP_FALSE, 1);
+                }
+            },
+            .identifier => |tok_id| {
+                // get the slot index from the symbol table
+                const symbol = self.semantic_ctx.symbol_table.scope.get(tok_id.value) orelse {
+                    // The semantic analysis should have caught this
+                    std.debug.panic("Compiler bug: Undefined identifier `{s}` on codegen\n", .{tok_id.value});
+                };
+                const symbol_slot_idx = symbol.slot_index orelse {
+                    std.debug.panic("Compiler bug: identifier `{s}` has no slot index assigned.\n", .{tok_id.value});
+                };
+
+                // load from the slot
+                try chunk.write_chunk(@intFromEnum(OpCode.OP_LOAD), 1);
+                try chunk.write_chunk(@intCast(symbol_slot_idx), 1);
             },
             else => {
                 // TODO

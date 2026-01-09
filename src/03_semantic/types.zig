@@ -10,19 +10,31 @@ pub const SymbolInfo = struct {
         start: usize,
         end: usize,
     },
+    slot_index: ?u8 = null,
 
-    pub fn deinit(self: *SymbolInfo, allocator: std.mem.Allocator) void {
+    const Self = @This();
+
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
         self.t.deinit(allocator);
     }
 };
 
 pub const Type = union(enum) {
     Untyped,
+
+    // Common types
     Unit,
+    I8,
+    U8,
+    I32,
+    U32,
     I64,
+    U64,
+    F32,
     F64,
     String,
     Bool,
+
     /// Type assumes ownership of `return_t`.
     /// It **must** be `create`d with the same allocator passed to this `deinit`
     Function: struct {
@@ -31,11 +43,19 @@ pub const Type = union(enum) {
     },
     // TODO: generic types, container types
 
-    pub fn to_str(self: *const Type) []const u8 {
+    const Self = @This();
+
+    pub fn to_str(self: *const Self) []const u8 {
         return switch (self.*) {
             .Untyped => "<untyped>",
             .Unit => "<unit>",
+            .I8 => "i8",
+            .U8 => "u8",
+            .I32 => "i32",
+            .U32 => "u32",
             .I64 => "i64",
+            .U64 => "u64",
+            .F32 => "f32",
             .F64 => "f64",
             .String => "String",
             .Bool => "bool",
@@ -43,14 +63,14 @@ pub const Type = union(enum) {
         };
     }
 
-    pub fn is_untyped(self: *const Type) bool {
+    pub fn is_untyped(self: *const Self) bool {
         return switch (self.*) {
             .Untyped => true,
             else => false,
         };
     }
 
-    pub fn eql(self: *const Type, to: *const Type) bool {
+    pub fn eql(self: *const Self, to: *const Type) bool {
         if (@intFromEnum(self.*) != @intFromEnum(to.*)) {
             return false;
         }
@@ -64,7 +84,7 @@ pub const Type = union(enum) {
     /// This method **destroys** owned data if neccesary.
     /// That data **must** be `create`d with the same `allocator`
     /// passed to this method
-    pub fn deinit(self: *Type, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
         switch (self.*) {
             .Function => |f| {
                 allocator.destroy(f.return_t);
@@ -91,12 +111,14 @@ pub const Scope = struct {
         };
     }
 
+    const Self = @This();
+
     /// Creates a new scope from a parent
     /// Children scopes are meant to be created, used, and left alone.
     /// The root node is responsible for cleaning up all its children scopes.
     /// So, `deinit` should be called only on the root scope, not on any of its
     /// children, otherwise a double free will happen.
-    pub fn from_parent(self: *Scope) !*Scope {
+    pub fn from_parent(self: *Self) !*Scope {
         const child = try self.allocator.create(Scope);
         child.* = Scope{
             .symbols = .empty,
@@ -111,15 +133,16 @@ pub const Scope = struct {
         return child;
     }
 
-    pub fn insert(self: *Scope, name: []const u8, insert_value: SymbolInfo) !void {
+    /// Inserts a symbol into the current scope, overwriting any existing symbol with the same name.
+    pub fn insert(self: *Self, name: []const u8, insert_value: SymbolInfo) !void {
         try self.symbols.put(self.allocator, name, insert_value);
     }
 
-    pub fn has(self: *Scope, name: []const u8) bool {
+    pub fn has(self: *Self, name: []const u8) bool {
         return self.symbols.contains(name);
     }
 
-    pub fn get(self: *Scope, name: []const u8) ?SymbolInfo {
+    pub fn get(self: *const Self, name: []const u8) ?SymbolInfo {
         // Check current scope
         const t = self.symbols.get(name);
         if (t != null) {
@@ -131,7 +154,7 @@ pub const Scope = struct {
         return null;
     }
 
-    pub fn symbols_json(self: *Scope, writer: anytype) !void {
+    pub fn symbols_json(self: *Self, writer: anytype) !void {
         // iterate over the symbols, write as JSON
         var it = self.symbols.iterator();
 
@@ -161,7 +184,7 @@ pub const Scope = struct {
         try writer.writeAll("]");
     }
 
-    pub fn deinit(self: *Scope) void {
+    pub fn deinit(self: *Self) void {
         // deinit all scope types
         var iter = self.symbols.iterator();
         while (iter.next()) |symbol| {
