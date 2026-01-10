@@ -36,7 +36,11 @@ pub const ByteCodeGenerator = struct {
             switch (statement.*) {
                 // .variableBinding => |b| try self.emit_variable_binding(&chunk, b),
                 .expression => |e| {
-                    _ = try self.emit_pratt_expression(&chunk, e);
+                    const ra_idx = try self.emit_pratt_expression(&chunk, e);
+                    _ = ra_idx;
+                    // HACK: manually print the value
+                    // try chunk.write_opcode(.op_dprint);
+                    // try chunk.write_byte(ra_idx);
                 },
                 else => @panic("Not implemented in codegen"),
             }
@@ -47,12 +51,37 @@ pub const ByteCodeGenerator = struct {
         return chunk;
     }
 
-    /// What does this do? it computes the bytecode for an expression,
-    /// and has the top of the stack ready to use that computed value
+    /// Computes the bytecode for an expression,
+    /// stores the result in a value register, and returns its number
     fn emit_pratt_expression(self: *Self, chunk: *Chunk, exp: *m_syntax.PrattExpression) !u8 {
         return switch (exp.*) {
-            // FIXME: ???
             .primary => |p| try self.emit_primary_expresion(chunk, p.expr),
+            .binary => |*exp_binary| {
+                const node_type_info = self.semantic_ctx.type_map.get(exp_binary.id) orelse {
+                    // FIXME: better error message
+                    std.debug.panic("Type not found for binary expression. This is a Semantic Analysis bug in the compiler\n", .{});
+                };
+                // FIXME: do stuff with the expected type
+                const t_op_result = node_type_info.computed_type;
+                _ = t_op_result;
+
+                const ra_idx = try self.emit_pratt_expression(chunk, exp_binary.left);
+                const rb_idx = try self.emit_pratt_expression(chunk, exp_binary.right);
+
+                if (std.mem.eql(u8, exp_binary.operator.value, "+")) {
+                    try chunk.write_opcode(.op_add);
+                    try chunk.write_byte(ra_idx);
+                    try chunk.write_byte(ra_idx);
+                    try chunk.write_byte(rb_idx);
+
+                    // Reuse registers
+                    self.current_val_reg = ra_idx + 1;
+
+                    return ra_idx;
+                } else {
+                    @panic("Unsupported operator");
+                }
+            },
             else => @panic("Not implemented: codegen pratt"),
         };
     }
