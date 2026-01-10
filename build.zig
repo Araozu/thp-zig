@@ -26,6 +26,11 @@ fn main_executable(
     options_module: *std.Build.Module,
     no_bin: bool,
 ) void {
+    const thpvm_dep = b.dependency("thpvm", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const thpvm_module = thpvm_dep.module("thpvm");
     //
     // Modules
     //
@@ -41,6 +46,7 @@ fn main_executable(
     // set up module dependencies
     //
     cli_module.addImport("config", options_module);
+    cli_module.addImport("vm", thpvm_module);
     //
     error_module.addImport("config", options_module);
     //
@@ -65,6 +71,7 @@ fn main_executable(
     codegen_module.addImport("lexic", lexic_module);
     codegen_module.addImport("syntax", syntax_module);
     codegen_module.addImport("semantic", semantic_module);
+    codegen_module.addImport("vm", thpvm_module);
     //
     root_module.addImport("config", options_module);
     root_module.addImport("context", error_module);
@@ -72,6 +79,7 @@ fn main_executable(
     root_module.addImport("syntax", syntax_module);
     root_module.addImport("semantic", semantic_module);
     root_module.addImport("codegen", codegen_module);
+    root_module.addImport("vm", thpvm_module);
 
     // ==============================
     //
