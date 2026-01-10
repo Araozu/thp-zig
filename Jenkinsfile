@@ -39,7 +39,7 @@ pipeline {
 		stage('Install') {
 			when { branch 'develop' }
 			steps {
-				sh 'cp ./zig-out/bin/thp /var/bin/thp'
+				sh 'cp ./zig-out/bin/thp /var/bin/thpc'
 			}
 		}
 	}
