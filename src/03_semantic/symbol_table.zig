@@ -20,30 +20,16 @@ pub const SymbolTable = struct {
         };
 
         // Insert builtin types
-        try self.builtin_types.put(allocator, "i64", Type.I64);
-        try self.builtin_types.put(allocator, "f64", Type.F64);
+        try self.builtin_types.put(allocator, "U64", Type.U64);
+        try self.builtin_types.put(allocator, "F64", Type.F64);
         try self.builtin_types.put(allocator, "String", Type.String);
-        try self.builtin_types.put(allocator, "bool", Type.Bool);
+        try self.builtin_types.put(allocator, "Bool", Type.Bool);
 
         // Builtin functions
         {
             const type_ref = try allocator.create(Type);
             type_ref.* = Type.Unit;
             try self.scope.symbols.put(allocator, "print", .{
-                .t = Type{
-                    .Function = .{
-                        .params = &.{},
-                        .return_t = type_ref,
-                    },
-                },
-                .location = .{ .start = 0, .end = 1 },
-                .slot_index = null,
-            });
-        }
-        {
-            const type_ref = try allocator.create(Type);
-            type_ref.* = Type.Unit;
-            try self.scope.symbols.put(allocator, "prints", .{
                 .t = Type{
                     .Function = .{
                         .params = &.{},
