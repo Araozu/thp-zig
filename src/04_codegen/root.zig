@@ -27,7 +27,7 @@ pub const ByteCodeGenerator = struct {
     /// Caller must call `deinit` on the returned chunk
     pub fn emit(self: *Self) !Chunk {
         var chunk: Chunk = undefined;
-        chunk.init(self.allocator, 0);
+        chunk.init(self.allocator);
         errdefer chunk.deinit();
 
         // walk the AST, generate bytecode
@@ -39,7 +39,7 @@ pub const ByteCodeGenerator = struct {
             // }
         }
 
-        try chunk.write_opcode(OpCode.op_return, 0);
+        try chunk.write_opcode(OpCode.op_return);
 
         return chunk;
     }
