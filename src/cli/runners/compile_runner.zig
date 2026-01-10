@@ -1,5 +1,5 @@
 const std = @import("std");
-const m_vm = @import("vm");
+const vm = @import("vm");
 
 const lexic = @import("lexic");
 const syntax = @import("syntax");
@@ -23,29 +23,46 @@ pub fn run(self: *const CompileOptions) !void {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    // Read file
-    var file_path_buffer: [4096]u8 = undefined;
-    const absolute_path = std.fs.realpath(self.filename, &file_path_buffer) catch |e| switch (e) {
-        error.FileNotFound => {
-            try stderr.print("File `{s}` not found.\n", .{self.filename});
-            try stderr.flush();
-            std.process.exit(1);
-        },
-        else => return e,
-    };
+    var file_bytes: []const u8 = undefined;
+    const source_name = if (self.from_stdin) "<stdin>" else self.filename.?;
 
-    const source_file = try std.fs.createFileAbsolute(absolute_path, std.fs.File.CreateFlags{
-        .read = true,
-        .truncate = false,
-    });
-    defer source_file.close();
+    if (self.from_stdin) {
+        const stdin_buffer = try allocator.alloc(u8, 1024 * 1024);
+        defer allocator.free(stdin_buffer);
 
-    // Source files must be 1MB max
-    var file_buffer = try allocator.alloc(u8, 1024 * 1024);
-    defer allocator.free(file_buffer);
+        var stdin_reader = std.fs.File.stdin().reader(stdin_buffer);
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        // Note: we don't defer aw.deinit() here because we want to return aw.written()
+        // but wait, we are in a function that returns !void and we have an arena.
+        // So it's fine.
+        _ = try stdin_reader.interface.streamRemaining(&aw.writer);
+        file_bytes = aw.written();
+    } else {
+        const filename = self.filename.?;
+        // Read file
+        var file_path_buffer: [4096]u8 = undefined;
+        const absolute_path = std.fs.realpath(filename, &file_path_buffer) catch |e| switch (e) {
+            error.FileNotFound => {
+                try stderr.print("File `{s}` not found.\n", .{filename});
+                try stderr.flush();
+                std.process.exit(1);
+            },
+            else => return e,
+        };
 
-    const read_bytes = try source_file.read(file_buffer);
-    const file_bytes = file_buffer[0..read_bytes];
+        const source_file = try std.fs.createFileAbsolute(absolute_path, std.fs.File.CreateFlags{
+            .read = true,
+            .truncate = false,
+        });
+        defer source_file.close();
+
+        // Source files must be 1MB max
+        const file_buffer = try allocator.alloc(u8, 1024 * 1024);
+        defer allocator.free(file_buffer);
+
+        const read_bytes = try source_file.read(file_buffer);
+        file_bytes = try allocator.dupe(u8, file_buffer[0..read_bytes]);
+    }
 
     // ==========================================
     //   Setup
@@ -88,7 +105,7 @@ pub fn run(self: *const CompileOptions) !void {
     // Display errors
     if (ctx.errors.items.len > 0) {
         for (ctx.errors.items) |*err| {
-            const err_str = try err.get_error_str(file_bytes, "<file>", allocator);
+            const err_str = try err.get_error_str(file_bytes, source_name, allocator);
             try stderr.print("\n{s}\n", .{err_str});
             try stderr.flush();
             allocator.free(err_str);
@@ -113,7 +130,7 @@ pub fn run(self: *const CompileOptions) !void {
         error.Error => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
-                const err_str = try err_item.get_error_str(file_bytes, "<file>", allocator);
+                const err_str = try err_item.get_error_str(file_bytes, source_name, allocator);
                 try stderr.print("\n{s}\n", .{err_str});
                 try stderr.flush();
                 allocator.free(err_str);
@@ -141,7 +158,7 @@ pub fn run(self: *const CompileOptions) !void {
         else => {
             // Print all the errors
             for (ctx.errors.items) |*err_item| {
-                const err_str = try err_item.get_error_str(file_bytes, "<file>", allocator);
+                const err_str = try err_item.get_error_str(file_bytes, source_name, allocator);
                 try stderr.print("\n{s}\n", .{err_str});
                 try stderr.flush();
                 allocator.free(err_str);
@@ -172,7 +189,8 @@ pub fn run(self: *const CompileOptions) !void {
     var stdout_writer = std.fs.File.stdout().writer(stdout_buffer);
     const stdout = &stdout_writer.interface;
 
-    try m_vm.m_chunk.serialization.serialize(&chunk, stdout);
+    try vm.m_chunk_serialization.to_writer(&chunk, stdout);
+    try stdout.flush();
 }
 
 inline fn trace_header() void {

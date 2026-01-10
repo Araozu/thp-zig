@@ -1,5 +1,4 @@
 const std = @import("std");
-const m_vm = @import("vm");
 
 const lexic = @import("lexic");
 const syntax = @import("syntax");
@@ -158,22 +157,22 @@ pub fn run(self: *const RunOptions) !void {
     var generator: codegen.ByteCodeGenerator = undefined;
     generator.init(&ast, &semantic_ctx, arena.allocator());
 
-    var chunk = try generator.emit();
-    defer chunk.deinit();
+    // var chunk = try generator.emit();
+    // defer chunk.deinit();
 
     // ==========================================
     //   Execute in VM
     // ==========================================
 
-    var vm: m_vm.VM = undefined;
-    vm.init(chunk);
-    defer vm.deinit();
-
-    const result = vm.interpret();
-
-    if (result != .INTERPRET_OK) {
-        std.process.exit(1);
-    }
+    // var vm: m_vm.VM = undefined;
+    // vm.init(chunk);
+    // defer vm.deinit();
+    //
+    // const result = vm.interpret();
+    //
+    // if (result != .INTERPRET_OK) {
+    //     std.process.exit(1);
+    // }
 }
 
 inline fn trace_header() void {

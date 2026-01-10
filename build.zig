@@ -24,9 +24,13 @@ fn main_executable(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     options_module: *std.Build.Module,
-    vm_module: *std.Build.Module,
     no_bin: bool,
 ) void {
+    const thpvm_dep = b.dependency("thpvm", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const thpvm_module = thpvm_dep.module("thpvm");
     //
     // Modules
     //
@@ -42,6 +46,7 @@ fn main_executable(
     // set up module dependencies
     //
     cli_module.addImport("config", options_module);
+    cli_module.addImport("vm", thpvm_module);
     //
     error_module.addImport("config", options_module);
     //
@@ -66,7 +71,7 @@ fn main_executable(
     codegen_module.addImport("lexic", lexic_module);
     codegen_module.addImport("syntax", syntax_module);
     codegen_module.addImport("semantic", semantic_module);
-    codegen_module.addImport("vm", vm_module);
+    codegen_module.addImport("vm", thpvm_module);
     //
     root_module.addImport("config", options_module);
     root_module.addImport("context", error_module);
@@ -74,7 +79,7 @@ fn main_executable(
     root_module.addImport("syntax", syntax_module);
     root_module.addImport("semantic", semantic_module);
     root_module.addImport("codegen", codegen_module);
-    root_module.addImport("vm", vm_module);
+    root_module.addImport("vm", thpvm_module);
 
     // ==============================
     //
@@ -118,7 +123,6 @@ fn main_executable(
     const syntax_module_tests = b.addTest(.{ .name = "syntax", .root_module = syntax_module });
     const semantic_module_tests = b.addTest(.{ .name = "semantic", .root_module = semantic_module });
     const codegen_module_tests = b.addTest(.{ .name = "codegen", .root_module = codegen_module });
-    const vm_module_tests = b.addTest(.{ .name = "vm", .root_module = vm_module });
     const root_module_tests = b.addTest(.{ .name = "root", .root_module = root_module });
 
     const test_step = b.step("test", "Run all unit tests");
@@ -128,48 +132,7 @@ fn main_executable(
     test_step.dependOn(&b.addRunArtifact(syntax_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(semantic_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(codegen_module_tests).step);
-    test_step.dependOn(&b.addRunArtifact(vm_module_tests).step);
     test_step.dependOn(&b.addRunArtifact(root_module_tests).step);
-}
-
-fn vm_executable(
-    b: *std.Build,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    options_module: *std.Build.Module,
-    no_bin: bool,
-) *std.Build.Module {
-    const root_module = create_module("src-vm/main.zig", b, target, optimize);
-    root_module.addImport("config", options_module);
-
-    const exe = b.addExecutable(.{
-        .name = "thpvm",
-        .root_module = root_module,
-    });
-
-    // If using -Dno-bin, use the x86-backend for fast builds
-    if (no_bin) {
-        exe.use_llvm = false;
-        b.getInstallStep().dependOn(&exe.step);
-        return root_module;
-    } else {
-        b.installArtifact(exe);
-    }
-
-    // run-vm command
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    // Pass arguments if any
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-
-    // Run step
-    const run_step = b.step("run-vm", "Run the virtual machine");
-    run_step.dependOn(&run_cmd.step);
-
-    return root_module;
 }
 
 pub fn build(b: *std.Build) void {
@@ -188,7 +151,5 @@ pub fn build(b: *std.Build) void {
 
     // Create the options module that will be shared
     const options_module = options.createModule();
-
-    const vm_module = vm_executable(b, target, optimize, options_module, no_bin);
-    main_executable(b, target, optimize, options_module, vm_module, no_bin);
+    main_executable(b, target, optimize, options_module, no_bin);
 }

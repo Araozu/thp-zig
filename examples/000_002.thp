@@ -1,2 +1,2 @@
-val Int hello = ("hola")
+print("hello")
 

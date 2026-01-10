@@ -31,12 +31,19 @@ pub fn main() !void {
             std.debug.print("Error: Missing <file> for compile command.\n", .{});
             return;
         },
+        error.CompileMissingOutput => {
+            std.debug.print("{s}\n\n", .{cli_interface.compile_command.CompileOptions.usage()});
+            std.debug.print("Error: Missing <output> for -o option.\n", .{});
+            return;
+        },
+        error.CompileInvalidOption => {
+            std.debug.print("{s}\n\n", .{cli_interface.compile_command.CompileOptions.usage()});
+            std.debug.print("Error: Invalid option for compile command.\n", .{});
+            return;
+        },
         error.RunMissingFilename => {
             std.debug.print("{s}\n\n", .{cli_interface.run_command.RunOptions.usage()});
             std.debug.print("Error: Missing <file> for run command.\n", .{});
-            return;
-        },
-        else => {
             return;
         },
     };

@@ -14,8 +14,8 @@ release:
 # Install the binary to /usr/bin
 install: release
 	@echo "Installing to /usr/bin (requires sudo)"
-	sudo cp zig-out/bin/thp /usr/bin/thp
-	@echo "Installed to /usr/bin/thp"
+	sudo cp zig-out/bin/thp /usr/bin/thpc
+	@echo "Installed to /usr/bin/thpc"
 
 test:
 	zig build test
