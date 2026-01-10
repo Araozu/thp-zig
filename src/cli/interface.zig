@@ -9,6 +9,7 @@
 //! thp init    - creates a new config file
 //! thp compile - compiles a single file, outputs to stdout
 //!     c
+//!     -i         - reads from stdin
 //! thp run     - compiles and executes a single file in the VM
 //!     r
 //!
@@ -19,6 +20,7 @@
 //! thp c <file>             - compiles a single file, outputs to stdout
 //!       <file> -o <output> - compiles a single file, outputs to <output>
 //!       <file> -p          - compiles a single file in place. the output file is the input file with .php extension
+//!       -i, --stdin        - reads the source code from stdin
 //!
 //! <run> options
 //!
@@ -81,6 +83,7 @@ pub const CliArgs = union(enum) {
         \\thp init    - creates a new config file
         \\thp compile - compiles a single file, outputs to stdout
         \\    c
+        \\    -i       - reads from stdin
         \\thp run     - compiles and executes a single file in the VM
         \\    r
         \\
