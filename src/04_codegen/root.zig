@@ -168,7 +168,7 @@ pub const ByteCodeGenerator = struct {
                 return .{ .val = reg_number };
             },
             .string => |tok_string| {
-                const string_ptr = try chunk.create_static_string(tok_string.value);
+                const string_ptr = try chunk.create_static_string(tok_string.value[1..(tok_string.value.len - 1)]);
                 const reg_ref_idx = self.current_ref_reg;
                 self.current_ref_reg += 1;
 
