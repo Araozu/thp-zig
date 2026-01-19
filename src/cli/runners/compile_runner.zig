@@ -176,6 +176,7 @@ pub fn run(self: *const CompileOptions) !void {
 
     var chunk: vm.Chunk = undefined;
     defer chunk.deinit();
+    chunk.init(allocator);
 
     var codegen_ctx = codegen.CodegenContext{
         .allocator = allocator,

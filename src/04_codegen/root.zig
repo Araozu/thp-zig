@@ -48,7 +48,6 @@ pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) void {
     //
     var reg_value_count: u8 = 0;
     var reg_ref_count: u8 = 0;
-
     for (ast.statements.items) |*statement| {
         switch (statement.*) {
             .variableBinding => |binding| {
