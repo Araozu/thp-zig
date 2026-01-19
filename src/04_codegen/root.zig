@@ -9,6 +9,8 @@ const ASTModule = m_syntax.Module;
 const SemanticContext = m_semantic.SemanticContext;
 const RegisterRef = m_semantic.RegisterRef;
 
+const emit_statatement = @import("./statement.zig").emit_statement;
+
 const BytecodeError = error{ OutOfMemory, InvalidCharacter, Overflow };
 
 /// Context for a block of code, to keep track of locals
@@ -42,7 +44,7 @@ pub const CodegenContext = struct {
     }
 };
 
-pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) void {
+pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) !void {
     //
     // Count the number of variables to allocate registers for
     //
@@ -70,13 +72,14 @@ pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) void {
     }
 
     // Create a block context
-    const block_ctx = BlockContext{
+    var block_ctx = BlockContext{
         .val_reg_count = reg_value_count,
         .ref_reg_count = reg_ref_count,
     };
-    _ = block_ctx;
 
-    // TODO: Emit bytecode for each statement
+    for (ast.statements.items) |*statement| {
+        try emit_statatement(ctx, statement, &block_ctx);
+    }
 }
 
 /// Legacy: Generates a Chunk of bytecode for the Register VM

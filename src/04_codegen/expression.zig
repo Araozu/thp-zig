@@ -4,11 +4,10 @@ const syntax = @import("syntax");
 const CodegenContext = @import("./root.zig").CodegenContext;
 const BlockContext = @import("./root.zig").BlockContext;
 
-pub fn emit_expression(ctx: *CodegenContext, node: *const syntax.PrattExpression, block_ctx: *const BlockContext) void {
-    _ = block_ctx;
-
+pub fn emit_expression(ctx: *CodegenContext, node: *const syntax.PrattExpression, block_ctx: *BlockContext) !void {
     switch (node.*) {
-        .primary => |primary| try emit_primary_expresion(ctx, primary.expr),
+        .primary => |primary| try emit_primary_expresion(ctx, primary.expr, block_ctx),
+        else => @panic("Codegen: not implemented for this expression type"),
     }
 }
 
@@ -16,8 +15,8 @@ pub fn emit_expression(ctx: *CodegenContext, node: *const syntax.PrattExpression
 fn emit_primary_expresion(
     ctx: *CodegenContext,
     exp: *const syntax.PrimaryExpression,
-    block_ctx: *const BlockContext,
-) void {
+    block_ctx: *BlockContext,
+) !void {
     switch (exp.*) {
         // HACK: assumed to be u64
         .int => |tok_int| {
@@ -25,8 +24,8 @@ fn emit_primary_expresion(
 
             // Add to the constants section
             const constant_idx = try ctx.chunk.write_constant(int_value);
-            const reg_number = block_ctx.current_val_reg;
-            block_ctx.current_val_reg += 1;
+            const reg_number = block_ctx.val_reg_count;
+            block_ctx.val_reg_count += 1;
 
             // Save to register
             try ctx.chunk.write_opcode(.op_load);
@@ -37,8 +36,8 @@ fn emit_primary_expresion(
         },
         .string => |tok_string| {
             const string_ptr = try ctx.chunk.create_static_string(tok_string.value[1..(tok_string.value.len - 1)]);
-            const reg_ref_idx = block_ctx.current_ref_reg;
-            block_ctx.current_ref_reg += 1;
+            const reg_ref_idx = block_ctx.ref_reg_count;
+            block_ctx.ref_reg_count += 1;
 
             // Save pointer in constants
             const const_idx = try ctx.chunk.write_constant(string_ptr);

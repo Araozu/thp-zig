@@ -184,7 +184,7 @@ pub fn run(self: *const CompileOptions) !void {
         .chunk = &chunk,
     };
 
-    codegen.emit_ast(&codegen_ctx, &ast);
+    try codegen.emit_ast(&codegen_ctx, &ast);
 
     // var generator: codegen.ByteCodeGenerator = undefined;
     // generator.init(&ast, &semantic_ctx, arena.allocator());
