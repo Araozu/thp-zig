@@ -7,32 +7,80 @@ const Chunk = vm.Chunk;
 const OpCode = vm.OpCode;
 const ASTModule = m_syntax.Module;
 const SemanticContext = m_semantic.SemanticContext;
+const RegisterRef = m_semantic.RegisterRef;
 
-/// Represents a slot in the registers of the VM
-const RegisterRef = union(enum) {
-    /// A index to the value registers
-    val: u8,
-    /// A index to the reference registers
-    ref: u8,
+const BytecodeError = error{ OutOfMemory, InvalidCharacter, Overflow };
 
-    fn as_val(self: RegisterRef) u8 {
-        return switch (self) {
-            .val => |v| v,
-            .ref => @panic("Expected a Value register reference"),
-        };
-    }
+/// Context for a block of code, to keep track of locals
+///
+/// When entering a block, a new BlockContext is created to track locals.
+/// The new block should reserve n registers for its locals, and then
+/// other operations use the registers after that.
+pub const BlockContext = struct {
+    val_reg_count: u8,
+    ref_reg_count: u8,
+};
 
-    fn as_ref(self: RegisterRef) u8 {
-        return switch (self) {
-            .val => @panic("Expected a Value register reference"),
-            .ref => |v| v,
+pub const CodegenContext = struct {
+    allocator: std.mem.Allocator,
+    semantic_ctx: *SemanticContext,
+    chunk: *Chunk,
+
+    const Self = @This();
+
+    pub fn init(
+        self: *Self,
+        alloc: std.mem.Allocator,
+        semantic_ctx: *SemanticContext,
+        chunk: *Chunk,
+    ) void {
+        self.* = .{
+            .allocator = alloc,
+            .semantic_ctx = semantic_ctx,
+            .chunk = chunk,
         };
     }
 };
 
-const BytecodeError = error{ OutOfMemory, InvalidCharacter, Overflow };
+pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) void {
+    //
+    // Count the number of variables to allocate registers for
+    //
+    var reg_value_count: u8 = 0;
+    var reg_ref_count: u8 = 0;
 
-/// Generates a Chunk of bytecode for the Register VM
+    for (ast.statements.items) |*statement| {
+        switch (statement.*) {
+            .variableBinding => |binding| {
+                const binding_symbol_info = ctx.semantic_ctx.type_map.get(binding.id) orelse {
+                    @panic("Variable has no allocated register - semantic analysis bug");
+                };
+
+                const t_binding = binding_symbol_info.computed_type;
+                std.debug.assert(t_binding != .Unit);
+                std.debug.assert(t_binding != .Untyped);
+
+                if (t_binding.is_primitive()) {
+                    reg_value_count += 1;
+                } else {
+                    reg_ref_count += 1;
+                }
+            },
+            else => {},
+        }
+    }
+
+    // Create a block context
+    const block_ctx = BlockContext{
+        .val_reg_count = reg_value_count,
+        .ref_reg_count = reg_ref_count,
+    };
+    _ = block_ctx;
+
+    // TODO: Emit bytecode for each statement
+}
+
+/// Legacy: Generates a Chunk of bytecode for the Register VM
 pub const ByteCodeGenerator = struct {
     ast: *const ASTModule,
     allocator: std.mem.Allocator,
@@ -74,6 +122,13 @@ pub const ByteCodeGenerator = struct {
         try chunk.write_opcode(OpCode.op_return);
 
         return chunk;
+    }
+
+    fn emit_variable_binding(self: *Self, chunk: *Chunk, binding: *m_syntax.VariableBinding) void {
+        _ = self;
+        _ = chunk;
+        _ = binding;
+        @panic("Not implemented: variable binding codegen");
     }
 
     /// Computes the bytecode for an expression,

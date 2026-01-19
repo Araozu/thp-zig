@@ -174,11 +174,22 @@ pub fn run(self: *const CompileOptions) !void {
     //
     // ==========================================
 
-    var generator: codegen.ByteCodeGenerator = undefined;
-    generator.init(&ast, &semantic_ctx, arena.allocator());
-
-    var chunk = try generator.emit();
+    var chunk: vm.Chunk = undefined;
     defer chunk.deinit();
+
+    var codegen_ctx = codegen.CodegenContext{
+        .allocator = allocator,
+        .semantic_ctx = &semantic_ctx,
+        .chunk = &chunk,
+    };
+
+    codegen.emit_ast(&codegen_ctx, &ast);
+
+    // var generator: codegen.ByteCodeGenerator = undefined;
+    // generator.init(&ast, &semantic_ctx, arena.allocator());
+    //
+    // var chunk = try generator.emit();
+    // defer chunk.deinit();
 
     // ==========================================
     //   Out to stdout

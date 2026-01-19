@@ -20,7 +20,6 @@ pub const SymbolCollectorVisitor = struct {
     scope: *Scope,
     alloc: std.mem.Allocator,
     err: *ErrorCtx,
-    next_slot: u8,
 
     pub fn init(
         alloc: std.mem.Allocator,
@@ -31,7 +30,6 @@ pub const SymbolCollectorVisitor = struct {
             .scope = s,
             .alloc = alloc,
             .err = err,
-            .next_slot = 0,
         };
     }
 
@@ -72,12 +70,11 @@ pub const SymbolCollectorVisitor = struct {
                     .start = 0,
                     .end = 0,
                 },
-                .slot_index = self.next_slot,
+                .slot_index = null,
             },
         ) catch {
             return VisitorError.OutOfMemory;
         };
-        self.next_slot += 1;
     }
 
     pub fn visitExpression(ptr: *anyopaque, node: *const syntax.PrattExpression) VisitorError!void {

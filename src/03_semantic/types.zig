@@ -4,13 +4,39 @@ const symbol_table = @import("./symbol_table.zig");
 
 const StringHashMap = std.StringHashMapUnmanaged;
 
+/// Represents a slot in the registers of the VM
+///
+/// A slot can be either to a value or a reference.
+pub const RegisterRef = union(enum) {
+    /// A index to the value registers
+    val: u8,
+    /// A index to the reference registers
+    ref: u8,
+
+    fn as_val(self: RegisterRef) u8 {
+        return switch (self) {
+            .val => |v| v,
+            .ref => @panic("Expected a Value register reference"),
+        };
+    }
+
+    fn as_ref(self: RegisterRef) u8 {
+        return switch (self) {
+            .val => @panic("Expected a Value register reference"),
+            .ref => |v| v,
+        };
+    }
+};
+
 pub const SymbolInfo = struct {
     t: Type,
     location: struct {
         start: usize,
         end: usize,
     },
-    slot_index: ?u8 = null,
+
+    /// Registers the associated slot index for the symbol.
+    slot_index: ?RegisterRef = null,
 
     const Self = @This();
 
@@ -20,11 +46,11 @@ pub const SymbolInfo = struct {
 };
 
 pub const Type = union(enum) {
+    // Special types
     Untyped,
+    Unit,
 
     // Common types
-    Unit,
-    I8,
     U8,
     I32,
     U32,
@@ -32,8 +58,8 @@ pub const Type = union(enum) {
     U64,
     F32,
     F64,
-    String,
     Bool,
+    String,
 
     /// Type assumes ownership of `return_t`.
     /// It **must** be `create`d with the same allocator passed to this `deinit`
@@ -49,7 +75,6 @@ pub const Type = union(enum) {
         return switch (self.*) {
             .Untyped => "<untyped>",
             .Unit => "<unit>",
-            .I8 => "i8",
             .U8 => "u8",
             .I32 => "i32",
             .U32 => "u32",
@@ -66,6 +91,13 @@ pub const Type = union(enum) {
     pub fn is_untyped(self: *const Self) bool {
         return switch (self.*) {
             .Untyped => true,
+            else => false,
+        };
+    }
+
+    pub fn is_primitive(self: *const Self) bool {
+        return switch (self.*) {
+            .U8, .I32, .U32, .I64, .U64, .F32, .F64, .Bool => true,
             else => false,
         };
     }
