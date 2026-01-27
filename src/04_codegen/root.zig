@@ -11,7 +11,7 @@ const RegisterRef = m_semantic.RegisterRef;
 
 const emit_statatement = @import("./statement.zig").emit_statement;
 
-const BytecodeError = error{ OutOfMemory, InvalidCharacter, Overflow };
+pub const BytecodeError = error{ OutOfMemory, InvalidCharacter, Overflow };
 
 /// Context for a block of code, to keep track of locals
 ///

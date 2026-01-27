@@ -8,9 +8,9 @@ val #(n1, n2) = for 0..(numbers.len) as i :blk {
         val g1 = numbers[i]
         val g2 = numbers[j]
 
-	if g1 + g2 == 100 {
-	    break :blk #(g1, g2)
-	}
+        if g1 + g2 == 100 {
+            break :blk #(g1, g2)
+        }
     }
 }
 

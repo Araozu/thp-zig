@@ -13,14 +13,14 @@ pub const RegisterRef = union(enum) {
     /// A index to the reference registers
     ref: u8,
 
-    fn as_val(self: RegisterRef) u8 {
+    pub fn as_val(self: RegisterRef) u8 {
         return switch (self) {
             .val => |v| v,
             .ref => @panic("Expected a Value register reference"),
         };
     }
 
-    fn as_ref(self: RegisterRef) u8 {
+    pub fn as_ref(self: RegisterRef) u8 {
         return switch (self) {
             .val => @panic("Expected a Value register reference"),
             .ref => |v| v,

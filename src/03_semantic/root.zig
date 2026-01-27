@@ -9,6 +9,8 @@ const types = @import("types.zig");
 const symbol_table_mod = @import("./symbol_table.zig");
 const m_semantic_context = @import("./semantic_context.zig");
 
+pub const RegisterRef = types.RegisterRef;
+
 const ASTModule = syntax.Module;
 
 const HashMap = std.StringHashMapUnmanaged;
