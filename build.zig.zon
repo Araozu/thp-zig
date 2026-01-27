@@ -1,7 +1,7 @@
 .{
     .name = .thp,
-    .version = "0.0.1",
-    .minimum_zig_version = "0.15.1",
+    .version = "0.0.4",
+    .minimum_zig_version = "0.15.2",
     .dependencies = .{
         .thpvm = .{
             .path = "../thp-vm",
