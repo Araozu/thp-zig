@@ -3,6 +3,7 @@ const syntax = @import("syntax");
 const semantic = @import("semantic");
 
 const root = @import("./root.zig");
+const emit_function_call = @import("./function_call.zig").emit_function_call;
 
 const BytecodeError = root.BytecodeError;
 const RegisterRef = semantic.RegisterRef;
@@ -13,7 +14,7 @@ pub fn emit_expression(ctx: *CodegenContext, block_ctx: *BlockContext, node: *co
     return switch (node.*) {
         .primary => |*primary| try emit_primary_expression(ctx, block_ctx, primary.expr),
         .binary => |*binary| try emit_binary_expression(ctx, block_ctx, binary),
-        else => @panic("Codegen: not implemented for this expression type"),
+        .function => |*function| try emit_function_call(ctx, block_ctx, function),
     };
 }
 
