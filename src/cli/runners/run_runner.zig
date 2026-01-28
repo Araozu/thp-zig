@@ -1,4 +1,5 @@
 const std = @import("std");
+const vm = @import("vm");
 
 const lexic = @import("lexic");
 const syntax = @import("syntax");
@@ -151,28 +152,38 @@ pub fn run(self: *const RunOptions) !void {
     defer semantic_ctx.deinit();
 
     // ==========================================
+    //
     //   Emit
+    //
     // ==========================================
 
-    // var generator: codegen.ByteCodeGenerator = undefined;
-    // generator.init(&ast, &semantic_ctx, arena.allocator());
+    var chunk: vm.Chunk = undefined;
+    defer chunk.deinit();
+    chunk.init(allocator);
 
-    // var chunk = try generator.emit();
-    // defer chunk.deinit();
+    var codegen_ctx = codegen.CodegenContext{
+        .allocator = allocator,
+        .semantic_ctx = &semantic_ctx,
+        .chunk = &chunk,
+    };
+
+    try codegen.emit_ast(&codegen_ctx, &ast);
 
     // ==========================================
     //   Execute in VM
     // ==========================================
 
-    // var vm: m_vm.VM = undefined;
-    // vm.init(chunk);
-    // defer vm.deinit();
-    //
-    // const result = vm.interpret();
-    //
-    // if (result != .INTERPRET_OK) {
-    //     std.process.exit(1);
-    // }
+    var stdout = std.fs.File.stdout();
+    var stdout_writer = stdout.writer("" ** 16);
+
+    var virtual_machine: vm.VM = undefined;
+    virtual_machine.init(&chunk, &stdout_writer.interface);
+    defer virtual_machine.deinit();
+
+    const result = virtual_machine.run();
+    if (result != .INTERPRET_OK) {
+        std.process.exit(1);
+    }
 }
 
 inline fn trace_header() void {
