@@ -1,10 +1,10 @@
 .{
     .name = .thp,
-    .version = "0.0.1",
-    .minimum_zig_version = "0.15.1",
+    .version = "0.0.4",
+    .minimum_zig_version = "0.15.2",
     .dependencies = .{
         .thpvm = .{
-            .path = "../thp-vm",
+            .path = "git+https://git.araoz.dev/fernando/thp-vm.git#d8a63f4af50f9b202516f0705ffaf23bfb89ab1e",
         },
     },
     .paths = .{

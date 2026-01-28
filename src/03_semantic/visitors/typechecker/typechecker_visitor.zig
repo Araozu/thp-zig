@@ -165,7 +165,3 @@ pub const TypecheckerVisitor = struct {
         };
     }
 };
-
-test "should not fail" {
-    try std.testing.expect(true);
-}

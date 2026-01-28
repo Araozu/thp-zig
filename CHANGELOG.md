@@ -36,7 +36,7 @@ This is a rough, non-commital roadmap of sorts.
 
 ## v0.0.5: rewritten again
 
-- [ ] remove stack based vm
+- [x] remove stack based vm
 - [ ] target register based vm
 
 

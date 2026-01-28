@@ -154,8 +154,8 @@ pub fn run(self: *const RunOptions) !void {
     //   Emit
     // ==========================================
 
-    var generator: codegen.ByteCodeGenerator = undefined;
-    generator.init(&ast, &semantic_ctx, arena.allocator());
+    // var generator: codegen.ByteCodeGenerator = undefined;
+    // generator.init(&ast, &semantic_ctx, arena.allocator());
 
     // var chunk = try generator.emit();
     // defer chunk.deinit();
