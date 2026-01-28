@@ -174,7 +174,7 @@ pub fn run(self: *const RunOptions) !void {
     // ==========================================
 
     var stdout = std.fs.File.stdout();
-    var stdout_writer = stdout.writer("" ** 16);
+    var stdout_writer = stdout.writer("");
 
     var virtual_machine: vm.VM = undefined;
     virtual_machine.init(&chunk, &stdout_writer.interface);

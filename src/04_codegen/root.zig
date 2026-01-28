@@ -80,4 +80,6 @@ pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) !void {
     for (ast.statements.items) |*statement| {
         try emit_statatement(ctx, statement, &block_ctx);
     }
+
+    try ctx.chunk.write_opcode(.op_return);
 }
