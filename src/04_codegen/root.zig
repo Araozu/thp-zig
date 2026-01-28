@@ -1,4 +1,5 @@
 const std = @import("std");
+const config = @import("config");
 const vm = @import("vm");
 const m_syntax = @import("syntax");
 const m_semantic = @import("semantic");
@@ -54,6 +55,16 @@ pub fn emit_ast(ctx: *CodegenContext, ast: *const ASTModule) !void {
         switch (statement.*) {
             .variableBinding => |binding| {
                 const binding_symbol_info = ctx.semantic_ctx.type_map.get(binding.id) orelse {
+                    if (config.tracing) {
+                        std.debug.print(
+                            "\nCodegen - emit AST - A variable didn't have its binding id `{d}` set.\n\tbinding name: {s}\n\n",
+                            .{
+                                binding.id,
+                                binding.identifier.value,
+                            },
+                        );
+                    }
+
                     @panic("Variable has no allocated register - semantic analysis bug");
                 };
 

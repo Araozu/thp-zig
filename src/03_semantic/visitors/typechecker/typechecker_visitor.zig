@@ -141,6 +141,21 @@ pub const TypecheckerVisitor = struct {
             std.debug.panic("Compiler erros: Symbol {s} was not on the symbol table during typechecking...", .{binding_name});
         };
 
+        // Assign the slot number based on if it's a value/ref
+        std.debug.assert(existing_symbol.slot_index == null);
+
+        const next_slot_idx: types.RegisterRef = blk: {
+            if (expression_type.is_primitive()) {
+                const tmp = self.scope.next_val_slot;
+                self.scope.next_val_slot += 1;
+                break :blk .{ .val = tmp };
+            } else {
+                const tmp = self.scope.next_ref_slot;
+                self.scope.next_ref_slot += 1;
+                break :blk .{ .ref = tmp };
+            }
+        };
+
         try self.scope.insert(
             binding_name,
             .{
@@ -149,9 +164,12 @@ pub const TypecheckerVisitor = struct {
                     .start = existing_symbol.location.start,
                     .end = existing_symbol.location.end,
                 },
-                .slot_index = existing_symbol.slot_index,
+                .slot_index = next_slot_idx,
             },
         );
+        try self.semantic_ctx.type_map.put(self.semantic_ctx.allocator, node.id, .{
+            .computed_type = expression_type,
+        });
 
         return Type.Untyped;
     }

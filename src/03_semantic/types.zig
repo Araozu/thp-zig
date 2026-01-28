@@ -132,14 +132,18 @@ pub const Scope = struct {
     allocator: std.mem.Allocator,
     children: std.ArrayListUnmanaged(*Scope),
     types: std.ArrayListUnmanaged(*Type),
+    next_val_slot: u8,
+    next_ref_slot: u8,
 
     pub fn init(allocator: std.mem.Allocator) Scope {
-        return Scope{
+        return .{
             .symbols = .empty,
             .parent = null,
             .allocator = allocator,
             .children = .empty,
             .types = .empty,
+            .next_val_slot = 0,
+            .next_ref_slot = 0,
         };
     }
 

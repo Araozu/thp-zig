@@ -16,17 +16,20 @@ const VisitorError = visitor.VisitorError;
 const Statement = syntax.Statement;
 const VariableBinding = syntax.VariableBinding;
 
+/// Walks through the AST, checking & annotating symbols
 pub const SymbolCollectorVisitor = struct {
     scope: *Scope,
     alloc: std.mem.Allocator,
     err: *ErrorCtx,
 
+    const Self = @This();
+
     pub fn init(
         alloc: std.mem.Allocator,
         s: *Scope,
         err: *ErrorCtx,
-    ) SymbolCollectorVisitor {
-        return SymbolCollectorVisitor{
+    ) Self {
+        return .{
             .scope = s,
             .alloc = alloc,
             .err = err,
