@@ -162,6 +162,8 @@ pub const Scope = struct {
             .allocator = self.allocator,
             .children = .empty,
             .types = .empty,
+            .next_val_slot = 0,
+            .next_ref_slot = 0,
         };
         errdefer self.allocator.destroy(child);
 
