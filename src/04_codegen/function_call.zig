@@ -49,7 +49,7 @@ pub fn emit_function_call(
 
     // Emit print opcode
     try ctx.chunk.write_opcode(.op_print);
-    try ctx.chunk.write_byte(rfx);
+    try ctx.chunk.write_byte(out_reg);
 
     // A print doesnt set anything in regs, and semantic should've known.
     // Also the caller should not use this path.

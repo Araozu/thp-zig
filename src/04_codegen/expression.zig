@@ -60,7 +60,13 @@ fn emit_binary_expression(
     @panic("Not implemented");
 }
 
-/// Creates the value & returns its register number
+/// Creates the value, puts it into `target_slot` & returns its register number.
+///
+/// If the primary expression resolves to an identifier, then the `target_slot`
+/// is ignored and the register of such identifier is returned.
+/// Otherwise, `target_slot` is returned.
+///
+/// Thus, the caller should **always** use the returned register, rather that the one passed in.
 fn emit_primary_expression(
     ctx: *CodegenContext,
     exp: *const syntax.PrimaryExpression,
@@ -80,7 +86,7 @@ fn emit_primary_expression(
             try ctx.chunk.write_byte(rx_idx);
             try ctx.chunk.write_byte(@intCast(constant_idx));
 
-            return .{ .val = rx_idx };
+            return target_slot;
         },
         .string => |tok_string| {
             const rx_idx = target_slot.as_ref();
@@ -93,7 +99,12 @@ fn emit_primary_expression(
             try ctx.chunk.write_byte(rx_idx);
             try ctx.chunk.write_byte(@intCast(const_idx));
 
-            return .{ .ref = rx_idx };
+            return target_slot;
+        },
+        .identifier => |tok_id| {
+            // Optimization: ignore the passed slot, reuse the one from the identifier
+            const id_info = ctx.semantic_ctx.symbol_table.scope.get(tok_id.value).?;
+            return id_info.slot_index.?;
         },
         else => {
             std.debug.panic("Not implemented: codegen other primary expr\n", .{});
