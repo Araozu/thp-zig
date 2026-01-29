@@ -30,14 +30,11 @@ pub fn emit_statement(ctx: *CodegenContext, node: *const Statement, block_ctx: *
 }
 
 pub fn emit_variable_binding(ctx: *CodegenContext, block_ctx: *BlockContext, binding: *syntax.VariableBinding) !void {
-    // - Get variable register
+    // Get desired variable register
     const binding_info = ctx.semantic_ctx.symbol_table.scope.get(binding.identifier.value) orelse {
         @panic("Semantyc analysis bug: Binding info of variable not found in scope.");
     };
 
-    // - Compute expression
-    const res = try emit_expression(ctx, block_ctx, &binding.expression, binding_info.slot_index.?);
-    _ = res;
-
-    // TODO: send the desired register to avoid a copy
+    // Compute expression, send variable register to set
+    _ = try emit_expression(ctx, block_ctx, &binding.expression, binding_info.slot_index.?);
 }

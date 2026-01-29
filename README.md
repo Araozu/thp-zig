@@ -9,26 +9,27 @@ There is documentation and a WIP spec at
 
 ## Install
 
-This program has exactly 1 dependency: the zig standard library, and has 2 binaries:
+This program depends on the zig stdlib and `thpvm`, the virtual machine target.
 
-- The main `thp` compiler. THP source code comes in, THP bytecode comes out.
-- The thp vm. It reads a bytecode file & executes it.
-
+To run from source:
 
 - Install [the Zig programming language](https://ziglang.org/).
-- Run `zig build -Doptimize=ReleaseFast`
+- Run `zig build run` to run the debug build
+- Run `zig build -Doptimize=ReleaseFast` to build the final binary
 - The binary will be located at `zig-out/bin/thp`
 - Profit
 
 
 ## Usage
 
+Run `thp --help` to see usage.
+
 
 ### Write source code
 
-As of v0.0.4 the compiler is able to do:
-- Basic f64/u64 arithmetic
-- Print strings & numbers
+As of v0.0.5 the compiler is able to do:
+- Basic u64 arithmetic
+- Print strings
 - Declare & use variables
 
 ```thp
@@ -40,20 +41,17 @@ print("Hello, " + name + "!")
 ### Compile to file
 
 Run `zig build run -- c /path/to/thp/source/code > out`, where `out` is
-the file to write the bytecode to. Right now the compiler just writes bytes to
-stdout.
+the file to write the bytecode to. The compiler always writes to stdout.
 
 
 ### Run bytecode
 
-Load & execute the bytecode with `zig build run-vm -- out`. Your floats
-should be printed.
+See the `thpvm` package.
 
 
 ### Compile & run in one command
 
-Run `zig build run -- run /path/to/thp/source/code`. It will compile & run
-the code in one command.
+Run `zig build run -- run /path/to/thp/source/code`. It will compile & run the code in one command.
 
 
 ## Contributing
